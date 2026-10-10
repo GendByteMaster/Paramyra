@@ -1,0 +1,42 @@
+name: React Flow lockfile bootstrap
+on:
+  push:
+    branches: ["dev/studio-react-flow-m32"]
+    paths:
+      - "package.json"
+      - ".github/workflows/react-flow-lock.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Generate and validate deterministic npm lock
+        run: |
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          npm ci --ignore-scripts --no-audit --no-fund
+      - name: Commit lockfile only if branch is unchanged
+        run: |
+          if git diff --quiet -- package-lock.json; then
+            echo "Lockfile already up to date"
+            exit 0
+          fi
+          git fetch origin dev/studio-react-flow-m32
+          if [ "$(git rev-parse HEAD)" != "$(git rev-parse FETCH_HEAD)" ]; then
+            echo "Branch advanced; refuse to push stale lockfile"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          git commit -m "build(graph): lock React Flow v12 dependency tree"
+          git push origin HEAD:dev/studio-react-flow-m32
