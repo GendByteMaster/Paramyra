@@ -601,3 +601,10 @@
   .pm-timeline-visible {width:100%;margin:0;}
   .pm-overview-row {grid-template-columns:80px minmax(0,1fr);gap:5px;}
 }
+
+.pm-box-mode-button {min-height:34px;padding:6px 10px;border:1px solid #81adcc7a;border-radius:8px;
+  background:#142a42;color:#c1d9ef;font-size:11px;font-weight:650;}
+.pm-box-mode-button[aria-pressed=true] {background:#205a58;border-color:#88e8d5;color:#e0fff8;}
+.pm-box-mode-button:focus-visible {outline:2px solid #adf7e8;outline-offset:2px;}
+.pm-multitrack.pm-box-mode .pm-keyframe-marker {pointer-events:none;}
+.pm-multitrack.pm-box-mode .pm-animation-track {touch-action:none;cursor:crosshair;}
