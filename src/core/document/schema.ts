@@ -3,12 +3,17 @@ import { sceneSchema, sceneParamsSchema, type SceneDocument as LegacyScene, type
 import { validateFormula, type Formula, defaultFormula } from "../math/formula";
 import { KEYFRAME_LIMIT, propertyBounds } from "../animation/keyframes";
 
+const bezierSchema=z.object({x1:z.number().finite().min(0).max(1),y1:z.number().finite().min(0).max(1),x2:z.number().finite().min(0).max(1),y2:z.number().finite().min(0).max(1)}).strict();
+
 const keyframeSchema=z.object({
   property:z.enum(["offset.x","offset.y","opacity","params.strokeWidth","formula.a","formula.b","formula.c"]),
   time:z.number().finite().min(0).max(60),
   value:z.number().finite().min(-10).max(10),
-  ease:z.enum(["linear","ease-in","ease-out","ease-in-out","hold"]),
+  ease:z.enum(["linear","ease-in","ease-out","ease-in-out","hold","bezier"]),
+  bezier:bezierSchema.optional(),
 }).strict().superRefine((frame,ctx)=>{
+  if((frame.ease==="bezier")!==!!frame.bezier)
+    ctx.addIssue({code:"custom",message:"Bezier handles are required only for bezier easing",path:["bezier"]});
   const range=propertyBounds(frame.property);
   if(frame.value<range.min||frame.value>range.max){
     ctx.addIssue({code:"custom",message:"Keyframe value outside property bounds",path:["value"]});
