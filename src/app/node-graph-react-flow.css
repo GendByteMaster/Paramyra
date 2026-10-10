@@ -2,8 +2,8 @@
 .pm-ng-root {
   --ng-text:#e9f1ff;
   --ng-muted:#9aafcb;
-  height:calc(100dvh - 66px);
-  min-height:620px;
+  height:100dvh;
+  min-height:0;
 }
 .pm-ng-projectbar {min-height:72px;gap:16px;padding:10px 18px}
 .pm-ng-layout {grid-template-columns:minmax(232px,250px) minmax(0,1fr) minmax(338px,364px)}
@@ -106,15 +106,15 @@
  .pm-ng-rf-top-tools .pm-ng-rf-chip:first-child {display:none}
 }
 @media(max-width:1050px){
- .pm-ng-root {height:auto;min-height:0;overflow:visible}
+ .pm-ng-root {height:100dvh;min-height:0;overflow:hidden}
  .pm-ng-projectbar {flex-wrap:wrap;padding:11px}
  .pm-ng-actions {width:100%;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start}
  .pm-ng-layout,.pm-ng-layout.no-library,.pm-ng-layout.no-inspector,.pm-ng-layout.no-library.no-inspector {
-   display:flex;flex-direction:column;min-height:0}
- .pm-ng-center {order:1}
+   display:flex;flex-direction:column;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+ .pm-ng-center {order:1;flex:none}
  .pm-ng-board {height:min(65dvh,600px);min-height:400px;flex:none}
- .pm-ng-inspector {order:2;border-left:0;border-top:1px solid var(--ng-line);max-height:none}
- .pm-ng-library {order:3;max-height:350px;border:0;border-top:1px solid var(--ng-line)}
+ .pm-ng-inspector {order:2;flex:none;border-left:0;border-top:1px solid var(--ng-line);max-height:none}
+ .pm-ng-library {order:3;flex:none;max-height:350px;border:0;border-top:1px solid var(--ng-line)}
  .pm-ng-inspector-scroll {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;overflow:visible}
  .pm-ng-inspector-scroll>.pm-ng-inspector-section:last-child {grid-column:1/-1;order:-1}
  .pm-ng-library-scroll {overflow:auto}
