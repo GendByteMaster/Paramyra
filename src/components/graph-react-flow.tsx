@@ -7,7 +7,7 @@ import {
   type Connection, type Edge, type Node, type NodeChange, type NodeProps,
   type XYPosition,
 } from "@xyflow/react";
-import { ArrowRight, Braces, CircleDot, Focus, GitBranch, Link2, X } from "lucide-react";
+import { ArrowRight, CircleDot, Focus, GitBranch, Link2, X } from "lucide-react";
 import {
   connectGraph, inputPorts, type GraphKind, type GraphNode, type GraphPort, type NodeGraph,
 } from "@/core/graph/model";
@@ -121,7 +121,7 @@ function CanvasContent(props:Props){
     if(connection.source&&connection.target&&connection.targetHandle)
       onConnect(connection.source,connection.target,connection.targetHandle as GraphPort);
   },[onConnect]);
-  const stop=useCallback((_:React.MouseEvent,node:MathFlowNode)=>{
+  const stop=useCallback((_:unknown,node:MathFlowNode)=>{
     const pos=bounded(node.position);
     setMoving(old=>{
       const next={...old};delete next[node.id];return next;
