@@ -104,5 +104,12 @@ for(const size of sizes){
       path:"test-results/release-review/"+testInfo.project.name+"-"+size.name+".png",
       animations:"disabled",fullPage:true,
     });
+    await page.getByRole("button",{name:"Open calculator window",exact:true}).click();
+    await expect(page.getByRole("dialog",{name:"Scientific calculator window"})).toBeVisible();
+    await page.screenshot({
+      path:"test-results/release-review/"+testInfo.project.name+"-"+size.name+"-calculator-window.png",
+      animations:"disabled",fullPage:true,
+    });
+    await page.getByRole("button",{name:"Close calculator window"}).click();
   });
 }

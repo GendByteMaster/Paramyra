@@ -1,13 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { FormulaCalculator } from "./formula-calculator";
+import { Calculator } from "lucide-react";
 import { defaultFormula, validateFormula, type Formula, type FormulaMode } from "@/core/math/formula";
 
-type Props = { layerId: string; formula: Formula; onChange: (next: Formula) => void };
-export function FormulaEditor({ layerId, formula, onChange }: Props) {
+type Props = { layerId: string; formula: Formula; onChange: (next: Formula) => void; onOpenCalculator: () => void };
+export function FormulaEditor({ layerId, formula, onChange, onOpenCalculator }: Props) {
   const [editing, setEditing] = useState({ layerId, committed: formula, draft: formula });
-  const [surface,setSurface] = useState<"graph"|"calculator">("graph");
   // Sync Undo/Redo and selection without resetting an incomplete expression on every keystroke.
   if (editing.layerId !== layerId || editing.committed !== formula) {
     setEditing({ layerId, committed: formula, draft: formula });
@@ -30,11 +29,9 @@ export function FormulaEditor({ layerId, formula, onChange }: Props) {
   };
   return <section className="pm-inspector-section pm-formula-editor" aria-label="Formula editor">
     <div className="pm-inspector-sectionhead"><span>02 / FORMULA EDITOR</span><span className="pm-formula-type">f(x)</span></div>
-    <div className="pm-formula-surface-toggle" role="tablist" aria-label="Formula editor tools">
-      <button type="button" role="tab" aria-selected={surface==="graph"} onClick={()=>setSurface("graph")}>Graph</button>
-      <button type="button" role="tab" aria-selected={surface==="calculator"} onClick={()=>setSurface("calculator")}>Calculator</button>
-    </div>
-    <div className="pm-formula-graph" hidden={surface!=="graph"}>
+    <button type="button" className="pm-formula-launch" aria-label="Open calculator from Formula Editor" aria-haspopup="dialog" aria-controls="pm-scientific-calculator-window" onClick={onOpenCalculator}>
+      <Calculator size={16}/> Open Calculator <span>↗</span>
+    </button>
     <label className="pm-formula-field">Curve type
       <select aria-label="Formula mode" value={draft.mode} onChange={e=>chooseMode(e.target.value as FormulaMode)}>
         <option value="explicit">Explicit · y = f(x,t)</option>
@@ -64,7 +61,6 @@ export function FormulaEditor({ layerId, formula, onChange }: Props) {
           value={draft.max} onChange={e=>domain("max",e.target.value)}/>
       </label>
     </div>
-    </div>
     <div className="pm-formula-variables" aria-label="Formula parameters">
       {(["a","b","c"] as const).map(name=><label key={name}>
         <span>{name.toUpperCase()} <output>{draft[name].toFixed(2)}</output></span>
@@ -72,14 +68,11 @@ export function FormulaEditor({ layerId, formula, onChange }: Props) {
           value={draft[name]} onChange={e=>propose({[name]:e.target.valueAsNumber})}/>
       </label>)}
     </div>
-    <div className="pm-calc-panel" hidden={surface!=="calculator"}>
-      <FormulaCalculator formula={draft}/>
-    </div>
-    {surface==="graph"&&<div className="pm-formula-feedback" role="status" aria-live="polite" data-valid={!error}>
+    <div className="pm-formula-feedback" role="status" aria-live="polite" data-valid={!error}>
       {error ? "Check expression: "+error : "Valid expression · Live preview"}
-    </div>}
-    {surface==="graph"&&<p className="pm-formula-help">Functions: sin, cos, tan, sqrt, abs, exp, ln, log, floor, ceil, asin, acos, atan.
+    </div>
+    <p className="pm-formula-help">Functions: sin, cos, tan, sqrt, abs, exp, ln, log, floor, ceil, asin, acos, atan.
       Operators: + − * / ^. Constants: pi, e. Animation variable: t (seconds).
-      Use explicit * for multiplication. No JavaScript execution.</p>}
+      Use explicit * for multiplication. No JavaScript execution.</p>
   </section>;
 }
