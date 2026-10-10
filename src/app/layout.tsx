@@ -12,6 +12,7 @@ import "@xyflow/react/dist/style.css";
 import "./node-graph.css";
 import "./node-graph-react-flow.css";
 import "./node-graph-shell.css";
+import "./editor-design-system.css";
 
 export const metadata: Metadata = {
   title: { default: "Paramyra — Mathematics Comes Alive", template: "%s | Paramyra" },
