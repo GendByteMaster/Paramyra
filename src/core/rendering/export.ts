@@ -2,7 +2,7 @@ import type { MathDocument } from "../document/schema";
 import type { CanvasView } from "./canvas2d";
 import { drawDocument } from "./canvas2d";
 import { layerWorldPoint, pixelScale, worldToScreen } from "./geometry";
-import { resolveAnimatedDocument } from "../animation/keyframes";
+import { resolveLiveScene, type CompiledGraph } from "../graph/live";
 
 export type ExportBackground="dark"|"transparent";
 export type ExportSize=Readonly<{width:number;height:number}>;
@@ -16,9 +16,9 @@ const n=(value:number)=>Number.isFinite(value)?Number(value.toFixed(3)).toString
 const filename=(doc:MathDocument,ext:string)=>"paramyra-"+doc.id.replace(/[^a-zA-Z0-9_-]/g,"-").slice(0,60)+"."+ext;
 
 /** Self-contained SVG with no untrusted HTML/script, external images or runtime CSS. */
-export function createSceneSvg(doc:MathDocument,time:number,view:CanvasView,size:ExportSize,background:ExportBackground="dark"):string{
+export function createSceneSvg(doc:MathDocument,time:number,view:CanvasView,size:ExportSize,background:ExportBackground="dark",liveGraph:CompiledGraph|null=null):string{
   if(!validateExportSize(size)||!Number.isFinite(time)||time<0||time>doc.duration)throw Error("Invalid export settings");
-  const render=resolveAnimatedDocument(doc,time);
+  const render=resolveLiveScene(doc,time,liveGraph).document;
   const lines:string[]=[
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+size.width+" "+size.height+'" width="'+size.width+'" height="'+size.height+'">',
     "<title>"+clean(doc.title)+"</title>",
@@ -49,17 +49,17 @@ function triggerDownload(blob:Blob,name:string):void{
   anchor.click();anchor.remove();
   window.setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
-export function saveSvg(doc:MathDocument,time:number,view:CanvasView,size:ExportSize,background:ExportBackground):void{
-  const svg=createSceneSvg(doc,time,view,size,background);
+export function saveSvg(doc:MathDocument,time:number,view:CanvasView,size:ExportSize,background:ExportBackground,liveGraph:CompiledGraph|null=null):void{
+  const svg=createSceneSvg(doc,time,view,size,background,liveGraph);
   triggerDownload(new Blob([svg],{type:"image/svg+xml;charset=utf-8"}),filename(doc,"svg"));
 }
-export async function savePng(doc:MathDocument,time:number,view:CanvasView,size:ExportSize,background:ExportBackground):Promise<void>{
+export async function savePng(doc:MathDocument,time:number,view:CanvasView,size:ExportSize,background:ExportBackground,liveGraph:CompiledGraph|null=null):Promise<void>{
   if(!validateExportSize(size)||!Number.isFinite(time)||time<0||time>doc.duration)throw Error("Invalid export settings");
   const canvas=document.createElement("canvas");
   canvas.width=size.width;canvas.height=size.height;
   const ctx=canvas.getContext("2d");if(!ctx)throw Error("Canvas unavailable");
   // The same renderer is authoritative for live scene and PNG output.
-  drawDocument(ctx,size.width,size.height,doc,time,view,background==="transparent");
+  drawDocument(ctx,size.width,size.height,doc,time,view,background==="transparent",liveGraph);
   const blob=await new Promise<Blob>((resolve,reject)=>canvas.toBlob(value=>value?resolve(value):reject(new Error("PNG encoding failed")),"image/png"));
   triggerDownload(blob,filename(doc,"png"));
 }
