@@ -1,6 +1,6 @@
 /**
  * Bounded, expression-only mathematical parser. No code execution or dynamic imports.
- * Grammar: numbers, constants, variables, parenthesis, +-*/^ and approved unary functions.
+ * Grammar: numeric literals, variables, parentheses and arithmetic operators.
  */
 export type MathEnv = Readonly<{ x: number; u: number; theta: number; t: number; a: number; b: number; c: number }>;
 type Ast =

@@ -85,7 +85,7 @@ test("workspace tools have real behavior", async ({ page }) => {
   await expect(page.getByLabel("Zoom level")).toHaveText("100%");
 
   await page.getByRole("tab", { name: "Scene JSON" }).click();
-  await expect(page.getByRole("tabpanel")).toContainText('"schemaVersion": 2');
+  await expect(page.getByRole("tabpanel")).toContainText('"schemaVersion": 3');
   await page.getByRole("tab", { name: "Overview" }).click();
   await expect(page.getByRole("tabpanel")).toContainText("Amplitude");
 
@@ -260,7 +260,7 @@ test("v1 scene import migrates to v2 and can be exported without losing paramete
   });
   await expect(page.locator("#frequencyX")).toHaveValue("8");
   await page.getByRole("tab", { name: "Scene JSON" }).click();
-  await expect(page.getByRole("tabpanel")).toContainText('"schemaVersion": 2');
+  await expect(page.getByRole("tabpanel")).toContainText('"schemaVersion": 3');
   await expect(page.getByRole("tabpanel")).toContainText('"frequencyX": 8');
 });
 
@@ -316,7 +316,7 @@ test("professional canvas selects and moves a mathematical layer with Undo", asy
   await expect(canvas).toBeVisible();
   const point = await canvas.evaluate(node => {
     const rect = node.getBoundingClientRect();
-    const raw = localStorage.getItem("paramyra.document.v2");
+    const raw = localStorage.getItem("paramyra.document.v3");
     if (!raw) throw new Error("Missing scene");
     const layer = JSON.parse(raw).layers[0];
     const radius = Math.min(rect.width, rect.height) * .45;
@@ -329,9 +329,9 @@ test("professional canvas selects and moves a mathematical layer with Undo", asy
   await page.waitForTimeout(650); // One drag is one undo step, even beyond 500ms.
   await page.mouse.move(point.x + 55, point.y - 25, { steps: 5 });
   await page.mouse.up();
-  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("paramyra.document.v2")!).layers[0].offset.x)).toBeGreaterThan(0.1);
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers[0].offset.x)).toBeGreaterThan(0.1);
   await page.getByRole("button", { name: "Undo" }).click();
-  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("paramyra.document.v2")!).layers[0].offset.x)).toBe(0);
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers[0].offset.x)).toBe(0);
 });
 
 test("reset layer preserves the other layers in a composition", async ({ page }) => {
@@ -345,7 +345,7 @@ test("reset layer preserves the other layers in a composition", async ({ page })
   }
   await page.getByRole("button", { name: "Reset layer" }).click();
   await expect(page.locator(".pm-viewport-heading")).toContainText("2 layers");
-  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("paramyra.document.v2")!).layers.length)).toBe(2);
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers.length)).toBe(2);
 });
 
 test("canvas tools toggle between selection and pan", async ({ page }) => {
@@ -357,4 +357,56 @@ test("canvas tools toggle between selection and pan", async ({ page }) => {
   await expect(pan).toHaveAttribute("aria-pressed", "true");
   await select.click();
   await expect(select).toHaveAttribute("aria-pressed", "true");
+});
+
+
+test("custom formula can be added, edited and persisted", async ({ page }) => {
+  await page.goto("/studio");
+  const library=page.getByRole("complementary",{name:"Scene library"});
+  if(!(await library.isVisible()))await page.getByRole("button",{name:"Toggle scene library"}).click();
+  await library.getByRole("combobox",{name:"New layer kind"}).selectOption("formula");
+  await library.getByRole("button",{name:"Add layer"}).click();
+  await expect(page.getByRole("combobox",{name:"Mathematical form"})).toHaveValue("formula");
+  if(await page.getByRole("button",{name:"Close scene library"}).isVisible()){
+    await page.getByRole("button",{name:"Close scene library"}).click({position:{x:350,y:300}});
+  }
+  const formula=page.getByRole("textbox",{name:"Formula Y expression"});
+  await formula.fill("a*cos(b*x+t)");
+  await expect(page.getByRole("status")).toContainText("Valid expression");
+  await page.getByRole("slider",{name:"Formula parameter a"}).fill("2");
+  await expect.poll(()=>page.evaluate(()=>{
+    const value=JSON.parse(localStorage.getItem("paramyra.document.v3")!);
+    return value.layers[1].formula.exprY;
+  })).toBe("a*cos(b*x+t)");
+  await page.reload();
+  await expect(page.getByRole("textbox",{name:"Formula Y expression"})).toHaveValue("a*cos(b*x+t)");
+  await expect(page.getByRole("slider",{name:"Formula parameter a"})).toHaveValue("2");
+});
+
+test("unsafe expression stays in draft; committed document remains valid", async ({page}) => {
+  await page.goto("/studio");
+  await page.getByRole("combobox",{name:"Mathematical form"}).selectOption("formula");
+  const expr=page.getByRole("textbox",{name:"Formula Y expression"});
+  await expr.fill("process.exit(1)");
+  await expect(page.locator(".pm-formula-feedback")).toContainText(/unknown function|unsupported|invalid/i);
+  await expect(expr).toHaveAttribute("aria-invalid","true");
+  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers[0].formula.exprY);
+  expect(saved).toBe("a*sin(b*x+t)");
+  await expr.fill("sin(x)");
+  await expect(expr).toHaveAttribute("aria-invalid","false");
+  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers[0].formula.exprY)).toBe("sin(x)");
+});
+
+test("v2 multilayer JSON import migrates into v3 formula-capable project", async ({page}) => {
+  await page.goto("/studio");
+  await page.locator('input[type="file"]').setInputFiles({
+    name:"v2.json",mimeType:"application/json",
+    buffer:Buffer.from(JSON.stringify({schemaVersion:2,id:"saved",title:"Old Composition",duration:12,
+      layers:[{id:"old",title:"Old",kind:"lissajous",
+        params:{frequencyX:3,frequencyY:4,phase:0.2,amplitude:0.8,strokeWidth:1.6},
+        visible:true,color:"#a9b8ff",opacity:1,offset:{x:1,y:0}}]})),
+  });
+  await page.getByRole("tab",{name:"Scene JSON"}).click();
+  await expect(page.getByRole("tabpanel")).toContainText('"schemaVersion": 3');
+  await expect(page.getByRole("tabpanel")).toContainText('"x": 1');
 });

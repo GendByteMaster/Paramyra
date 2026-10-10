@@ -1,17 +1,38 @@
 import { describe, expect, it } from "vitest";
 import { presets } from "../scenes/presets";
-import { documentFromScene, parseDocument, layerFromScene } from "./schema";
+import { documentFromScene, parseDocument, layerFromScene, newFormulaLayer } from "./schema";
+import { defaultFormula } from "../math/formula";
 import { addLayer, duplicateLayer, moveLayer, removeLayer, updateLayer } from "./operations";
 import { initializeHistory, commitDocument, undoDocument, redoDocument, HISTORY_LIMIT } from "./history";
 
-describe("SceneDocument v2", () => {
+describe("MathDocument v3 with strict v1/v2 migration", () => {
   it("migrates exact v1 documents, preserving mathematical parameters", () => {
     const scene = presets[0];
     const migrated = parseDocument(scene)!;
-    expect(migrated.schemaVersion).toBe(2);
+    expect(migrated.schemaVersion).toBe(3);
     expect(migrated.layers).toHaveLength(1);
     expect(migrated.layers[0].params).toEqual(scene.params);
     expect(parseDocument(migrated)).toEqual(migrated);
+  });
+  it("migrates v2 layered documents without dropping IDs, offsets or styles", () => {
+    const source=documentFromScene(presets[0]);
+    const v2={...source,schemaVersion:2};
+    const migrated=parseDocument(v2);
+    expect(migrated?.schemaVersion).toBe(3);
+    expect(migrated?.layers).toEqual(source.layers);
+    expect(parseDocument({...v2,layers:[source.layers[0],newFormulaLayer("bad")]})).toBeNull();
+  });
+  it("accepts strictly validated formula layers and rejects injection at import boundary", () => {
+    const start=documentFromScene(presets[0]);
+    const layer=newFormulaLayer("custom");
+    const doc={...start,layers:[...start.layers,layer]};
+    expect(parseDocument(doc)).toEqual(doc);
+    expect(parseDocument({...doc,layers:[start.layers[0],{...layer,formula:{...layer.formula,exprY:"process.exit(1)"}}]})).toBeNull();
+    expect(parseDocument({...doc,layers:[start.layers[0],{...layer,formula:{...layer.formula,exprY:"x",a:11}}]})).toBeNull();
+    expect(parseDocument({...doc,layers:[start.layers[0],{...layer,formula:{...defaultFormula("polar"),exprY:"cos(x)"}}]})).toBeNull();
+    const cloned=duplicateLayer(doc,"custom","copied");
+    expect(cloned.layers).toHaveLength(3);
+    expect(cloned.layers[2]).toEqual({...layer,id:"copied",title:"Custom Formula copy"});
   });
   it("rejects malformed, hostile, oversized and duplicate layer input", () => {
     const doc = documentFromScene(presets[0]);
