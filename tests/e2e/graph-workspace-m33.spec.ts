@@ -72,3 +72,19 @@ test("M3.3 dedicated fullscreen graph workspace toggles without losing the selec
   await page.getByRole("button",{name:"Exit graph fullscreen"}).click();
   await expect(page.getByLabel("Node Graph Workspace")).not.toHaveClass(/pm-ng-fullscreen/);
 });
+
+
+test("M3.3 Shift-click multi-selection enables group operations from real React Flow nodes",async({page})=>{
+  await page.goto("/studio/graph");
+  await page.getByRole("article",{name:"Amplitude node"}).click();
+  await page.getByRole("article",{name:"Timeline Time node"}).click({modifiers:["Shift"]});
+  await expect(page.getByLabel("Selected node count")).toContainText("2 selected");
+  await expect(page.getByRole("button",{name:"Group selected nodes",exact:true})).toBeEnabled();
+  await page.getByRole("button",{name:"Group selected nodes",exact:true}).click();
+  const group=page.getByRole("group",{name:"Selected graph group"});
+  await expect(group).toBeVisible();
+  await group.getByRole("textbox",{name:"Group name"}).fill("Oscillator Sources");
+  await expect(page.locator(".pm-ng-rf-group-header")).toContainText("Oscillator Sources");
+  const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.nodegraph.v3")!));
+  expect(stored.groups[0].nodeIds.sort()).toEqual(["amp","time"]);
+});
