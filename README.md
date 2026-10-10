@@ -12,7 +12,7 @@
 - Interactive Playground and Studio with live parameter editing
 - Local save/load, JSON import/export, reduced-motion support
 - Apple HIG-inspired accessible and adaptive UI
-- Animata reviewed as an **optional** source of UI-only effects; see [integration policy](docs/ANIMATA.md)
+- Animata selectively adapted for UI-only effects; see [integration policy](docs/ANIMATA.md)
 
 ## Running
 
@@ -27,6 +27,8 @@ Open http://localhost:3000. Verify with:
     npm run typecheck
     npm test
     npm run build
+    npx playwright install chromium
+    npm run test:e2e
 
 ### Deployment
 
