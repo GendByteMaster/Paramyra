@@ -19,11 +19,13 @@ test("M2.4 desktop split exposes timeline and graph while retaining usable canva
   await expect.poll(()=>surface.evaluate(el=>el.scrollHeight>el.clientHeight)).toBe(true);
   const toolbar=editor.getByRole("group",{name:"Professional Timeline controls"});
   await expect(toolbar).toHaveCSS("position","sticky");
-  const original=await toolbar.boundingBox();
   await surface.evaluate(el=>{el.scrollTop=170;});
   await expect.poll(()=>surface.evaluate(el=>el.scrollTop)).toBeGreaterThan(0);
   const after=await toolbar.boundingBox();
-  expect(Math.abs(original!.y-after!.y)).toBeLessThanOrEqual(4);
+  const scrollRect=await surface.boundingBox();
+  // Sticky toolbar pins to the scroll container top after the heading scrolls away.
+  expect(after!.y).toBeGreaterThanOrEqual(scrollRect!.y-3);
+  expect(after!.y).toBeLessThanOrEqual(scrollRect!.y+7);
   await dock.getByRole("separator",{name:"Resize animation workspace"}).focus();
   await dock.getByRole("separator",{name:"Resize animation workspace"}).press("ArrowUp");
   await expect.poll(async()=>Math.round((await dock.boundingBox())!.height)).toBeGreaterThan(Math.round(dockBox!.height));
