@@ -37,3 +37,21 @@
 @media(min-width:960px) and (min-height:680px) {.pm-sidebar-bottom {max-height:30%;}.pm-center .pm-details {max-height:245px;}}
 @media(max-width:959px) {.pm-layers-panel {max-height:none;}.pm-sidebar-bottom {max-height:none;}}
 @media(max-width:560px) {.pm-timeline {gap:7px;}.pm-view-tools span{display:none;}.pm-style-fields,.pm-offset-fields{grid-template-columns:1fr;}}
+
+/* v0.8 — compact direct-manipulation controls, with accessible focus */
+.pm-view-tools .pm-tool-divider {
+  width: 1px;
+  height: 20px;
+  padding: 0;
+  margin: 0 3px;
+  background: rgba(165, 195, 235, .23);
+}
+.pm-canvas-surface canvas:focus-visible {
+  outline: 2px solid #88bbff;
+  outline-offset: -3px;
+}
+.pm-inspector .pm-project-state { margin-top: 8px; }
+@media (max-width: 620px) {
+  .pm-view-tools { top: 8px; left: 8px; }
+  .pm-view-tools button { min-width: 34px; min-height: 34px; }
+}

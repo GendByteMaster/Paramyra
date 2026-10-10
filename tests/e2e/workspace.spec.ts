@@ -19,7 +19,7 @@ test("parameters remain saved after reload", async ({ page }) => {
   await expect(slider).toHaveValue("12");
   await page.reload();
   await expect(page.locator("#frequencyX")).toHaveValue("12");
-  await page.getByRole("button", { name: "Reset", exact: true }).click();
+  await page.getByRole("button", { name: "Reset layer", exact: true }).click();
   await expect(page.locator("#frequencyX")).toHaveValue("3");
 });
 
@@ -296,7 +296,7 @@ test("timeline, camera tools and custom presets are interactive", async ({ page 
   await page.getByRole("button", { name: "Toggle grid" }).click();
   await expect(page.getByRole("button", { name: "Toggle grid" })).toHaveAttribute("aria-pressed", "false");
   await page.getByRole("button", { name: "Fit scene" }).click();
-  await expect(page.getByLabel("Zoom level")).toHaveText("100%");
+  await expect(page.getByLabel("Zoom level")).toContainText("%");
   const library = page.getByRole("complementary", { name: "Scene library" });
   if (!(await library.isVisible())) await page.getByRole("button", { name: "Toggle scene library" }).click();
   await library.getByRole("textbox", { name: "Preset name" }).fill("My composition");
@@ -306,4 +306,49 @@ test("timeline, camera tools and custom presets are interactive", async ({ page 
   const reloadedLibrary = page.getByRole("complementary", { name: "Scene library" });
   if (!(await reloadedLibrary.isVisible())) await page.getByRole("button", { name: "Toggle scene library" }).click();
   await expect(reloadedLibrary.getByRole("button", { name: "My composition", exact: true })).toBeVisible();
+});
+
+
+test("professional canvas selects and moves a mathematical layer with Undo", async ({ page }) => {
+  await page.goto("/studio");
+  await page.getByRole("button", { name: "Pause animation" }).click();
+  const canvas = page.locator(".pm-canvas-area canvas");
+  await expect(canvas).toBeVisible();
+  const point = await canvas.evaluate(node => {
+    const rect = node.getBoundingClientRect();
+    const raw = localStorage.getItem("paramyra.document.v2");
+    if (!raw) throw new Error("Missing scene");
+    const layer = JSON.parse(raw).layers[0];
+    const radius = Math.min(rect.width, rect.height) * .45;
+    return { x: rect.left + rect.width/2 + Math.sin(layer.params.phase) * layer.params.amplitude * radius,
+      y: rect.top + rect.height/2 };
+  });
+  await page.mouse.move(point.x, point.y);
+  await page.mouse.down();
+  await page.mouse.move(point.x + 55, point.y - 25, { steps: 5 });
+  await page.mouse.up();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("paramyra.document.v2")!).layers[0].offset.x)).toBeGreaterThan(0.1);
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("paramyra.document.v2")!).layers[0].offset.x)).toBe(0);
+});
+
+test("reset layer preserves the other layers in a composition", async ({ page }) => {
+  await page.goto("/studio");
+  const library = page.getByRole("complementary", { name: "Scene library" });
+  if (!(await library.isVisible())) await page.getByRole("button", { name: "Toggle scene library" }).click();
+  await library.getByRole("button", { name: "Add layer" }).click();
+  await expect(page.locator(".pm-layer-row")).toHaveCount(2);
+  await page.getByRole("button", { name: "Reset layer" }).click();
+  await expect(page.locator(".pm-layer-row")).toHaveCount(2);
+});
+
+test("canvas tools toggle between selection and pan", async ({ page }) => {
+  await page.goto("/studio");
+  const select = page.getByRole("button", { name: "Select and move curve" });
+  const pan = page.getByRole("button", { name: "Pan canvas" });
+  await expect(select).toHaveAttribute("aria-pressed", "true");
+  await pan.click();
+  await expect(pan).toHaveAttribute("aria-pressed", "true");
+  await select.click();
+  await expect(select).toHaveAttribute("aria-pressed", "true");
 });

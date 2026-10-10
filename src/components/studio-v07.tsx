@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore, type ChangeEvent } from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, ChevronDown, ChevronUp, CircleDot, Copy, Download, Eye, EyeOff, FileJson2, Grid3X3, Info, Layers3, Maximize2, Minimize2, Minus, Move, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Pause, Play, Plus, Redo2, RotateCcw, Search, SlidersHorizontal, Trash2, Undo2, Upload, Waves } from "lucide-react";
+import { ArrowLeft, Check, ChevronDown, ChevronUp, CircleDot, Copy, Download, Eye, EyeOff, FileJson2, Grid3X3, Info, Layers3, Maximize2, Minimize2, Minus, Move, MousePointer2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Pause, Play, Plus, Redo2, RotateCcw, Search, SlidersHorizontal, Trash2, Undo2, Upload, Waves } from "lucide-react";
 import { SceneCanvas } from "./scene-canvas";
 import { SceneGlyph } from "./scene-glyph";
 import { presets, presetFor } from "@/core/scenes/presets";
 import { defaultView, type CanvasView } from "@/core/rendering/canvas2d";
+import { clampZoom, fitCamera, type Size } from "@/core/rendering/geometry";
 import { documentFromScene, parseDocument, layerById, layerFromScene, makeLayerId, type MathDocument } from "@/core/document/schema";
 import { addLayer, removeLayer, duplicateLayer, moveLayer, updateLayer } from "@/core/document/operations";
 import { initializeHistory, commitDocument, undoDocument, redoDocument } from "@/core/document/history";
@@ -82,6 +83,8 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
   const [detailsOpen,setDetailsOpen]=useState(true);
   const [detailsTab,setDetailsTab]=useState<"overview"|"json">("overview");
   const [view,setView]=useState<CanvasView>(defaultView);
+  const [canvasSize,setCanvasSize]=useState<Size>({width:800,height:600});
+  const [tool,setTool]=useState<"select"|"pan">("select");
   const [playing,setPlaying]=useState(true);
   const [time,setTime]=useState(0);
   const [speed,setSpeed]=useState(1);
@@ -184,7 +187,13 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
       else setNotice("Another element is in fullscreen.");
     }catch{setNotice("Browser blocked fullscreen.");}
   };
-  const reset=()=>{replace(documentFromScene(presetFor(layer.kind)));setView(defaultView);setPlaying(true);};
+  const resetLayer=()=>{const defaults=presetFor(layer.kind);commit(d=>updateLayer(d,layer.id,l=>({...l,params:{...defaults.params},offset:{x:0,y:0}})));};
+  const fit=()=>setView(v=>({...v,...fitCamera(doc,time,canvasSize,v)}));
+  const moveLayerOffset=(id:string,x:number,y:number)=>{
+    const current=doc.layers.find(l=>l.id===id);
+    if(!current||current.offset.x===x&&current.offset.y===y)return;
+    commit(d=>updateLayer(d,id,l=>({...l,offset:{x,y}})),"drag:"+id);
+  };
   const guide=layer.kind==="lissajous"?"Two perpendicular waves create a closed curve. Their frequency ratio controls symmetry.":layer.kind==="polar-rose"?"The symmetry parameter controls the petals of the rose curve.":"Two sine components combine into a harmonic waveform.";
   const shownFields=fields.filter(f=>layer.kind!=="polar-rose"||f.key!=="frequencyY");
   const filtered=presets.filter(p=>p.title.toLowerCase().includes(filter.toLowerCase().trim()));
@@ -223,7 +232,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
         <div className="pm-library-group-heading"><span>MATHEMATICAL FORMS</span><span>{filtered.length} / {presets.length}</span></div>
         <div className="pm-library-list">
           {filtered.map((p,index)=><button type="button" key={p.id} className={"pm-library-item"+(doc.layers.length===1&&layer.kind===p.kind?" active":"")}
-            aria-pressed={doc.layers.length===1&&layer.kind===p.kind} onClick={()=>selectPreset(p.kind)}>
+            aria-pressed={doc.layers.length===1&&layer.kind===p.kind} title="Open template (replaces the current document)" onClick={()=>selectPreset(p.kind)}>
             <span className="pm-library-thumb"><SceneGlyph kind={p.kind}/><span>0{index+1}</span></span>
             <span className="pm-library-item-text"><strong>{p.title}</strong><small>{p.kind==="wave"?"Harmonic motion":p.kind==="polar-rose"?"Polar geometry":"Parametric geometry"}</small></span>
             <Check size={14}/>
@@ -250,25 +259,32 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
               <button type="button" className="pm-icon-btn" aria-label="Toggle scene details" aria-pressed={detailsOpen} onClick={()=>setDetailsOpen(v=>!v)}><Info size={16}/></button>
             </div></div>
           <div className="pm-canvas-area">
-            <div className="pm-canvas-surface"><SceneCanvas scene={doc} playing={playing} view={view} time={time} duration={doc.duration} speed={speed} seekVersion={seekVersion} onTimeChange={setTime} onPanChange={(x,y)=>setView(v=>({...v,pan:{x,y}}))} onWheelZoom={zoom=>setView(v=>({...v,zoom}))}/></div>
+            <div className="pm-canvas-surface"><SceneCanvas scene={doc} playing={playing} view={view} tool={tool} selectedLayerId={selected}
+              onSelectLayer={setSelected} onLayerOffsetChange={moveLayerOffset} onSizeChange={setCanvasSize}
+              time={time} duration={doc.duration} speed={speed} seekVersion={seekVersion}
+              onTimeChange={setTime} onPanChange={(x,y)=>setView(v=>({...v,pan:{x,y}}))}
+              onCameraChange={camera=>setView(v=>({...v,...camera}))}/></div>
             <div className="pm-canvas-corner">PARAMYRA · LAYERED ENGINE</div>
             <div className="pm-view-tools" role="toolbar" aria-label="Canvas tools">
+              <button type="button" aria-label="Select and move curve" aria-pressed={tool==="select"} onClick={()=>setTool("select")}><MousePointer2 size={15}/></button>
+              <button type="button" aria-label="Pan canvas" aria-pressed={tool==="pan"} onClick={()=>setTool("pan")}><Move size={15}/></button>
+              <span className="pm-tool-divider"/>
               <button type="button" aria-label="Toggle grid" aria-pressed={view.grid} onClick={()=>setView(v=>({...v,grid:!v.grid}))}><Grid3X3 size={15}/></button>
               <button type="button" aria-label="Toggle axes" aria-pressed={view.axes} onClick={()=>setView(v=>({...v,axes:!v.axes}))}><Plus size={15}/></button>
               <button type="button" aria-label="Toggle curve style" aria-pressed={view.style==="glow"} onClick={()=>setView(v=>({...v,style:v.style==="glow"?"clean":"glow"}))}><Waves size={15}/></button>
-              <span>Drag to pan</span>
+              <span>{tool==="select"?"Drag curve to move · Alt+drag to pan":"Drag to pan"}</span>
             </div>
             <div className="pm-zoom">
-              <button type="button" aria-label="Zoom out" onClick={()=>setView(v=>({...v,zoom:Math.max(.5,Math.round((v.zoom-.25)*100)/100)}))}><Minus size={16}/></button>
+              <button type="button" aria-label="Zoom out" onClick={()=>setView(v=>({...v,zoom:clampZoom(Math.round((v.zoom-.25)*100)/100)}))}><Minus size={16}/></button>
               <output aria-label="Zoom level">{Math.round(view.zoom*100)}%</output>
-              <button type="button" aria-label="Zoom in" onClick={()=>setView(v=>({...v,zoom:Math.min(2,Math.round((v.zoom+.25)*100)/100)}))}><Plus size={16}/></button>
+              <button type="button" aria-label="Zoom in" onClick={()=>setView(v=>({...v,zoom:clampZoom(Math.round((v.zoom+.25)*100)/100)}))}><Plus size={16}/></button>
               <button type="button" aria-label="Reset zoom" onClick={()=>setView(v=>({...v,zoom:1}))}><Maximize2 size={15}/></button>
-              <button type="button" aria-label="Fit scene" onClick={()=>setView(defaultView)}><Move size={15}/></button>
+              <button type="button" aria-label="Fit scene" onClick={fit}><Move size={15}/></button>
             </div>
           </div>
           <div className="pm-transport"><div className="pm-transport-equation"><span className="pm-label">SELECTED · {layer.title}</span><code>{layer.kind==="lissajous"?"x = A sin(at + δ), y = B sin(bt)":layer.kind==="polar-rose"?"r = A cos(kθ)":"y = f(x, t)"}</code></div>
             <div className="pm-transport-buttons"><button type="button" className="pm-action pm-action-primary" aria-label={playing?"Pause animation":"Play animation"} onClick={()=>setPlaying(v=>!v)}>{playing?<Pause size={15}/>:<Play size={15}/>} {playing?"Pause":"Play"}</button>
-              <button type="button" className="pm-action pm-action-quiet" onClick={reset}><RotateCcw size={15}/> Reset</button>
+              <button type="button" className="pm-action pm-action-quiet" onClick={resetLayer}><RotateCcw size={15}/> Reset layer</button>
             </div></div>
         </section>
         {detailsOpen&&<section className="pm-details" aria-label="Scene details">
@@ -322,6 +338,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
           </section>
           <section className="pm-inspector-section"><div className="pm-inspector-sectionhead"><span>03 / PROJECT</span><FileJson2 size={16}/></div>
             <div className="field"><label>Duration (seconds)</label><Numeric label="Duration" min={2} max={60} step={1} value={doc.duration} change={v=>commit(d=>({...d,duration:v}))}/></div>
+            <button type="button" className="pm-action pm-action-quiet" onClick={()=>setView(v=>({...v,zoom:1,pan:{x:0,y:0}}))}>Reset camera</button>
             <div className="pm-project-state"><span className="live-indicator"/><div><strong>Browser project</strong><p>Changes are stored locally. Export JSON for backup.</p></div></div>
             <button className="pm-action pm-action-quiet pm-export-wide" type="button" onClick={download}><Download size={15}/> Export current scene</button>
             <p className="status" role="status">{notice||"Scene document v2 · no executable user code."}</p>
