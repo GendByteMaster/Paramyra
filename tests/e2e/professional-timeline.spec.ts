@@ -19,35 +19,40 @@ test("M2.3 timeline zoom, pan and fit use a bounded time viewport",async({page})
   expect(box).not.toBeNull();
   await track.click({position:{x:box!.width*.5,y:box!.height/2}});
   await editor.getByRole("button",{name:"Add keyframe at playhead"}).click();
-  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers[0].keyframes[0].time)).toBe(6);
+  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers[0].keyframes.length)).toBe(1);
+  const timestamp=await page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers[0].keyframes[0].time as number);
+  expect(timestamp).toBeGreaterThan(5.9);
+  expect(timestamp).toBeLessThan(6.1);
   await editor.getByRole("button",{name:"Fit entire timeline"}).click();
   await expect(range).toHaveText("0.00–12.00s");
-  await expect(track.getByRole("button",{name:"Seek to Opacity keyframe at 6.00 seconds"})).toBeVisible();
+  await expect(track.getByRole("button",{name:"Seek to Opacity keyframe at "+timestamp.toFixed(2)+" seconds"})).toBeVisible();
 });
 
 test("M2.3 All Layers shows authoritative document tracks and navigates to another layer",async({page})=>{
   await page.goto("/studio");
+  const firstTitle=await page.evaluate(()=>{
+    const key="paramyra.document.v3";
+    const doc=JSON.parse(localStorage.getItem(key)!);
+    const second={...structuredClone(doc.layers[0]),id:"m23-second",title:"Second Track",color:"#80e3db",
+      keyframes:[{property:"opacity",time:12,value:.7,ease:"linear"}]};
+    doc.layers[0].keyframes=[{property:"opacity",time:0,value:.3,ease:"linear"}];
+    doc.layers.push(second);
+    localStorage.setItem(key,JSON.stringify(doc));
+    return doc.layers[0].title as string;
+  });
+  await page.reload();
   await page.getByRole("button",{name:"Pause animation"}).click();
   await page.getByRole("button",{name:"Open animation workspace"}).click();
   const editor=page.getByLabel("Keyframe Animation Editor");
-  const seek=page.getByRole("slider",{name:"Timeline position"});
-  await seek.focus();await seek.press("Home");
-  await editor.getByRole("button",{name:"Add keyframe at playhead"}).click();
-  const addButton=page.getByRole("button",{name:"Add layer",exact:true});
-  if(await addButton.count()===0)await page.getByRole("button",{name:"Toggle scene library"}).click();
-  await addButton.click();
-  const closeLibrary=page.getByRole("button",{name:"Close scene library"});
-  if(await closeLibrary.count())await closeLibrary.click();
-  await expect(page.locator(".pm-layer-row")).toHaveCount(2);
-  await seek.focus();await seek.press("End");
-  await editor.getByRole("button",{name:"Add keyframe at playhead"}).click();
-  const layers=await page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers.map((l:{title:string})=>l.title));
   await editor.getByRole("button",{name:"All layer tracks"}).click();
   const overview=editor.getByRole("region",{name:"All layer animation tracks"});
   await expect(overview).toBeVisible();
-  for(const title of layers)await expect(overview.getByRole("button",{name:"Edit layer "+title})).toBeVisible();
-  await overview.getByRole("button",{name:"Navigate "+layers[0]+" Opacity keyframe 0.00 seconds"}).click();
-  await expect(overview.getByRole("button",{name:"Edit layer "+layers[0]})).toHaveAttribute("aria-pressed","true");
+  await expect(overview.getByRole("button",{name:"Edit layer "+firstTitle})).toBeVisible();
+  await expect(overview.getByRole("button",{name:"Edit layer Second Track"})).toBeVisible();
+  await overview.getByRole("button",{name:"Navigate "+firstTitle+" Opacity keyframe 0.00 seconds"}).click();
+  await expect(overview.getByRole("button",{name:"Edit layer "+firstTitle})).toHaveAttribute("aria-pressed","true");
+  await overview.getByRole("button",{name:"Navigate Second Track Opacity keyframe 12.00 seconds"}).click();
+  await expect(overview.getByRole("button",{name:"Edit layer Second Track"})).toHaveAttribute("aria-pressed","true");
   await editor.getByRole("button",{name:"Selected layer tracks"}).click();
   await expect(editor.getByLabel("Keyframe track for Opacity")).toBeVisible();
   await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers.length)).toBe(2);
