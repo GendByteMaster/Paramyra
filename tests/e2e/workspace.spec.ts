@@ -165,3 +165,33 @@ test("paused viewport never claims that animation is live", async ({ page }) => 
   await page.getByRole("button", { name: "Play animation" }).click();
   await expect(page.locator(".pm-live")).toContainText("LIVE");
 });
+
+
+test("editor sliders are thin and exact parameter inputs are editable", async ({ page }) => {
+  await page.goto("/studio");
+  const slider = page.locator("#frequencyX");
+  const input = page.getByRole("spinbutton", { name: "Set Frequency X numerically" });
+  await expect(input).toHaveValue("3");
+  await input.fill("8");
+  await input.press("Enter");
+  await expect(slider).toHaveValue("8");
+  await expect(page.getByRole("tabpanel")).toContainText("8 : 4");
+  const geometry = await slider.evaluate((el) => {
+    const style = getComputedStyle(el);
+    return { height: el.getBoundingClientRect().height, appearance: style.appearance, backgroundImage: style.backgroundImage };
+  });
+  expect(geometry.height).toBeLessThan(38);
+  expect(geometry.appearance).toBe("none");
+  expect(geometry.backgroundImage).toContain("gradient");
+});
+
+test("polar rose only exposes parameters that affect its curve", async ({ page }) => {
+  await page.goto("/studio?kind=polar-rose");
+  await expect(page.getByRole("slider", { name: "Symmetry (k)" })).toBeVisible();
+  await expect(page.locator("#frequencyY")).toHaveCount(0);
+  await expect(page.getByRole("complementary", { name: "Scene inspector" })).toContainText("Petals from a single equation");
+  await expect(page.getByRole("tabpanel")).toContainText("Petal count");
+  await page.getByRole("spinbutton", { name: "Set Symmetry (k) numerically" }).fill("6");
+  await page.getByRole("spinbutton", { name: "Set Symmetry (k) numerically" }).press("Enter");
+  await expect(page.getByRole("tabpanel")).toContainText("12");
+});
