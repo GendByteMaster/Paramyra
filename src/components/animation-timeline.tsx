@@ -1,5 +1,5 @@
 "use client";
-import {useRef,useState,type PointerEvent} from "react";
+import {useEffect,useRef,useState} from "react";
 import {KeyRound,Plus,Trash2} from "lucide-react";
 import {BezierCurveEditor} from "./bezier-curve-editor";
 import {TimelineLayerOverview} from "./timeline-layer-overview";
@@ -50,7 +50,9 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
   const suppressTrackClick=useRef(false);
   const trackList=useRef<HTMLDivElement|null>(null);
   const boxDrag=useRef<BoxDrag|null>(null);
+  const boxCleanup=useRef<(()=>void)|null>(null);
   const [boxVisual,setBoxVisual]=useState<BoxVisual|null>(null);
+  useEffect(()=>()=>{boxCleanup.current?.();},[]);
   const available=ANIMATABLE_PROPERTIES.filter(p=>supportsProperty(layer,p));
   const active=available.includes(property)?property:"opacity";
   const getFrames=(p:AnimatableProperty)=>(layer.keyframes??[]).filter(frame=>frame.property===p).sort((a,b)=>a.time-b.time);
@@ -121,7 +123,7 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
     const value=sampleProperty(layer,active,at);
     return (index/80*640).toFixed(1)+","+(8+(1-(value-bounds.min)/(bounds.max-bounds.min))*110).toFixed(1);
   }).join(" ");
-  const finishBox=(event:PointerEvent<HTMLDivElement>)=>{
+  const finishBox=(event:{pointerId:number;clientX:number;clientY:number})=>{
     const dragState=boxDrag.current;
     if(!dragState||dragState.pointerId!==event.pointerId)return;
     boxDrag.current=null;setBoxVisual(null);
@@ -133,7 +135,14 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
       timeAtPointer(dragState.startX,dragState.rect.left,dragState.rect.width,window),
       timeAtPointer(event.clientX,dragState.rect.left,dragState.rect.width,window),
       dragState.startY,event.clientY,rows);
-    const selectedNow=refs.map(f=>frameKey(f.property,f.time));
+    const domKeys=trackList.current?Array.from(trackList.current.querySelectorAll<HTMLButtonElement>(".pm-keyframe-marker"))
+      .filter(marker=>{
+        const rect=marker.getBoundingClientRect();
+        const x=rect.left+rect.width/2,y=rect.top+rect.height/2;
+        return x>=Math.min(dragState.startX,event.clientX)-2&&x<=Math.max(dragState.startX,event.clientX)+2
+          &&y>=Math.min(dragState.startY,event.clientY)-2&&y<=Math.max(dragState.startY,event.clientY)+2;
+      }).map(marker=>frameKey(marker.dataset.property as AnimatableProperty,Number(marker.dataset.time))):[];
+    const selectedNow=[...new Set([...refs.map(f=>frameKey(f.property,f.time)),...domKeys])];
     const previouslySelected=dragState.extend&&selection.layerId===layer.id?selection.keys:[];
     const next=[...new Set([...previouslySelected,...selectedNow])];
     setSelection({layerId:layer.id,keys:next,anchor:next[0]??""});
@@ -227,27 +236,44 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
             }}
             onPointerDown={e=>{
               if(e.button!==0||(!boxMode&&(e.target as HTMLElement).closest("button")))return;
-              boxDrag.current={pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,
+              boxCleanup.current?.();
+              const state:BoxDrag={pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,
                 rect:e.currentTarget.getBoundingClientRect(),extend:e.shiftKey||e.ctrlKey||e.metaKey};
+              boxDrag.current=state;
+              const moveGlobal=(pointer:globalThis.PointerEvent)=>{
+                if(pointer.pointerId!==state.pointerId||!trackList.current)return;
+                if(Math.hypot(pointer.clientX-state.startX,pointer.clientY-state.startY)<5)return;
+                const rect=trackList.current.getBoundingClientRect();
+                const x1=clamp(state.startX-state.rect.left,0,state.rect.width)+state.rect.left-rect.left;
+                const x2=clamp(pointer.clientX-state.rect.left,0,state.rect.width)+state.rect.left-rect.left;
+                const y1=state.startY-rect.top+trackList.current.scrollTop;
+                const y2=pointer.clientY-rect.top+trackList.current.scrollTop;
+                setBoxVisual({left:Math.min(x1,x2),top:Math.min(y1,y2),
+                  width:Math.abs(x2-x1),height:Math.abs(y2-y1)});
+              };
+              const release=(pointer:globalThis.PointerEvent)=>{
+                if(pointer.pointerId!==state.pointerId)return;
+                if(pointer.type==="pointerup")finishBox(pointer);
+                else{boxDrag.current=null;setBoxVisual(null);}
+                boxCleanup.current?.();
+              };
+              globalThis.window.addEventListener("pointermove",moveGlobal);
+              globalThis.window.addEventListener("pointerup",release);
+              globalThis.window.addEventListener("pointercancel",release);
+              boxCleanup.current=()=>{
+                globalThis.window.removeEventListener("pointermove",moveGlobal);
+                globalThis.window.removeEventListener("pointerup",release);
+                globalThis.window.removeEventListener("pointercancel",release);
+                boxCleanup.current=null;
+              };
               e.currentTarget.setPointerCapture(e.pointerId);
             }}
-            onPointerMove={e=>{
-              const state=boxDrag.current;
-              if(!state||state.pointerId!==e.pointerId||!trackList.current)return;
-              if(Math.hypot(e.clientX-state.startX,e.clientY-state.startY)<5)return;
-              const rect=trackList.current.getBoundingClientRect();
-              const x1=clamp(state.startX-state.rect.left,0,state.rect.width)+state.rect.left-rect.left;
-              const x2=clamp(e.clientX-state.rect.left,0,state.rect.width)+state.rect.left-rect.left;
-              const y1=state.startY-rect.top+trackList.current.scrollTop;
-              const y2=e.clientY-rect.top+trackList.current.scrollTop;
-              setBoxVisual({left:Math.min(x1,x2),top:Math.min(y1,y2),
-                width:Math.abs(x2-x1),height:Math.abs(y2-y1)});
-            }}
             onPointerUp={finishBox}
-            onPointerCancel={()=>{boxDrag.current=null;setBoxVisual(null);}}> 
+            onPointerCancel={()=>{boxDrag.current=null;setBoxVisual(null);boxCleanup.current?.();}}> 
             {playheadVisible&&<div className="pm-animation-track-fill" style={{width:playhead+"%"}}/>}
             {playheadVisible&&<div className="pm-animation-playhead" style={{left:playhead+"%"}}/>}
             {trackFrames.filter(frame=>timelineFraction(frame.time,window)>=0&&timelineFraction(frame.time,window)<=1).map((frame,index)=><button key={frame.time+":"+index} type="button"
+              data-property={p} data-time={frame.time}
               style={{left:(timelineFraction(frame.time,window)*100)+"%"}} className={"pm-keyframe-marker"+(selectedKeys.includes(frameKey(p,frame.time))?" selected":"")}
               aria-label={"Seek to "+names[p]+" keyframe at "+frame.time.toFixed(2)+" seconds"}
               aria-pressed={selectedKeys.includes(frameKey(p,frame.time))}
