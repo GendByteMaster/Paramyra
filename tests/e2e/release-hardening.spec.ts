@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { mkdir } from "node:fs/promises";
+import { mkdir, readFile } from "node:fs/promises";
 
 const MAX_LAYERS = 12;
 const formulas = Array.from({length:MAX_LAYERS},(_,i)=>{
@@ -31,13 +31,20 @@ const documentV3={
 
 test("12 formula layers remain interactive and exportable without freezing the browser",async({page},testInfo)=>{
   test.setTimeout(60000);
+  const pageErrors:string[]=[];
+  page.on("pageerror",error=>pageErrors.push(error.message));
   await page.goto("/studio");
   await page.getByRole("button",{name:"Pause animation"}).click();
   await page.locator('input[type="file"]').setInputFiles({
     name:"stress.json",mimeType:"application/json",buffer:Buffer.from(JSON.stringify(documentV3)),
   });
   await expect(page.locator(".pm-viewport-heading")).toContainText("12 layers");
-  await expect(page.getByRole("button",{name:"Add layer"})).toBeDisabled().catch(()=>{});
+  const library=page.getByRole("complementary",{name:"Scene library"});
+  if(!(await library.isVisible()))await page.getByRole("button",{name:"Toggle scene library"}).click();
+  await expect(library.getByRole("button",{name:"Add layer"})).toBeDisabled();
+  if(await page.getByRole("button",{name:"Close scene library"}).isVisible()){
+    await page.getByRole("button",{name:"Close scene library"}).click({position:{x:350,y:300}});
+  }
   const canvas=page.locator(".pm-canvas-area canvas");
   await expect(canvas).toBeVisible();
   await page.getByRole("button",{name:"Fit scene"}).click();
@@ -59,11 +66,19 @@ test("12 formula layers remain interactive and exportable without freezing the b
   testInfo.annotations.push({type:"performance-smoke",description:"p95 animation frame gap "+p95.toFixed(1)+"ms (headless CI, not an FPS guarantee)"});
   expect(p95).toBeLessThan(500);
   await page.getByRole("button",{name:"Pause animation"}).click();
-  await page.getByRole("button",{name:"Export JSON"}).click();
+  const [download]=await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button",{name:"Export JSON"}).click(),
+  ]);
+  expect(download.suggestedFilename()).toMatch(/^paramyra-.*\.json$/);
+  const exported=JSON.parse(await readFile((await download.path())!,"utf-8"));
+  expect(exported.schemaVersion).toBe(3);
+  expect(exported.layers).toHaveLength(MAX_LAYERS);
   const persist=await page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!));
   expect(persist.layers).toHaveLength(MAX_LAYERS);
   await page.reload();
   await expect(page.locator(".pm-viewport-heading")).toContainText("12 layers");
+  expect(pageErrors).toEqual([]);
 });
 
 const sizes=[
@@ -79,7 +94,9 @@ for(const size of sizes){
     await page.getByRole("button",{name:"Pause animation"}).click();
     // Show the v0.9 authoring UI in every viewport, not merely the legacy preset.
     await page.getByRole("combobox",{name:"Mathematical form"}).selectOption("formula");
-    await expect(page.getByRole("textbox",{name:"Formula Y expression"})).toBeVisible();
+    const expression=page.getByRole("textbox",{name:"Formula Y expression"});
+    await expect(expression).toBeVisible();
+    await expression.scrollIntoViewIfNeeded();
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
     expect(overflow).toBeLessThanOrEqual(2);
     await mkdir("test-results/release-review",{recursive:true});
