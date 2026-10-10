@@ -9,7 +9,7 @@ test("M3 opens as a separate Graph mode with a valid computed scene preview",asy
   await expect(page.getByRole("article",{name:"Multiply node"})).toBeVisible();
   await expect(page.getByRole("img",{name:/Visualization of/})).toBeVisible();
   await expect(page.getByText("Graph output is valid for the selected layer.")).toBeVisible();
-  await expect(page.getByRole("link",{name:"Studio",exact:true})).toBeVisible();
+  await expect(page.getByRole("navigation",{name:"Workspace modes"}).getByRole("link",{name:"Studio",exact:true})).toBeVisible();
 });
 
 test("M3 applies evaluated numeric output to MathDocument v3 only after explicit action",async({page})=>{
@@ -19,7 +19,7 @@ test("M3 applies evaluated numeric output to MathDocument v3 only after explicit
   await slider.press("End");
   await expect(page.getByLabel("Graph time value")).toHaveText("12.00s");
   const before=await page.evaluate(()=>localStorage.getItem("paramyra.document.v3"));
-  await expect(page.getByRole("button",{name:/Apply to Studio/})).toBeEnabled();
+  await expect(page.getByRole("button",{name:/Apply to Studio/}).first()).toBeEnabled();
   await page.getByRole("button",{name:/Apply to Studio/}).first().click();
   await expect(page.getByText(/Applied static graph outputs to the Studio document/)).toBeVisible();
   const saved=await page.evaluate(()=>localStorage.getItem("paramyra.document.v3"));
