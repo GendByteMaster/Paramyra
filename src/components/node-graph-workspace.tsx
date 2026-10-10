@@ -297,11 +297,12 @@ function GraphWorkspace() {
         <span className="pm-ng-app-icon"><GitBranch size={21}/></span>
         <div className="pm-ng-title"><span>PARAMYRA / WORKSPACES</span><h1>Node Graph <small>v1.0 · M3.3</small></h1></div>
       </div>
+      <div className="pm-ng-actions">
       <nav className="pm-ng-modes" aria-label="Workspace modes">
         <Link href="/studio"><Layers3 size={15}/> Studio</Link>
         <Link href="/studio/graph" aria-current="page"><GitBranch size={15}/> Graph</Link>
       </nav>
-      <div className="pm-ng-actions">
+
         <button type="button" className="pm-ng-icon" title="Undo" aria-label="Undo graph edit" disabled={!history.past.length} onClick={()=>setHistory(undoGraph)}><Undo2 size={17}/></button>
         <button type="button" className="pm-ng-icon" title="Redo" aria-label="Redo graph edit" disabled={!history.future.length} onClick={()=>setHistory(redoGraph)}><Redo2 size={17}/></button>
         <button type="button" className="pm-ng-icon" title="Toggle library" aria-label="Toggle graph library" aria-pressed={libraryOpen} onClick={()=>setLibraryOpen(open=>!open)}><Grid2X2 size={17}/></button>
@@ -313,20 +314,6 @@ function GraphWorkspace() {
         <button className="pm-ng-button pm-ng-primary" type="button" onClick={apply} disabled={!!projection.error||!connectedOutput||graph.binding.enabled}><Play size={15}/> Apply to Studio</button>
       </div>
     </header>
-    <div className="pm-ng-commandbar" role="toolbar" aria-label="Graph editing commands">
-      <span className="pm-ng-command-label"><ListTree size={15}/> GRAPH WORKSPACE</span>
-      <button type="button" aria-label="Select all nodes" onClick={()=>{setSelectedIds(graph.nodes.map(n=>n.id));setSelectedId("");setSelectedGroupId(null);}}><CheckSquare size={15}/> Select all</button>
-      <button type="button" aria-label="Copy selected nodes" disabled={!selectedIds.length} onClick={copySelected}><Copy size={15}/> Copy</button>
-      <button type="button" aria-label="Paste nodes" onClick={()=>{void pasteSelected();}}><ClipboardPaste size={15}/> Paste</button>
-      <button type="button" aria-label="Group selected nodes" disabled={selectedIds.length<2} onClick={groupSelected}><Group size={15}/> Group</button>
-      <button type="button" aria-label="Ungroup selected nodes" disabled={!selectedGroupId&&!graph.groups.some(g=>selectedIds.some(id=>g.nodeIds.includes(id)))} onClick={ungroupSelected}><Ungroup size={15}/> Ungroup</button>
-      <button type="button" aria-label="Delete selected nodes" disabled={!selectedIds.length&&!selectedGroupId} onClick={deleteSelected}><Trash2 size={15}/> Delete</button>
-      <span className="pm-ng-command-separator"/>
-      <input ref={projectImportRef} className="sr-only" type="file" accept=".json,application/json" aria-label="Import full project JSON" onChange={importProject}/>
-      <button type="button" aria-label="Import full project" onClick={()=>projectImportRef.current?.click()}><Upload size={15}/> Import Project</button>
-      <button type="button" aria-label="Export full project" onClick={exportProject}><FileArchive size={15}/> Export Project</button>
-      <span className="pm-ng-selection-summary" aria-label="Selected node count">{selectedIds.length} selected · {graph.groups.length} groups</span>
-    </div>
     <div className={"pm-ng-layout"+(!libraryOpen?" no-library":"")+(!inspectorOpen?" no-inspector":"")}>
       {libraryOpen&&<aside className="pm-ng-library" aria-label="Node library">
         <div className="pm-ng-pane-header"><span className="pm-ng-eyebrow">NODE LIBRARY</span><h2>Building blocks</h2><p>Compose mathematics with typed numeric ports.</p></div>
@@ -347,6 +334,20 @@ function GraphWorkspace() {
           <div><span className="pm-ng-eyebrow">GRAPH CANVAS · LOCAL</span><h2>{graph.title}</h2></div>
           <div className="pm-ng-canvas-meta"><span>{graph.nodes.length} NODES</span><span>{graph.edges.length} LINKS</span><span className={sceneError?"pm-ng-error-dot":"pm-ng-ok-dot"}>{sceneError?"INVALID OUTPUT":graph.binding.enabled?"LIVE BINDING":"READY"}</span></div>
         </div>
+        <div className="pm-ng-commandbar" role="toolbar" aria-label="Graph editing commands">
+          <span className="pm-ng-command-label"><ListTree size={15}/> GRAPH WORKSPACE</span>
+          <button type="button" aria-label="Select all nodes" onClick={()=>{setSelectedIds(graph.nodes.map(n=>n.id));setSelectedId("");setSelectedGroupId(null);}}><CheckSquare size={15}/> Select all</button>
+          <button type="button" aria-label="Copy selected nodes" disabled={!selectedIds.length} onClick={copySelected}><Copy size={15}/> Copy</button>
+          <button type="button" aria-label="Paste nodes" onClick={()=>{void pasteSelected();}}><ClipboardPaste size={15}/> Paste</button>
+          <button type="button" aria-label="Group selected nodes" disabled={selectedIds.length<2} onClick={groupSelected}><Group size={15}/> Group</button>
+          <button type="button" aria-label="Ungroup selected nodes" disabled={!selectedGroupId&&!graph.groups.some(g=>selectedIds.some(id=>g.nodeIds.includes(id)))} onClick={ungroupSelected}><Ungroup size={15}/> Ungroup</button>
+          <button type="button" aria-label="Delete selected nodes" disabled={!selectedIds.length&&!selectedGroupId} onClick={deleteSelected}><Trash2 size={15}/> Delete</button>
+          <span className="pm-ng-command-separator"/>
+          <input ref={projectImportRef} className="sr-only" type="file" accept=".json,application/json" aria-label="Import full project JSON" onChange={importProject}/>
+          <button type="button" aria-label="Import full project" onClick={()=>projectImportRef.current?.click()}><Upload size={15}/> Import Project</button>
+          <button type="button" aria-label="Export full project" onClick={exportProject}><FileArchive size={15}/> Export Project</button>
+          <span className="pm-ng-selection-summary" aria-label="Selected node count">{selectedIds.length} selected · {graph.groups.length} groups</span>
+        </div>
         <div className="pm-ng-board" aria-label="Interactive node canvas">
           <GraphReactFlowCanvas graph={graph} selectedNodeId={selectedId}
             selectedNodeIds={selectedIds} selectedGroupId={selectedGroupId}
@@ -358,6 +359,12 @@ function GraphWorkspace() {
             onConnect={connect} onMove={move}
             onDisconnect={id=>{commit(old=>disconnectGraph(old,id));setEdgeId(null);
               setNotice("Connection removed.");}}/>
+        </div>
+        <div className="pm-ng-playhead" aria-label="Graph animation timeline">
+          <span className="pm-ng-playhead-label"><CircleDot size={14}/> Timeline</span>
+          <input type="range" aria-label="Graph time" min={0} max={documentModel.duration} step=".05" value={time} onChange={e=>setTime(e.target.valueAsNumber)}/>
+          <output aria-label="Graph time value">{time.toFixed(2)}s / {documentModel.duration.toFixed(2)}s</output>
+          <span className="pm-ng-playhead-mode">{graph.binding.enabled?"LIVE":"PREVIEW"}</span>
         </div>
         <div className="pm-ng-footer">
           <div className="pm-ng-footer-left"><Link2 size={15}/> Drag to multi-select · Shift/Ctrl-click to extend · Space+drag pans · Ctrl/⌘ C,V,G,Z</div>
@@ -395,15 +402,7 @@ function GraphWorkspace() {
             <button className="pm-ng-danger" disabled={graph.nodes.length===1} type="button" onClick={()=>{commit(old=>removeGraphNode(old,selected.id));setSelectedId("");}}><Trash2 size={15}/> Delete node</button>
           </section>:!selectedGroup&&<section className="pm-ng-inspector-section pm-ng-empty"><Braces size={24}/><h3>Select a node or group</h3><p>Click a node header or group title to edit its properties.</p></section>}
           <section className="pm-ng-inspector-section">
-            <h3><span>02 / CONNECTIONS</span><Link2 size={15}/></h3>
-            <label className="pm-ng-field">Select a link<select aria-label="Selected graph connection" value={edgeId??""} onChange={e=>setEdgeId(e.target.value||null)}>
-              <option value="">Choose connection…</option>
-              {graph.edges.map(edge=><option key={edge.id} value={edge.id}>{graph.nodes.find(n=>n.id===edge.source)?.title} → {graph.nodes.find(n=>n.id===edge.target)?.title} / {edge.port}</option>)}
-            </select></label>
-            <button type="button" className="pm-ng-danger" disabled={!selectedEdge} onClick={()=>{if(edgeId)commit(old=>disconnectGraph(old,edgeId));setEdgeId(null);}}><X size={14}/> Disconnect selected</button>
-          </section>
-          <section className="pm-ng-inspector-section">
-            <h3><span>03 / SCENE OUTPUT</span><Layers3 size={15}/></h3>
+            <h3><span>02 / SCENE OUTPUT</span><Layers3 size={15}/></h3>
             <div className="pm-ng-live-panel" role="group" aria-label="Live Graph binding">
               <div className="pm-ng-live-heading"><strong>Live Graph</strong><span>{graph.binding.enabled?"ACTIVE":"OFF"}</span></div>
               <p>Evaluate at the Studio playhead on every animation frame. Existing keyframes win when targeting the same property.</p>
@@ -417,8 +416,6 @@ function GraphWorkspace() {
             }}>
               {documentModel.layers.map(layer=><option value={layer.id} key={layer.id}>{layer.title}</option>)}
             </select></label>
-            <label className="pm-ng-field">Time (seconds)<input type="range" aria-label="Graph time" min={0} max={documentModel.duration} step=".05" value={time} onChange={e=>setTime(e.target.valueAsNumber)}/></label>
-            <div className="pm-ng-values"><span>Playhead</span><output aria-label="Graph time value">{time.toFixed(2)}s</output></div>
             <div className="pm-ng-preview" aria-label="Graph scene preview">
               <SceneCanvas scene={graph.binding.enabled?liveScene.document:projection.document} time={time} seekVersion={time} playing={false}/>
             </div>
@@ -426,6 +423,14 @@ function GraphWorkspace() {
             <p className={sceneError?"pm-ng-validation-error":"pm-ng-validation-ok"} role="status">{sceneError??(graph.binding.enabled?"Live output is active; keyframes take precedence.":"Graph output is valid for the selected layer.")}</p>
             <button type="button" className="pm-ng-button pm-ng-primary pm-ng-apply" onClick={apply} disabled={!!projection.error||!connectedOutput||graph.binding.enabled}>Apply static values <ArrowRight size={15}/></button>
             <p className="pm-ng-note">Live mode computes at the shared animation time without modifying base data. Disable Live to apply a static snapshot.</p>
+          </section>
+          <section className="pm-ng-inspector-section">
+            <h3><span>03 / CONNECTIONS</span><Link2 size={15}/></h3>
+            <label className="pm-ng-field">Select a link<select aria-label="Selected graph connection" value={edgeId??""} onChange={e=>setEdgeId(e.target.value||null)}>
+              <option value="">Choose connection…</option>
+              {graph.edges.map(edge=><option key={edge.id} value={edge.id}>{graph.nodes.find(n=>n.id===edge.source)?.title} → {graph.nodes.find(n=>n.id===edge.target)?.title} / {edge.port}</option>)}
+            </select></label>
+            <button type="button" className="pm-ng-danger" disabled={!selectedEdge} onClick={()=>{if(edgeId)commit(old=>disconnectGraph(old,edgeId));setEdgeId(null);}}><X size={14}/> Disconnect selected</button>
           </section>
         </div>
       </aside>}
