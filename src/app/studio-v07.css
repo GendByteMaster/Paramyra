@@ -775,3 +775,17 @@
 /* Timeline JSX order now matches visual reading and keyboard navigation order. */
 .pm-center.pm-animation-workspace .pm-animation-track-column,
 .pm-center.pm-animation-workspace .pm-animation-graph-column {min-height:0;}
+
+/* Sticky-toolbar occlusion protection for pointer gestures and keyboard focus.
+   The scroll owner must reserve enough space when a focused control scrolls in. */
+@media(min-width:960px) {
+  .pm-center.pm-animation-workspace .pm-animation-surface {scroll-padding-top:88px;}
+  .pm-center.pm-animation-workspace .pm-animation-layout,
+  .pm-center.pm-animation-workspace .pm-bezier-editor,
+  .pm-center.pm-animation-workspace .pm-bezier-plane,
+  .pm-center.pm-animation-workspace .pm-animation-track,
+  .pm-center.pm-animation-workspace .pm-multitrack-row {
+    scroll-margin-top:88px;
+  }
+}
+.pm-bezier-handle {stroke-width:2.5;}
