@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore, type ChangeEvent } from "react";
+import { useEffect, useState, useSyncExternalStore, type ChangeEvent, type KeyboardEvent } from "react";
+import { SceneGlyph } from "./scene-glyph";
 import { ArrowLeft, ArrowUpRight, BookOpen, Check, ChevronDown, ChevronUp, CircleDot, Code2, Copy, Download, FileJson2, Info, ListFilter, Maximize2, Minus, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Pause, Play, Plus, RotateCcw, Search, SlidersHorizontal, Upload, Waves } from "lucide-react";
 import Link from "next/link";
 import { SceneCanvas } from "./scene-canvas";
@@ -17,6 +18,55 @@ const controls: readonly { key: NumericParam; label: string; min: number; max: n
   { key: "amplitude", label: "Amplitude", min: 0.1, max: 1, step: 0.01 },
   { key: "strokeWidth", label: "Stroke width", min: 0.5, max: 4, step: 0.1 },
 ];
+
+
+const mathGuides: Record<SceneKind, { title: string; description: string; tip: string }> = {
+  lissajous: {
+    title: "Motion in harmony",
+    description: "Two perpendicular sine waves trace a closed curve. The frequency ratio controls its symmetry.",
+    tip: "Try matching frequencies, then change Phase to rotate the relationship between the waves.",
+  },
+  "polar-rose": {
+    title: "Petals from a single equation",
+    description: "A polar rose plots radius against angle. An odd integer k produces k petals; even k produces 2k.",
+    tip: "Adjust Symmetry (k) to change the petals, and Phase to rotate the pattern.",
+  },
+  wave: {
+    title: "Interference in motion",
+    description: "Two sine components combine into one waveform. Their relative frequencies shape the visible interference.",
+    tip: "Change Frequency X and Frequency Y to explore how the waves reinforce or cancel one another.",
+  },
+};
+
+function ParameterValueInput({ label, value, min, max, step, onCommit }: {
+  label: string; value: number; min: number; max: number; step: number; onCommit: (next: number) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const commit = () => {
+    if (draft !== null && draft.trim() !== "") {
+      const parsed = Number(draft);
+      if (Number.isFinite(parsed)) {
+        const bounded = Math.min(max, Math.max(min, parsed));
+        const quantized = min + Math.round((bounded - min) / step) * step;
+        onCommit(Number(Math.min(max, Math.max(min, quantized)).toFixed(4)));
+      }
+    }
+    setDraft(null);
+  };
+  const keyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") event.currentTarget.blur();
+  };
+  return <input
+    className="pm-numeric-input"
+    type="number"
+    aria-label={"Set " + label + " numerically"}
+    min={min} max={max} step={step}
+    value={draft ?? value.toString()}
+    onChange={(event) => setDraft(event.target.value)}
+    onBlur={commit}
+    onKeyDown={keyDown}
+  />;
+}
 
 const subscribeNoop = () => () => {};
 const getClientSnapshot = () => true;
@@ -111,6 +161,13 @@ function StudioWorkspace({ initialKind, mode = "studio" }: StudioProps) {
 
   const equation = scene.kind === "lissajous" ? "x = A sin(at + δ), y = B sin(bt)" : scene.kind === "polar-rose" ? "r = A cos(kθ)" : "y = f(x, t)";
   const results = presets.filter((item) => (item.title + " " + item.kind).toLowerCase().includes(libraryQuery.toLowerCase().trim()));
+  const guide = mathGuides[scene.kind];
+  const shownControls = controls.filter((control) => scene.kind !== "polar-rose" || control.key !== "frequencyY");
+  const patternMetric = scene.kind === "polar-rose"
+    ? { label: "Petal count", value: String(scene.params.frequencyX % 2 === 0 ? 2 * scene.params.frequencyX : scene.params.frequencyX) }
+    : scene.kind === "lissajous"
+      ? { label: "Frequency ratio", value: scene.params.frequencyX + " : " + scene.params.frequencyY }
+      : { label: "Harmonics", value: scene.params.frequencyX + " + " + scene.params.frequencyY };
 
   return (
     <div className="pm-workspace" data-mode={mode}>
@@ -144,7 +201,7 @@ function StudioWorkspace({ initialKind, mode = "studio" }: StudioProps) {
           <div className="pm-library-group-heading"><span><ListFilter size={14}/> MATHEMATICAL FORMS</span><span>{results.length} / {presets.length}</span></div>
           <div className="pm-library-list">
             {results.map((item,idx)=><button key={item.kind} type="button" className={"pm-library-item" + (scene.kind === item.kind ? " active" : "")} onClick={() => changeKind(item.kind)} aria-pressed={scene.kind === item.kind}>
-              <div className="pm-library-thumb"><CircleDot size={21} aria-hidden="true"/><span>0{idx+1}</span></div>
+              <div className="pm-library-thumb"><SceneGlyph kind={item.kind}/><span>0{idx+1}</span></div>
               <div className="pm-library-item-text"><strong>{item.title}</strong><small>{item.kind === "lissajous" ? "Parametric geometry" : item.kind === "wave" ? "Harmonic motion" : "Polar geometry"}</small></div>
               {scene.kind === item.kind ? <Check size={16} aria-label="Selected"/> : <ArrowUpRight size={15} aria-hidden="true"/>}
             </button>)}
@@ -188,7 +245,7 @@ function StudioWorkspace({ initialKind, mode = "studio" }: StudioProps) {
 
           {detailsOpen && <section className="pm-details" aria-label="Scene details">
             <div className="pm-details-header">
-              <div className="pm-details-title"><span className="pm-details-symbol"><Code2 size={16}/></span><div><span className="pm-label">DOCUMENT</span><strong>Scene Details</strong></div></div>
+              <div className="pm-details-title"><span className="pm-details-symbol"><Code2 size={16}/></span><div><span className="pm-label">SCENE ANALYSIS</span><strong>Scene Details</strong></div></div>
               <button type="button" className="pm-icon-btn" aria-label="Collapse scene details" onClick={()=>setDetailsOpen(false)}><ChevronDown size={17}/></button>
             </div>
             <div className="pm-tabs" role="tablist" aria-label="Scene detail tabs">
@@ -197,9 +254,9 @@ function StudioWorkspace({ initialKind, mode = "studio" }: StudioProps) {
               <span className="pm-tabs-meta">VERSION {scene.schemaVersion} · LOCAL ONLY</span>
             </div>
             {detailsTab==="overview" ? <div className="pm-detail-content" role="tabpanel">
-              <div className="pm-detail-metric"><span>Type</span><strong>{scene.kind}</strong></div>
+              <div className="pm-detail-metric pm-pattern-metric"><span>{patternMetric.label}</span><strong>{patternMetric.value}</strong></div>
               <div className="pm-detail-metric"><span>Frequency X</span><strong>{scene.params.frequencyX}</strong></div>
-              <div className="pm-detail-metric"><span>Frequency Y</span><strong>{scene.params.frequencyY}</strong></div>
+              {scene.kind === "polar-rose" ? <div className="pm-detail-metric"><span>Curve type</span><strong>Polar rose</strong></div> : <div className="pm-detail-metric"><span>Frequency Y</span><strong>{scene.params.frequencyY}</strong></div>}
               <div className="pm-detail-metric"><span>Amplitude</span><strong>{scene.params.amplitude.toFixed(2)}</strong></div>
               <div className="pm-detail-metric"><span>Phase</span><strong>{scene.params.phase.toFixed(2)} rad</strong></div>
             </div> : <div className="pm-json-view" role="tabpanel"><button type="button" className="pm-json-copy" onClick={()=>{void copyJSON();}}><Copy size={14}/> Copy JSON</button><pre>{JSON.stringify(scene,null,2)}</pre></div>}
@@ -214,16 +271,22 @@ function StudioWorkspace({ initialKind, mode = "studio" }: StudioProps) {
               <div className="pm-inspector-sectionhead"><span>01 / SCENE</span><CircleDot size={16}/></div>
               <div className="field"><label htmlFor="scene-kind">Mathematical form</label><select id="scene-kind" value={scene.kind} onChange={(e)=>changeKind(e.target.value as SceneKind)}>{presets.map(item=><option key={item.kind} value={item.kind}>{item.title}</option>)}</select></div>
               <div className="pm-math-snippet"><span className="pm-label">EXPRESSION</span><code>{equation}</code></div>
+              <p className="pm-scene-description">{guide.description}</p>
             </section>
             <section className="pm-inspector-section">
               <div className="pm-inspector-sectionhead"><span>02 / PARAMETERS</span><Waves size={16}/></div>
-              {controls.map(({key,label,min,max,step})=><div className="field slider-field" key={key}><label htmlFor={key}><span>{label}</span><output>{scene.params[key].toFixed(key.startsWith("frequency") ? 0 : 2)}</output></label><input type="range" id={key} min={min} max={max} step={step} value={scene.params[key]} onChange={(e)=>changeParam(key,e.target.valueAsNumber)}/><div className="slider-limits" aria-hidden="true"><span>{min}</span><span>{max}</span></div></div>)}
+              {shownControls.map(({key,label,min,max,step})=>{const shownLabel = scene.kind === "polar-rose" && key === "frequencyX" ? "Symmetry (k)" : label; const progress = Math.max(0,Math.min(100,(scene.params[key]-min)/(max-min)*100)); return <div className="field slider-field" key={scene.kind+"-"+key}><label htmlFor={key}><span>{shownLabel}</span><ParameterValueInput label={shownLabel} value={scene.params[key]} min={min} max={max} step={step} onCommit={(v)=>changeParam(key,v)}/></label><input type="range" id={key} aria-label={shownLabel} min={min} max={max} step={step} value={scene.params[key]} style={{backgroundImage:`linear-gradient(90deg,#80afff ${progress}%,#263750 ${progress}%)`}} onChange={(e)=>changeParam(key,e.target.valueAsNumber)}/><div className="slider-limits" aria-hidden="true"><span>{min}</span><span>{max}</span></div></div>;})}
             </section>
             <section className="pm-inspector-section">
               <div className="pm-inspector-sectionhead"><span>03 / PROJECT</span><FileJson2 size={16}/></div>
               <div className="pm-project-state"><span className="live-indicator"/><div><strong>Browser project</strong><p>Changes are stored locally. Export JSON for a portable backup.</p></div></div>
               <button type="button" className="pm-action pm-action-quiet pm-export-wide" onClick={exportJSON}><Download size={15}/> Export current scene</button>
               <p className="status" role="status">{notice || "Scene document v1 · no executable user code."}</p>
+            </section>
+            <section className="pm-inspector-guide" aria-label="Mathematical guide">
+              <span className="pm-label">UNDERSTAND THE MATHEMATICS</span>
+              <strong>{guide.title}</strong>
+              <p>{guide.tip}</p>
             </section>
           </div>
         </aside>}
