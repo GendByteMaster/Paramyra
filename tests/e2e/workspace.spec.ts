@@ -380,6 +380,12 @@ test("custom formula can be added, edited and persisted", async ({ page }) => {
     return value.layers[1].formula.exprY;
   })).toBe("a*cos(b*x+t)");
   await page.reload();
+  const restoredLibrary=page.getByRole("complementary",{name:"Scene library"});
+  if(!(await restoredLibrary.isVisible()))await page.getByRole("button",{name:"Toggle scene library"}).click();
+  await restoredLibrary.getByRole("button",{name:"Select layer Custom Formula"}).click();
+  if(await page.getByRole("button",{name:"Close scene library"}).isVisible()){
+    await page.getByRole("button",{name:"Close scene library"}).click({position:{x:350,y:300}});
+  }
   await expect(page.getByRole("textbox",{name:"Formula Y expression"})).toHaveValue("a*cos(b*x+t)");
   await expect(page.getByRole("slider",{name:"Formula parameter a"})).toHaveValue("1.1");
 });
