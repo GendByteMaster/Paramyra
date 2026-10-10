@@ -7,6 +7,7 @@ import "./studio-shell.css";
 import "./studio-density.css";
 import "./studio-fullscreen.css";
 import "./studio-v07.css";
+import "./node-graph.css";
 
 export const metadata: Metadata = {
   title: { default: "Paramyra — Mathematics Comes Alive", template: "%s | Paramyra" },
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
               <Link href="/explore">Explore</Link>
               <Link href="/playground">Playground</Link>
               <Link href="/studio">Studio</Link>
+              <Link href="/studio/graph">Node Graph</Link>
             </div>
             <Link href="/studio" className="nav-cta">Launch Studio <ArrowUpRight size={14} aria-hidden="true"/></Link>
           </nav>
