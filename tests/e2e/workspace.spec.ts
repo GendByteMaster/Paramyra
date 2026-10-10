@@ -189,7 +189,7 @@ test("polar rose only exposes parameters that affect its curve", async ({ page }
   await page.goto("/studio?kind=polar-rose");
   await expect(page.getByRole("slider", { name: "Symmetry (k)" })).toBeVisible();
   await expect(page.locator("#frequencyY")).toHaveCount(0);
-  await expect(page.getByRole("complementary", { name: "Scene inspector" })).toContainText("Petals from a single equation");
+  await expect(page.getByRole("complementary", { name: "Scene inspector" })).toContainText("symmetry parameter controls the petals");
   await expect(page.getByRole("tabpanel")).toContainText("Petal count");
   const symmetry = page.getByRole("spinbutton", { name: "Set Symmetry (k) numerically" });
   await symmetry.fill("6.4");
@@ -271,10 +271,14 @@ test("layers are real composited objects and undo/redo is stable", async ({ page
   await library.getByRole("button", { name: "Add layer" }).click();
   await expect(page.locator(".pm-layer-row")).toHaveCount(2);
   await expect(page.locator(".pm-viewport-heading")).toContainText("2 layers");
+  // The mobile Library is a modal drawer; close it before operating the top toolbar.
+  if (await page.getByRole("button", { name: "Close scene library" }).isVisible()) {
+    await page.getByRole("button", { name: "Close scene library" }).click({ position: { x: 350, y: 300 } });
+  }
   await page.getByRole("button", { name: "Undo" }).click();
-  await expect(page.locator(".pm-layer-row")).toHaveCount(1);
+  await expect(page.locator(".pm-viewport-heading")).toContainText("1 layers");
   await page.getByRole("button", { name: "Redo" }).click();
-  await expect(page.locator(".pm-layer-row")).toHaveCount(2);
+  await expect(page.locator(".pm-viewport-heading")).toContainText("2 layers");
   await page.getByRole("button", { name: "Duplicate layer" }).click();
   await expect(page.locator(".pm-layer-row")).toHaveCount(3);
   await page.getByRole("button", { name: "Delete layer" }).click();
@@ -297,7 +301,9 @@ test("timeline, camera tools and custom presets are interactive", async ({ page 
   if (!(await library.isVisible())) await page.getByRole("button", { name: "Toggle scene library" }).click();
   await library.getByRole("textbox", { name: "Preset name" }).fill("My composition");
   await library.getByRole("button", { name: "Save" }).click();
-  await expect(library.getByRole("button", { name: "My composition" })).toBeVisible();
+  await expect(library.getByRole("button", { name: "My composition", exact: true })).toBeVisible();
   await page.reload();
-  await expect(page.getByRole("complementary", { name: "Scene library" }).getByRole("button", { name: "My composition" })).toBeVisible();
+  const reloadedLibrary = page.getByRole("complementary", { name: "Scene library" });
+  if (!(await reloadedLibrary.isVisible())) await page.getByRole("button", { name: "Toggle scene library" }).click();
+  await expect(reloadedLibrary.getByRole("button", { name: "My composition", exact: true })).toBeVisible();
 });
