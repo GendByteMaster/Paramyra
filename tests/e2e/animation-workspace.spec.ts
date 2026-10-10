@@ -22,7 +22,9 @@ test("Animation Workspace expands without clipping and supports keyboard resize 
   await page.getByRole("button",{name:"Exit animation focus mode"}).click();
   await expect(page.getByLabel("Scene inspector")).toBeVisible();
   await page.getByRole("button",{name:"Restore animation workspace height"}).click();
+  await page.getByRole("button",{name:"Focus animation workspace"}).click();
   await page.getByRole("tab",{name:"Overview"}).click();
+  await expect(page.getByLabel("Scene inspector")).toBeVisible();
   await expect(resize).toHaveCount(0);
   await expect(page.getByLabel("Visualization preview")).toBeVisible();
 });
