@@ -5,13 +5,13 @@ import Link from "next/link";
 import {
   ArrowLeft, ArrowRight, Braces, Check, ChevronRight, CircleDot, Download,
   Focus, GitBranch, Grid2X2, Layers3, Link2, Minus, MousePointer2,
-  Play, Plus, Redo2, RotateCcw, Search, SlidersHorizontal, Trash2, Undo2, Upload, X,
+  Play, Plus, Redo2, Search, SlidersHorizontal, Trash2, Undo2, Upload, X,
 } from "lucide-react";
 import { SceneCanvas } from "./scene-canvas";
-import { commitDocument, initializeHistory, redoDocument, undoDocument } from "@/core/document/history";
+import { commitGraph, initializeGraphHistory, redoGraph, undoGraph } from "@/core/graph/history";
 import { documentFromScene, parseDocument, type MathDocument } from "@/core/document/schema";
 import { presetFor } from "@/core/scenes/presets";
-import { GRAPH_KEY, GRAPH_KINDS, addGraphNode, connectGraph, createGraphNode,
+import { GRAPH_KEY, addGraphNode, connectGraph, createGraphNode,
   disconnectGraph, evaluateGraph, initialGraph, inputPorts, parseGraph, projectGraph,
   removeGraphNode, TARGET_PROPERTIES, updateGraphNode,
   type GraphKind, type GraphPort, type GraphNode, type NodeGraph } from "@/core/graph/model";
@@ -74,7 +74,7 @@ export function NodeGraphClient() {
   return <GraphWorkspace />;
 }
 function GraphWorkspace() {
-  const [history, setHistory] = useState(() => initializeHistory(readGraph()));
+  const [history, setHistory] = useState(() => initializeGraphHistory(readGraph()));
   const graph = history.present;
   const [documentModel, setDocumentModel] = useState(readDocument);
   const [selectedId, setSelectedId] = useState("product");
@@ -116,19 +116,19 @@ function GraphWorkspace() {
       if (target?.closest("input,textarea,select,[contenteditable=true]")) return;
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
         event.preventDefault();
-        setHistory(event.shiftKey ? redoDocument : undoDocument);
+        setHistory(event.shiftKey ? redoGraph : undoGraph);
       } else if (event.key === "Escape") {
         setActiveSource(null);
         setEdgeId(null);
       } else if (event.key === "Delete" || event.key === "Backspace") {
-        if (edgeId) { event.preventDefault(); setHistory(h => commitDocument(h, disconnectGraph(h.present, edgeId))); setEdgeId(null); }
-        else if (selectedId) { event.preventDefault(); setHistory(h => commitDocument(h, removeGraphNode(h.present, selectedId))); setSelectedId(""); }
+        if (edgeId) { event.preventDefault(); setHistory(h => commitGraph(h, disconnectGraph(h.present, edgeId))); setEdgeId(null); }
+        else if (selectedId) { event.preventDefault(); setHistory(h => commitGraph(h, removeGraphNode(h.present, selectedId))); setSelectedId(""); }
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [edgeId, selectedId]);
-  const commit = (update:(current:NodeGraph)=>NodeGraph) => setHistory(h => commitDocument(h, update(h.present)));
+  const commit = (update:(current:NodeGraph)=>NodeGraph) => setHistory(h => commitGraph(h, update(h.present)));
   const add = (kind:GraphKind) => {
     const node = createGraphNode(kind, crypto.randomUUID(), 240 + graph.nodes.length * 26, 120 + graph.nodes.length * 22);
     const next = addGraphNode(graph, node);
@@ -250,8 +250,8 @@ function GraphWorkspace() {
         <Link href="/studio/graph" aria-current="page"><GitBranch size={15}/> Graph</Link>
       </nav>
       <div className="pm-ng-actions">
-        <button type="button" className="pm-ng-icon" title="Undo" aria-label="Undo graph edit" disabled={!history.past.length} onClick={()=>setHistory(undoDocument)}><Undo2 size={17}/></button>
-        <button type="button" className="pm-ng-icon" title="Redo" aria-label="Redo graph edit" disabled={!history.future.length} onClick={()=>setHistory(redoDocument)}><Redo2 size={17}/></button>
+        <button type="button" className="pm-ng-icon" title="Undo" aria-label="Undo graph edit" disabled={!history.past.length} onClick={()=>setHistory(undoGraph)}><Undo2 size={17}/></button>
+        <button type="button" className="pm-ng-icon" title="Redo" aria-label="Redo graph edit" disabled={!history.future.length} onClick={()=>setHistory(redoGraph)}><Redo2 size={17}/></button>
         <button type="button" className="pm-ng-icon" title="Toggle library" aria-label="Toggle graph library" aria-pressed={libraryOpen} onClick={()=>setLibraryOpen(open=>!open)}><Grid2X2 size={17}/></button>
         <button type="button" className="pm-ng-icon" title="Toggle inspector" aria-label="Toggle graph inspector" aria-pressed={inspectorOpen} onClick={()=>setInspectorOpen(open=>!open)}><SlidersHorizontal size={17}/></button>
         <input ref={importRef} type="file" accept=".json,application/json" className="sr-only" aria-label="Import graph JSON" onChange={importGraph}/>
