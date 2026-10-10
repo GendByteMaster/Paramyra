@@ -8,6 +8,7 @@ import { SceneGlyph } from "./scene-glyph";
 import { FormulaEditor } from "./formula-editor";
 import { CalculatorWindow } from "./calculator-window";
 import { AnimationTimeline } from "./animation-timeline";
+import { AnimationValueComparison } from "./animation-value-comparison";
 import { resolveAnimatedDocument } from "@/core/animation/keyframes";
 import { savePng, saveSvg, type ExportBackground, type ExportSize } from "@/core/rendering/export";
 import { defaultFormula, validateFormula } from "@/core/math/formula";
@@ -77,6 +78,7 @@ export function StudioClient(props:{initialKind?:SceneKind;mode?:"studio"|"playg
 }
 function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mode?:"studio"|"playground"}) {
   const root=useRef<HTMLDivElement>(null);
+  const centerRef=useRef<HTMLDivElement>(null);
   const returnCalculatorFocus=useRef<HTMLElement|null>(null);
   const last=useRef({key:"",at:0});
   const dragGroup=useRef<string|null>(null);
@@ -96,9 +98,11 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
   const [detailsOpen,setDetailsOpen]=useState(true);
   const [detailsTab,setDetailsTab]=useState<"overview"|"animation"|"json">("overview");
   const [animationFocus,setAnimationFocus]=useState(false);
-  const [animationPanelHeight,setAnimationPanelHeight]=useState(390);
+  const [animationPanelHeight,setAnimationPanelHeight]=useState(()=>Math.round(Math.max(350,window.innerHeight*.47)));
   const animationResize=useRef<{pointerId:number;startY:number;height:number}|null>(null);
-  const setEditorHeight=(value:number)=>setAnimationPanelHeight(Math.round(Math.max(290,Math.min(Math.max(290,window.innerHeight-260),value))));
+  const editorHeightMax=()=>Math.max(320,Math.floor((centerRef.current?.clientHeight??window.innerHeight)-210));
+  const setEditorHeight=(value:number)=>setAnimationPanelHeight(Math.round(Math.max(300,Math.min(editorHeightMax(),value))));
+  const resetEditorHeight=()=>setEditorHeight(Math.max(350,window.innerHeight*.47));
   const openAnimation=()=>{setDetailsOpen(true);setDetailsTab("animation");};
   const [view,setView]=useState<CanvasView>(defaultView);
   const [canvasSize,setCanvasSize]=useState<Size>({width:800,height:600});
@@ -355,7 +359,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
           {presetsSaved.length?presetsSaved.map(p=><div key={p.id} className="pm-user-preset"><button type="button" onClick={()=>replace(p)}>{p.title}</button><button type="button" aria-label={"Delete preset "+p.title} onClick={()=>deletePreset(p.id)}><Trash2 size={14}/></button></div>):<p>No saved presets yet.</p>}
         </div>
       </aside>}
-      <div className={"pm-center"+(detailsOpen&&detailsTab==="animation"?" pm-animation-workspace":"")} style={detailsOpen&&detailsTab==="animation"?({"--pm-editor-height":animationPanelHeight+"px"} as CSSProperties):undefined}>
+      <div ref={centerRef} className={"pm-center"+(detailsOpen&&detailsTab==="animation"?" pm-animation-workspace":"")} style={detailsOpen&&detailsTab==="animation"?({"--pm-editor-height":animationPanelHeight+"px"} as CSSProperties):undefined}>
         <section className="pm-viewport-panel" aria-label="Visualization preview">
           <div className="pm-viewport-toolbar"><div className="pm-viewport-heading"><span className="pm-blue-dot"/><div><strong>{doc.title}</strong><small>Canvas 2D · {doc.layers.length} layers</small></div></div>
             <div className="pm-viewport-tools"><span className="pm-live" data-state={playing?"playing":"paused"}><span className="live-indicator"/>{playing?"LIVE":"PAUSED"}</span><span className="pm-fps-label">SCENE {doc.layers.length} LAYERS</span>
@@ -395,8 +399,8 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
         </section>
         {detailsOpen&&<section className="pm-details" aria-label="Scene details">
           {detailsTab==="animation"&&<div className="pm-animation-resizer" role="separator" tabIndex={0}
-            aria-label="Resize animation workspace" aria-orientation="horizontal" aria-valuemin={290}
-            aria-valuemax={Math.max(290,animationPanelHeight+300)} aria-valuenow={animationPanelHeight}
+            aria-label="Resize animation workspace" aria-orientation="horizontal" aria-valuemin={300}
+            aria-valuemax={editorHeightMax()} aria-valuenow={animationPanelHeight}
             title="Drag to resize • arrow keys to adjust" onPointerDown={event=>{
               if(event.button!==0)return;
               animationResize.current={pointerId:event.pointerId,startY:event.clientY,height:animationPanelHeight};
@@ -410,13 +414,13 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
             onKeyDown={event=>{
               if(event.key==="ArrowUp"||event.key==="ArrowDown"){
                 event.preventDefault();setEditorHeight(animationPanelHeight+(event.key==="ArrowUp"?20:-20));
-              } else if(event.key==="Home"){event.preventDefault();setEditorHeight(290);}
-              else if(event.key==="End"){event.preventDefault();setEditorHeight(window.innerHeight-260);}
+              } else if(event.key==="Home"){event.preventDefault();setEditorHeight(300);}
+              else if(event.key==="End"){event.preventDefault();setEditorHeight(editorHeightMax());}
             }}><span/></div>}
           <div className="pm-details-header"><div className="pm-details-title"><span className="pm-details-symbol">{detailsTab==="animation"?<Waves size={16}/>:<FileJson2 size={16}/>}</span><div><span className="pm-label">{detailsTab==="animation"?"ANIMATION WORKSPACE":"TIMELINE / DOCUMENT"}</span><strong>{detailsTab==="animation"?"Timeline & Graph Editor":"Scene Details"}</strong></div></div>
             <div className="pm-animation-header-actions">
               {detailsTab==="animation"&&<><button type="button" aria-label={animationFocus?"Exit animation focus mode":"Focus animation workspace"} aria-pressed={animationFocus} onClick={()=>setAnimationFocus(v=>!v)}>{animationFocus?<Minimize2 size={14}/>:<Maximize2 size={14}/>} {animationFocus?"Exit Focus":"Focus"}</button>
-                <button type="button" aria-label="Restore animation workspace height" onClick={()=>setEditorHeight(390)}>Reset size</button></>}
+                <button type="button" aria-label="Restore animation workspace height" onClick={resetEditorHeight}>Reset size</button></>}
               <button type="button" className="pm-icon-btn" aria-label="Collapse scene details" onClick={()=>setDetailsOpen(false)}><ChevronDown size={16}/></button>
             </div>
           </div>
@@ -465,6 +469,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
               <label>Opacity<input type="range" aria-label="Layer opacity" min="0" max="1" step=".05" value={layer.opacity} onChange={e=>commit(d=>updateLayer(d,layer.id,l=>({...l,opacity:e.target.valueAsNumber})),"opacity:"+layer.id)}/></label>
             </div>
           </section>
+          <AnimationValueComparison layer={layer} time={Math.min(time,doc.duration)} onOpenAnimation={openAnimation}/>
           {layer.kind==="formula"&&<FormulaEditor layerId={layer.id} formula={layer.formula} onOpenCalculator={openCalculator} onChange={formula=>commit(d=>updateLayer(d,layer.id,l=>l.kind==="formula"?{...l,formula}:l),"formula:"+layer.id)}/>}
           <section className="pm-inspector-section"><div className="pm-inspector-sectionhead"><span>{layer.kind==="formula"?"03 / STROKE & POSITION":"02 / PARAMETERS"}</span><Waves size={16}/></div>
             {shownFields.map(({key,label,min,max,step})=>{
