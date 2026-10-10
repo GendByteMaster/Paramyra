@@ -305,7 +305,7 @@ function GraphWorkspace() {
                 <header className="pm-ng-node-header" onPointerDown={event=>startMove(event,node)} onPointerMove={moveNode} onPointerUp={finishMove} onPointerCancel={finishMove} onLostPointerCapture={finishMove}>
                   <span className="pm-ng-node-indicator"/><strong>{node.title}</strong><span className="pm-ng-node-type">{node.kind}</span>
                 </header>
-                {ports.map((port,index)=><button key={port} type="button" className="pm-ng-port-row input" aria-label={"Connect "+node.title+" input "+port} onClick={()=>{
+                {ports.map(port=><button key={port} type="button" className="pm-ng-port-row input" aria-label={"Connect "+node.title+" input "+port} onClick={()=>{
                   setSelectedId(node.id);setEdgeId(null);
                   if(activeSource)connect(activeSource,node.id,port);
                   else setNotice("Choose a source output port first, then this input.");
