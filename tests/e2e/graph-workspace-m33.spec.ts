@@ -88,3 +88,42 @@ test("M3.3 Shift-click multi-selection enables group operations from real React 
   const stored=await page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.nodegraph.v3")!));
   expect(stored.groups[0].nodeIds.sort()).toEqual(["amp","time"]);
 });
+
+test("Graph Workspace hides public navigation and footer, fills viewport, and keeps editor controls", async ({page}) => {
+  await page.setViewportSize({width:1440,height:900});
+  await page.goto("/studio/graph");
+
+  await expect(page.locator("header.topbar")).toHaveCount(0);
+  await expect(page.locator("body > footer")).toHaveCount(0);
+  await expect(page.getByRole("link",{name:"Back to Studio"})).toBeVisible();
+  await expect(page.getByRole("toolbar",{name:"Graph editing commands"})).toBeVisible();
+
+  const dimensions = await page.evaluate(() => ({
+    viewport: window.innerHeight,
+    workspace: document.querySelector(".pm-ng-root")!.getBoundingClientRect().height,
+    page: document.documentElement.scrollHeight,
+  }));
+  expect(Math.abs(dimensions.workspace - dimensions.viewport)).toBeLessThanOrEqual(1);
+  expect(dimensions.page).toBeLessThanOrEqual(dimensions.viewport + 1);
+
+  await page.goto("/studio");
+  await expect(page.locator("header.topbar")).toBeVisible();
+  await expect(page.locator("body > footer")).toHaveCount(1);
+});
+
+test("Graph Workspace on narrow screens scrolls inside the editor instead of scrolling the page", async ({page}) => {
+  await page.setViewportSize({width:800,height:600});
+  await page.goto("/studio/graph");
+
+  const dimensions = await page.evaluate(() => {
+    const pane = document.querySelector(".pm-ng-layout")!;
+    return {
+      viewport: window.innerHeight,
+      page: document.documentElement.scrollHeight,
+      paneScrollHeight: pane.scrollHeight,
+      paneClientHeight: pane.clientHeight,
+    };
+  });
+  expect(dimensions.page).toBeLessThanOrEqual(dimensions.viewport + 1);
+  expect(dimensions.paneScrollHeight).toBeGreaterThan(dimensions.paneClientHeight);
+});
