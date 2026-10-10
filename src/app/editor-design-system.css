@@ -11,7 +11,7 @@
   --editor-gutter: 8px;
   --editor-radius: 13px;
   --editor-outer-pad: 8px;
-  --editor-header-height: 62px;
+  --editor-header-height: 72px;
   --editor-panel-header-height: 80px;
   --editor-viewport-header-height: 56px;
   --editor-bg: #070c14;
@@ -93,6 +93,9 @@
   min-width: 0;
   gap: 7px;
 }
+.pm-editor-shell .pm-project-name { gap: 3px; }
+.pm-editor-shell .pm-project-name > .pm-label { line-height: 1.25; }
+.pm-editor-shell .pm-project-name > strong { line-height: 1.2; }
 .pm-editor-shell .pm-project-name h1,
 .pm-editor-shell .pm-ng-title h1 {
   font-size: 15px;
