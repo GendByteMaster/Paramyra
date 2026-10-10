@@ -11,7 +11,7 @@ import { AnimationTimeline } from "./animation-timeline";
 import { AnimationValueComparison } from "./animation-value-comparison";
 import { compileGraph, resolveLiveScene } from "@/core/graph/live";
 import { readStoredGraph } from "@/core/graph/storage";
-import { GRAPH_KEY, LEGACY_GRAPH_KEY } from "@/core/graph/model";
+import { GRAPH_KEY, PREVIOUS_GRAPH_KEY, LEGACY_GRAPH_KEY } from "@/core/graph/model";
 import { savePng, saveSvg, type ExportBackground, type ExportSize } from "@/core/rendering/export";
 import { defaultFormula, validateFormula } from "@/core/math/formula";
 import { presets, presetFor } from "@/core/scenes/presets";
@@ -153,7 +153,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
   },[]);
   useEffect(()=>{
     const onGraphStorage=(event:StorageEvent)=>{
-      if(event.key===GRAPH_KEY||event.key===LEGACY_GRAPH_KEY||event.key===null)
+      if(event.key===GRAPH_KEY||event.key===PREVIOUS_GRAPH_KEY||event.key===LEGACY_GRAPH_KEY||event.key===null)
         setNodeGraph(readStoredGraph());
     };
     const onDocumentStorage=(event:StorageEvent)=>{
