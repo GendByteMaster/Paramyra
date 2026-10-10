@@ -99,10 +99,18 @@ function drawLayer(
   const n = Math.max(768, Math.min(2200, Math.ceil(pixelScale(size, view.zoom) * 3)));
   ctx.save();
   ctx.beginPath();
+  let previous: { x: number; y: number } | null = null;
   for (let i = 0; i <= n; i++) {
-    const screen = worldToScreen(layerWorldPoint(layer, i / n, time, size), size, view);
-    if (i === 0) ctx.moveTo(screen.x, screen.y);
-    else ctx.lineTo(screen.x, screen.y);
+    const world = layerWorldPoint(layer, i / n, time, size);
+    if (!Number.isFinite(world.x + world.y) || Math.abs(world.x) > 100 || Math.abs(world.y) > 100) {
+      previous = null;
+      continue;
+    }
+    const screen = worldToScreen(world, size, view);
+    if (!previous || Math.hypot(screen.x - previous.x, screen.y - previous.y) > Math.max(size.width, size.height) * 1.5) {
+      ctx.moveTo(screen.x, screen.y);
+    } else ctx.lineTo(screen.x, screen.y);
+    previous = screen;
   }
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
