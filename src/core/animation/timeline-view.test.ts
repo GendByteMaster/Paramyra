@@ -1,7 +1,7 @@
 import {describe,expect,it} from "vitest";
 import {keyframesInBox,panTimeline,snapTimelineTime,timeAtPointer,timelineFraction,timelineWindow} from "./timeline-view";
 import {moveKeyframes,upsertKeyframe,type LayerKeyframe} from "./keyframes";
-import {newFormulaLayer} from "../document/schema";
+import {newFormulaLayer,type MathLayer} from "../document/schema";
 
 describe("v1.0 M2.3 Professional Timeline pure coordinate math",()=>{
   it("zooms around the anchor and pans without leaving document bounds",()=>{
@@ -44,7 +44,7 @@ describe("v1.0 M2.3 Professional Timeline pure coordinate math",()=>{
   });
 
   it("preserves transactional group editing after snapping and rejects collisions",()=>{
-    let layer=newFormulaLayer("formula");
+    let layer:MathLayer=newFormulaLayer("formula");
     layer=upsertKeyframe(layer,{property:"opacity",time:1,value:.2,ease:"linear"});
     layer=upsertKeyframe(layer,{property:"opacity",time:3,value:.8,ease:"linear"});
     const refs=[{property:"opacity" as const,time:1}];
