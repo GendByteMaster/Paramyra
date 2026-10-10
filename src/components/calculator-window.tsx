@@ -26,6 +26,7 @@ export function CalculatorWindow({ open, onClose, formula }: Props) {
   const mobile = useSyncExternalStore(subscribeMobile, mobileSnapshot, desktopSnapshot);
   const windowRef = useRef<HTMLDivElement>(null);
   const drag = useRef<DragStart | null>(null);
+  const closeHandler = useRef(onClose);
   const [position, setPosition] = useState<Position | null>(null);
   const [maximized, setMaximized] = useState(false);
   const clamp = (x: number, y: number): Position => {
@@ -38,16 +39,26 @@ export function CalculatorWindow({ open, onClose, formula }: Props) {
     };
   };
 
+  useEffect(() => { closeHandler.current = onClose; }, [onClose]);
   useEffect(() => {
     if (!open) return;
+    // Lock background page scrolling while the mobile modal is visible.
+    const root = document.documentElement;
+    const previousOverflow = root.style.overflow;
+    if (mobile) root.style.overflow = "hidden";
     const frame = requestAnimationFrame(() => {
-      windowRef.current?.querySelector<HTMLInputElement>('[aria-label="Calculator expression"]')?.focus();
+      if (mobile) {
+        // Do not open the software keyboard on first display of the modal.
+        windowRef.current?.querySelector<HTMLButtonElement>('[aria-label="Close calculator window"]')?.focus({preventScroll:true});
+      } else {
+        windowRef.current?.querySelector<HTMLInputElement>('[aria-label="Calculator expression"]')?.focus({preventScroll:true});
+      }
     });
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
         event.stopPropagation();
-        onClose();
+        closeHandler.current();
       } else if (event.key === "Tab" && mobile) {
         const controls = [...(windowRef.current?.querySelectorAll<HTMLElement>(
           'button:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex="0"]',
@@ -64,8 +75,12 @@ export function CalculatorWindow({ open, onClose, formula }: Props) {
       }
     };
     window.addEventListener("keydown", onKey, true);
-    return () => { cancelAnimationFrame(frame); window.removeEventListener("keydown", onKey, true); };
-  }, [open, onClose, mobile]);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("keydown", onKey, true);
+      if (mobile) root.style.overflow = previousOverflow;
+    };
+  }, [open, mobile]);
 
   useEffect(() => {
     const onResize = () => setPosition(previous => {

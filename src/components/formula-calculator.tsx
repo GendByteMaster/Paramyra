@@ -107,10 +107,13 @@ export function FormulaCalculator({formula}: CalculatorProps) {
         {copied?<Check size={14}/>:<Copy size={14}/>} {copied?"Copied":"Copy result"}
       </button>
     </div>
-    <p className="pm-formula-help">
-      Functions: sin, cos, tan, sqrt, abs, ln, log, exp, atan. Constants: pi, e.
-      Variables: a, b, c (the layer sliders), x/u/theta and t (above).
-      Angle inputs use radians. No JavaScript execution.
-    </p>
+    <details className="pm-calc-reference">
+      <summary>Functions and variables</summary>
+      <p className="pm-formula-help">
+        Functions: sin, cos, tan, sqrt, abs, ln, log, exp, atan. Constants: pi, e.
+        Variables: a, b, c (the layer sliders), x/u/theta and t (above).
+        Angle inputs use radians. No JavaScript execution.
+      </p>
+    </details>
   </div>;
 }

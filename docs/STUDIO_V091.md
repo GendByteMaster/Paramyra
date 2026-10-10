@@ -28,3 +28,14 @@ Some earlier E2E tests checked Scene Library visibility immediately after naviga
 
 ## Exclusions
 No symbolic algebra, natural-language calculation, financial/physical-unit conversions, arbitrary JavaScript, persistent calculator history or server-side operation.
+
+## Calculator Window visual QA (2026-10-10)
+
+Review evidence: the CI `paramyra-visual-review` artifact on the exact branch commit provides three viewport sizes (1920×1080, 1365×768, 390×844) in Chromium profiles. The window is legible at desktop and mobile sizes, but visual review exposed extra focus framing around the Expression label, scroll pressure at 768px height, and a mobile auto-focus risk.
+
+- A single focused input ring replaces the label-plus-input double outline.
+- Scientific function/variable help is collapsible; the short desktop viewport uses tighter vertical spacing while preserving accessible keypad targets.
+- Mobile uses initial focus on Close, not the text input, so opening the dialog does not automatically summon the software keyboard.
+- Mobile locks background document scrolling while the modal is visible; it restores the original overflow value on close or viewport mode change.
+- Window keyboard/focus setup runs only on actual open/mobile changes, not every animation frame or parent render; the close callback is updated through a ref.
+- New browser assertions cover mobile focus/scroll lock and stable desktop focus during animation. Real hardware/mobile keyboard acceptance remains pending.

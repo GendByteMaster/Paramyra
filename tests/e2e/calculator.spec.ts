@@ -56,12 +56,15 @@ test("Calculator opens as a mobile modal window without horizontal overflow",asy
   await page.getByRole("button",{name:"Open calculator window",exact:true}).click();
   await expect(page.getByRole("dialog",{name:"Scientific calculator window"})).toHaveAttribute("aria-modal","true");
   await expect(page.getByRole("button",{name:"Dismiss calculator window"})).toBeVisible();
+  await expect(page.getByRole("button",{name:"Close calculator window"})).toBeFocused();
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.style.overflow)).toBe("hidden");
   await expect(page.getByRole("button",{name:"Backspace"})).toBeVisible();
   await expect(page.getByLabel("Calculator result")).toHaveText("4");
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(2);
   await page.getByRole("button",{name:"Dismiss calculator window"}).click({position:{x:6,y:6}});
   await expect(page.getByRole("dialog",{name:"Scientific calculator window"})).toHaveCount(0);
+  await expect.poll(()=>page.evaluate(()=>document.documentElement.style.overflow)).toBe("");
 });
 
 
@@ -77,6 +80,11 @@ test("Calculator is an independent desktop window with dragging, maximize and Es
   await expect(dialog).toBeVisible();
   await expect(dialog).toHaveAttribute("aria-modal","false");
   await expect(page.getByRole("textbox",{name:"Calculator expression"})).toBeFocused();
+  const scratch=page.getByRole("spinbutton",{name:"Calculator x value"});
+  await scratch.focus();
+  // Studio animation updates React state frequently; focus must not jump back to Expression.
+  await page.waitForTimeout(450);
+  await expect(scratch).toBeFocused();
   const before=await dialog.boundingBox();
   expect(before).not.toBeNull();
   const grip=page.locator(".pm-calc-window-grip");
@@ -116,4 +124,25 @@ test("Calculator opens from Formula Editor and works inside fullscreen",async({p
     await page.getByRole("button",{name:"Close calculator window"}).click();
     await page.getByRole("button",{name:"Exit fullscreen"}).click();
   }
+});
+
+
+test("Calculator reference stays compact but expands on demand",async({page})=>{
+  await page.setViewportSize({width:1365,height:768});
+  await page.goto("/studio");
+  await expect(page.locator(".pm-workspace")).toBeVisible();
+  await page.getByRole("button",{name:"Open calculator window",exact:true}).click();
+  const help=page.locator(".pm-calc-reference");
+  await expect(help).not.toHaveAttribute("open",/./);
+  await page.getByText("Functions and variables",{exact:true}).click();
+  await expect(help).toHaveAttribute("open","");
+  await expect(help).toContainText("No JavaScript execution.");
+  const copy=page.getByRole("button",{name:"Copy result"});
+  await copy.scrollIntoViewIfNeeded();
+  await expect(copy).toBeVisible();
+  // The field owns the focused ring; the label must not add a large rectangular outline.
+  const input=page.getByRole("textbox",{name:"Calculator expression"});
+  await input.focus();
+  const labelOutline=await input.locator("..").evaluate(el=>getComputedStyle(el).outlineStyle);
+  expect(labelOutline).toBe("none");
 });

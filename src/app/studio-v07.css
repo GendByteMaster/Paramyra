@@ -237,3 +237,24 @@
 @media(prefers-reduced-motion:reduce) {
   .pm-calc-window-backdrop {backdrop-filter:none;-webkit-backdrop-filter:none;}
 }
+
+
+/* Visual QA: compact desktop fit, focused field clarity, discoverable math help. */
+.pm-calculator label:focus-within {outline:none;outline-offset:0;}
+.pm-calculator input:focus-visible {outline:2px solid #a4d9ff;outline-offset:1px;}
+.pm-calc-reference {color:#89a7c6;font-size:11px;}
+.pm-calc-reference summary {cursor:pointer;min-height:30px;display:list-item;list-style:disclosure-closed inside;font-weight:650;padding:6px 3px;user-select:none;}
+.pm-calc-reference[open] summary {list-style:disclosure-open inside;}
+.pm-calc-reference summary:focus-visible {outline:2px solid #a4d9ff;outline-offset:2px;border-radius:5px;}
+.pm-calc-reference .pm-formula-help {padding:4px 3px 8px;}
+.pm-calc-window-titlebar {min-height:56px;}
+.pm-calc-window-content {padding:13px 17px 9px;}
+.pm-calc-window-content .pm-calculator {gap:10px;}
+.pm-calc-window-content .pm-calc-key {min-height:44px;}
+.pm-calc-window-footer {padding:8px 17px;}
+@media(max-width:760px) {
+  .pm-calc-window-titlebar {min-height:58px;}
+  .pm-calc-window-content {padding:12px 15px 9px;}
+  .pm-calc-window-content .pm-calc-key {min-height:46px;}
+  .pm-calc-window-footer {padding:8px 15px;}
+}
