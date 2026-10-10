@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ChangeEvent, type CSSProperties } from "react";
 import Link from "next/link";
 import { ArrowLeft, Calculator, Image as ImageIcon, Check, ChevronDown, ChevronUp, CircleDot, Copy, Download, Eye, EyeOff, FileJson2, Grid3X3, Info, Layers3, Maximize2, Minimize2, Minus, Move, MousePointer2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Pause, Play, Plus, Redo2, RotateCcw, Search, SlidersHorizontal, Trash2, Undo2, Upload, Waves } from "lucide-react";
 import { SceneCanvas } from "./scene-canvas";
@@ -95,6 +95,11 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
   const [inspectorOpen,setInspectorOpen]=useState(true);
   const [detailsOpen,setDetailsOpen]=useState(true);
   const [detailsTab,setDetailsTab]=useState<"overview"|"animation"|"json">("overview");
+  const [animationFocus,setAnimationFocus]=useState(false);
+  const [animationPanelHeight,setAnimationPanelHeight]=useState(390);
+  const animationResize=useRef<{pointerId:number;startY:number;height:number}|null>(null);
+  const setEditorHeight=(value:number)=>setAnimationPanelHeight(Math.round(Math.max(290,Math.min(Math.max(290,window.innerHeight-260),value))));
+  const openAnimation=()=>{setDetailsOpen(true);setDetailsTab("animation");};
   const [view,setView]=useState<CanvasView>(defaultView);
   const [canvasSize,setCanvasSize]=useState<Size>({width:800,height:600});
   const [tool,setTool]=useState<"select"|"pan">("select");
@@ -315,7 +320,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
       <button type="button" onClick={()=>{void exportFrame("svg");}}><Download size={14}/> Download SVG</button>
       <button type="button" className="pm-export-close" aria-label="Close image export" onClick={()=>setExportOpen(false)}>✕</button>
     </div>}
-    <div className={"pm-grid"+(!libraryOpen?" pm-no-library":"")+(!inspectorOpen?" pm-no-inspector":"")}>
+    <div className={"pm-grid"+(!libraryOpen?" pm-no-library":"")+(!inspectorOpen?" pm-no-inspector":"")+(animationFocus?" pm-animation-focus":"")}>
       {libraryOpen&&<button type="button" className="pm-library-backdrop" aria-label="Close scene library" onClick={()=>setLibraryOpen(false)}/>}
       {libraryOpen&&<aside className="pm-sidebar" aria-label="Scene library">
         <header className="pm-sidebar-heading"><span className="pm-sidebar-mark"><Layers3 size={18}/></span><div><span className="pm-label">LIBRARY</span><h2>Scene Library</h2><p>Models, layers and presets</p></div></header>
@@ -350,10 +355,11 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
           {presetsSaved.length?presetsSaved.map(p=><div key={p.id} className="pm-user-preset"><button type="button" onClick={()=>replace(p)}>{p.title}</button><button type="button" aria-label={"Delete preset "+p.title} onClick={()=>deletePreset(p.id)}><Trash2 size={14}/></button></div>):<p>No saved presets yet.</p>}
         </div>
       </aside>}
-      <div className="pm-center">
+      <div className={"pm-center"+(detailsOpen&&detailsTab==="animation"?" pm-animation-workspace":"")} style={detailsOpen&&detailsTab==="animation"?({"--pm-editor-height":animationPanelHeight+"px"} as CSSProperties):undefined}>
         <section className="pm-viewport-panel" aria-label="Visualization preview">
           <div className="pm-viewport-toolbar"><div className="pm-viewport-heading"><span className="pm-blue-dot"/><div><strong>{doc.title}</strong><small>Canvas 2D · {doc.layers.length} layers</small></div></div>
             <div className="pm-viewport-tools"><span className="pm-live" data-state={playing?"playing":"paused"}><span className="live-indicator"/>{playing?"LIVE":"PAUSED"}</span><span className="pm-fps-label">SCENE {doc.layers.length} LAYERS</span>
+              <button type="button" className="pm-icon-btn pm-animation-open" aria-label="Open animation workspace" title="Open Animation Workspace" aria-pressed={detailsOpen&&detailsTab==="animation"} onClick={openAnimation}><Waves size={16}/></button>
               <button type="button" className="pm-icon-btn" aria-label="Toggle scene details" aria-pressed={detailsOpen} onClick={()=>setDetailsOpen(v=>!v)}><Info size={16}/></button>
             </div></div>
           <div className="pm-canvas-area">
@@ -388,15 +394,38 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
             </div></div>
         </section>
         {detailsOpen&&<section className="pm-details" aria-label="Scene details">
-          <div className="pm-details-header"><div className="pm-details-title"><span className="pm-details-symbol"><FileJson2 size={16}/></span><div><span className="pm-label">TIMELINE / DOCUMENT</span><strong>Scene Details</strong></div></div>
-            <button type="button" className="pm-icon-btn" aria-label="Collapse scene details" onClick={()=>setDetailsOpen(false)}><ChevronDown size={16}/></button>
+          {detailsTab==="animation"&&<div className="pm-animation-resizer" role="separator" tabIndex={0}
+            aria-label="Resize animation workspace" aria-orientation="horizontal" aria-valuemin={290}
+            aria-valuemax={Math.max(290,animationPanelHeight+300)} aria-valuenow={animationPanelHeight}
+            title="Drag to resize • arrow keys to adjust" onPointerDown={event=>{
+              if(event.button!==0)return;
+              animationResize.current={pointerId:event.pointerId,startY:event.clientY,height:animationPanelHeight};
+              event.currentTarget.setPointerCapture(event.pointerId);
+            }} onPointerMove={event=>{
+              const resizing=animationResize.current;
+              if(resizing?.pointerId===event.pointerId)setEditorHeight(resizing.height+resizing.startY-event.clientY);
+            }} onPointerUp={event=>{
+              if(animationResize.current?.pointerId===event.pointerId)animationResize.current=null;
+            }} onPointerCancel={()=>{animationResize.current=null;}}
+            onKeyDown={event=>{
+              if(event.key==="ArrowUp"||event.key==="ArrowDown"){
+                event.preventDefault();setEditorHeight(animationPanelHeight+(event.key==="ArrowUp"?20:-20));
+              } else if(event.key==="Home"){event.preventDefault();setEditorHeight(290);}
+              else if(event.key==="End"){event.preventDefault();setEditorHeight(window.innerHeight-260);}
+            }}><span/></div>}
+          <div className="pm-details-header"><div className="pm-details-title"><span className="pm-details-symbol">{detailsTab==="animation"?<Waves size={16}/>:<FileJson2 size={16}/>}</span><div><span className="pm-label">{detailsTab==="animation"?"ANIMATION WORKSPACE":"TIMELINE / DOCUMENT"}</span><strong>{detailsTab==="animation"?"Timeline & Graph Editor":"Scene Details"}</strong></div></div>
+            <div className="pm-animation-header-actions">
+              {detailsTab==="animation"&&<><button type="button" aria-label={animationFocus?"Exit animation focus mode":"Focus animation workspace"} aria-pressed={animationFocus} onClick={()=>setAnimationFocus(v=>!v)}>{animationFocus?<Minimize2 size={14}/>:<Maximize2 size={14}/>} {animationFocus?"Exit Focus":"Focus"}</button>
+                <button type="button" aria-label="Restore animation workspace height" onClick={()=>setEditorHeight(390)}>Reset size</button></>}
+              <button type="button" className="pm-icon-btn" aria-label="Collapse scene details" onClick={()=>setDetailsOpen(false)}><ChevronDown size={16}/></button>
+            </div>
           </div>
           <div className="pm-timeline"><label htmlFor="timeline-position">Timeline</label><input id="timeline-position" aria-label="Timeline position" type="range" min="0" max={doc.duration} step=".05" value={Math.min(time,doc.duration)} onChange={e=>{setTime(e.target.valueAsNumber);setSeekVersion(v=>v+1);}}/>
             <output>{time.toFixed(1)} / {doc.duration}s</output><select aria-label="Playback speed" value={speed} onChange={e=>setSpeed(Number(e.target.value))}><option value=".25">0.25×</option><option value=".5">0.5×</option><option value="1">1×</option><option value="2">2×</option></select>
           </div>
           <div className="pm-tabs" role="tablist" aria-label="Scene detail tabs">
             <button type="button" role="tab" aria-selected={detailsTab==="overview"} onClick={()=>setDetailsTab("overview")}><Info size={14}/> Overview</button>
-            <button type="button" role="tab" aria-selected={detailsTab==="animation"} onClick={()=>setDetailsTab("animation")}><Waves size={14}/> Animation</button>
+            <button type="button" role="tab" aria-selected={detailsTab==="animation"} onClick={openAnimation}><Waves size={14}/> Animation</button>
             <button type="button" role="tab" aria-selected={detailsTab==="json"} onClick={()=>setDetailsTab("json")}><FileJson2 size={14}/> Scene JSON</button>
             <span className="pm-tabs-meta">VERSION {doc.schemaVersion} · LOCAL ONLY</span>
           </div>
