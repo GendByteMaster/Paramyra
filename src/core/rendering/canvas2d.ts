@@ -1,6 +1,7 @@
 import { gridStep, layerWorldPoint, pixelScale, screenToWorld, worldToScreen, type Size } from "./geometry";
 import type { SceneDocument } from "../scenes/schema";
 import { documentFromScene, type MathDocument, type MathLayer } from "../document/schema";
+import { resolveAnimatedDocument } from "../animation/keyframes";
 
 export type CanvasView = {
   zoom: number;
@@ -23,23 +24,26 @@ export function drawDocument(
   doc: MathDocument,
   time: number,
   view: CanvasView = defaultView,
+  transparent = false,
 ): void {
   if (width <= 0 || height <= 0 || !Number.isFinite(width * height * time)) return;
 
   ctx.clearRect(0, 0, width, height);
+  if (!transparent) {
   const bg = ctx.createLinearGradient(0, 0, width, height);
   bg.addColorStop(0, "#090e17");
   bg.addColorStop(0.58, "#0b1321");
   bg.addColorStop(1, "#080d16");
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, width, height);
+  }
 
-
+  const renderedDoc = resolveAnimatedDocument(doc,time);
   const size: Size = { width, height };
-  const visibleCount = doc.layers.filter(layer => layer.visible && layer.opacity > 0).length;
+  const visibleCount = renderedDoc.layers.filter(layer => layer.visible && layer.opacity > 0).length;
   const sampleBudget = Math.max(320, Math.floor(10_000 / Math.max(1, visibleCount)));
   drawGrid(ctx, size, view);
-  for (const layer of doc.layers) {
+  for (const layer of renderedDoc.layers) {
     if (!layer.visible || layer.opacity === 0) continue;
     drawLayer(ctx, size, layer, time, view, sampleBudget);
   }

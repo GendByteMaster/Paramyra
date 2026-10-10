@@ -349,3 +349,63 @@
   .pm-calc-reference summary {min-height:24px;padding:3px;}
   .pm-calc-header-controls button {min-height:27px;padding:3px 5px;}
 }
+
+/* Paramyra v1.0 Animation Studio: keyframes + curve graph + frame export */
+.pm-workspace {position:relative;}
+.pm-export-launch {background:#193b48;border-color:#69c9c850;color:#d8fbef;}
+.pm-export-launch[aria-expanded=true] {background:#1b5b62;color:#fff;}
+.pm-export-panel {
+  position:absolute;z-index:90;top:75px;right:10px;max-width:calc(100vw - 20px);
+  display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;padding:15px;
+  border:1px solid #a2cafa5e;border-radius:14px;background:#111f31;
+  box-shadow:0 24px 70px #000a;
+}
+.pm-export-panel label {display:grid;gap:6px;font-size:10px;color:#abc7e7;}
+.pm-export-panel select {border:1px solid #aac7ec4f;border-radius:8px;background:#162942;
+  color:#ecf5ff;min-height:35px;padding:6px 8px;}
+.pm-export-panel button {display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  min-height:35px;border-radius:8px;padding:7px 12px;border:1px solid #76b8f270;background:#234566;
+  color:#edf8ff;font-size:11px;font-weight:700;}
+.pm-export-panel .pm-export-close {padding:7px 10px;background:#2b3345;}
+.pm-animation-surface {max-height:min(350px,42dvh);overflow-y:auto;overscroll-behavior:contain;}
+.pm-animation-editor {display:grid;gap:10px;padding:12px 15px;background:#0b1522;}
+.pm-animation-heading {display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:9px;}
+.pm-animation-heading span {display:flex;align-items:center;gap:7px;font-size:10px;letter-spacing:.1em;font-weight:800;color:#9bcaf4;}
+.pm-animation-heading small,.pm-animation-controls small,.pm-animation-graph-label small {font-size:10px;color:#829ab9;}
+.pm-animation-control-row {display:grid;grid-template-columns:1fr 90px minmax(110px,1fr);gap:9px;}
+.pm-animation-control-row label {display:grid;gap:5px;color:#a7bbd5;font-size:10px;min-width:0;}
+.pm-animation-control-row select,.pm-animation-control-row input {
+  width:100%;min-width:0;min-height:34px;background:#16283d;border:1px solid #91b9e84c;
+  border-radius:8px;color:#e3f2ff;padding:6px 8px;font-size:12px;
+}
+.pm-animation-controls {display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.pm-animation-controls button {display:inline-flex;align-items:center;gap:5px;border-radius:8px;
+  border:1px solid #8abaf060;background:#1c3d58;color:#dfedff;min-height:32px;
+  padding:6px 10px;font-size:11px;font-weight:650;}
+.pm-animation-controls button:disabled {opacity:.42;cursor:not-allowed;}
+.pm-animation-controls small {margin-left:auto;font-variant-numeric:tabular-nums;}
+.pm-animation-track {height:31px;border:1px solid #84aada55;background:linear-gradient(90deg,#1d293e,#172c38);
+  position:relative;margin:7px 7px 0;border-radius:8px;}
+.pm-animation-track-fill {height:100%;border-radius:8px;background:#4aa6a92c;pointer-events:none;}
+.pm-animation-playhead {position:absolute;top:-3px;bottom:-3px;width:2px;transform:translateX(-50%);
+  background:#a4f4dd;pointer-events:none;z-index:1;}
+.pm-keyframe-marker {position:absolute;top:50%;width:17px;height:17px;transform:translate(-50%,-50%) rotate(45deg);
+  border-radius:3px;border:2px solid #a5e6ed;background:#286e85;cursor:pointer;z-index:2;}
+.pm-keyframe-marker.selected {background:#b6ffda;border-color:#e1ffef;}
+.pm-keyframe-marker:focus-visible {outline:2px solid white;outline-offset:3px;}
+.pm-animation-ruler {display:flex;justify-content:space-between;margin:0 7px;color:#6c8dab;font:10px ui-monospace,monospace;}
+.pm-animation-graph-label {display:flex;justify-content:space-between;gap:8px;color:#99c4e9;font-size:10px;
+  font-weight:750;letter-spacing:.07em;margin-top:2px;}
+.pm-animation-graph {width:100%;height:92px;border:1px solid #709bc63b;border-radius:9px;
+  background:linear-gradient(120deg,#0c1a2c,#11283c);overflow:visible;}
+.pm-animation-help {margin:0;color:#8ca5c0;font-size:10px;line-height:1.5;}
+.pm-animation-editor select:focus-visible,.pm-animation-editor input:focus-visible,
+.pm-export-panel button:focus-visible {outline:2px solid #91e9f8;outline-offset:2px;}
+@media(max-width:760px) {
+  .pm-export-panel {position:fixed;left:8px;right:8px;top:80px;}
+  .pm-animation-surface {max-height:none;}
+  .pm-animation-control-row {grid-template-columns:1fr 75px 1fr;gap:6px;}
+  .pm-animation-editor {padding:12px;}
+  .pm-animation-graph {height:110px;}
+  .pm-tabs {flex-wrap:wrap;gap:3px;}
+}

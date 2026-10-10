@@ -2,11 +2,14 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore, type ChangeEvent } from "react";
 import Link from "next/link";
-import { ArrowLeft, Calculator, Check, ChevronDown, ChevronUp, CircleDot, Copy, Download, Eye, EyeOff, FileJson2, Grid3X3, Info, Layers3, Maximize2, Minimize2, Minus, Move, MousePointer2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Pause, Play, Plus, Redo2, RotateCcw, Search, SlidersHorizontal, Trash2, Undo2, Upload, Waves } from "lucide-react";
+import { ArrowLeft, Calculator, Image as ImageIcon, Check, ChevronDown, ChevronUp, CircleDot, Copy, Download, Eye, EyeOff, FileJson2, Grid3X3, Info, Layers3, Maximize2, Minimize2, Minus, Move, MousePointer2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Pause, Play, Plus, Redo2, RotateCcw, Search, SlidersHorizontal, Trash2, Undo2, Upload, Waves } from "lucide-react";
 import { SceneCanvas } from "./scene-canvas";
 import { SceneGlyph } from "./scene-glyph";
 import { FormulaEditor } from "./formula-editor";
 import { CalculatorWindow } from "./calculator-window";
+import { AnimationTimeline } from "./animation-timeline";
+import { resolveAnimatedDocument } from "@/core/animation/keyframes";
+import { savePng, saveSvg, type ExportBackground, type ExportSize } from "@/core/rendering/export";
 import { defaultFormula, validateFormula } from "@/core/math/formula";
 import { presets, presetFor } from "@/core/scenes/presets";
 import { defaultView, type CanvasView } from "@/core/rendering/canvas2d";
@@ -91,7 +94,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
   const [libraryOpen,setLibraryOpen]=useState(()=>window.matchMedia("(min-width:960px)").matches);
   const [inspectorOpen,setInspectorOpen]=useState(true);
   const [detailsOpen,setDetailsOpen]=useState(true);
-  const [detailsTab,setDetailsTab]=useState<"overview"|"json">("overview");
+  const [detailsTab,setDetailsTab]=useState<"overview"|"animation"|"json">("overview");
   const [view,setView]=useState<CanvasView>(defaultView);
   const [canvasSize,setCanvasSize]=useState<Size>({width:800,height:600});
   const [tool,setTool]=useState<"select"|"pan">("select");
@@ -101,6 +104,9 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
   const [seekVersion,setSeekVersion]=useState(0);
   const [fullscreen,setFullscreen]=useState(false);
   const [notice,setNotice]=useState("");
+  const [exportOpen,setExportOpen]=useState(false);
+  const [exportSize,setExportSize]=useState<"1280x720"|"1920x1080">("1920x1080");
+  const [exportBackground,setExportBackground]=useState<ExportBackground>("dark");
   const [calculatorOpen,setCalculatorOpen]=useState(false);
   const openCalculator=()=>{
     returnCalculatorFocus.current=document.activeElement instanceof HTMLElement?document.activeElement:null;
@@ -198,6 +204,16 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
     setNotice("Graph layer added. Use Undo to restore.");
     return true;
   };
+  const exportFrame=async(type:"png"|"svg")=>{
+    const [width,height]=exportSize.split("x").map(Number);
+    const size:ExportSize={width,height};
+    try{
+      if(type==="svg")saveSvg(doc,time,view,size,exportBackground);
+      else await savePng(doc,time,view,size,exportBackground);
+      setNotice("Exported "+type.toUpperCase()+" frame at "+time.toFixed(2)+"s.");
+      setExportOpen(false);
+    }catch{setNotice("Unable to export image. Please try again.");}
+  };
   const download=()=>{
     const url=URL.createObjectURL(new Blob([JSON.stringify(doc,null,2)],{type:"application/json"}));
     const a=document.createElement("a");a.href=url;a.download="paramyra-"+doc.id+".json";a.click();
@@ -242,10 +258,14 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
       commit(d=>updateLayer(d,layer.id,l=>({...l,params:{...defaults.params},offset:{x:0,y:0}})));
     }
   };
-  const fit=()=>setView(v=>({...v,...fitCamera(doc,time,canvasSize,v)}));
+  const fit=()=>setView(v=>({...v,...fitCamera(resolveAnimatedDocument(doc,time),time,canvasSize,v)}));
   const moveLayerOffset=(id:string,x:number,y:number)=>{
     const current=doc.layers.find(l=>l.id===id);
     if(!current||current.offset.x===x&&current.offset.y===y)return;
+    if(current.keyframes?.some(frame=>frame.property==="offset.x"||frame.property==="offset.y")){
+      setNotice("Position is animated. Edit its keyframes in Animation Timeline.");
+      return;
+    }
     commit(d=>updateLayer(d,id,l=>({...l,offset:{x,y}})),"drag:"+id);
   };
   const guide=layer.kind==="formula"?"Create explicit, parametric or polar curves using a safe expression grammar. Adjust parameters a, b, c and the domain to change their geometry.":layer.kind==="lissajous"?"Two perpendicular waves create a closed curve. Their frequency ratio controls symmetry.":layer.kind==="polar-rose"?"The symmetry parameter controls the petals of the rose curve.":"Two sine components combine into a harmonic waveform.";
@@ -277,10 +297,24 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
         <button type="button" className="pm-action pm-calculator-launch" aria-label="Open calculator window"
           aria-haspopup="dialog" aria-expanded={calculatorOpen} aria-controls="pm-scientific-calculator-window"
           onClick={openCalculator}><Calculator size={16}/><span className="pm-calc-launch-label">Calculator</span></button>
+        <button type="button" className="pm-action pm-export-launch" aria-label="Open image export options"
+          aria-expanded={exportOpen} onClick={()=>setExportOpen(v=>!v)}><ImageIcon size={15}/> Export Image</button>
         <label className="pm-action pm-action-quiet pm-import"><Upload size={15}/> Import<input className="sr-only" type="file" aria-label="Import scene JSON" accept=".json,application/json" onChange={importFile}/></label>
         <button type="button" className="pm-action pm-action-primary" onClick={download}><Download size={15}/> Export JSON</button>
       </div>
     </header>
+    {exportOpen&&<div className="pm-export-panel" role="group" aria-label="Image export options">
+      <span className="pm-label">FRAME EXPORT</span>
+      <label>Resolution<select aria-label="Export resolution" value={exportSize} onChange={e=>setExportSize(e.target.value as "1280x720"|"1920x1080")}>
+        <option value="1280x720">1280 × 720</option><option value="1920x1080">1920 × 1080</option>
+      </select></label>
+      <label>Background<select aria-label="Export background" value={exportBackground} onChange={e=>setExportBackground(e.target.value as ExportBackground)}>
+        <option value="dark">Dark</option><option value="transparent">Transparent</option>
+      </select></label>
+      <button type="button" onClick={()=>{void exportFrame("png");}}><Download size={14}/> Download PNG</button>
+      <button type="button" onClick={()=>{void exportFrame("svg");}}><Download size={14}/> Download SVG</button>
+      <button type="button" className="pm-export-close" aria-label="Close image export" onClick={()=>setExportOpen(false)}>✕</button>
+    </div>}
     <div className={"pm-grid"+(!libraryOpen?" pm-no-library":"")+(!inspectorOpen?" pm-no-inspector":"")}>
       {libraryOpen&&<button type="button" className="pm-library-backdrop" aria-label="Close scene library" onClick={()=>setLibraryOpen(false)}/>}
       {libraryOpen&&<aside className="pm-sidebar" aria-label="Scene library">
@@ -362,10 +396,15 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
           </div>
           <div className="pm-tabs" role="tablist" aria-label="Scene detail tabs">
             <button type="button" role="tab" aria-selected={detailsTab==="overview"} onClick={()=>setDetailsTab("overview")}><Info size={14}/> Overview</button>
+            <button type="button" role="tab" aria-selected={detailsTab==="animation"} onClick={()=>setDetailsTab("animation")}><Waves size={14}/> Animation</button>
             <button type="button" role="tab" aria-selected={detailsTab==="json"} onClick={()=>setDetailsTab("json")}><FileJson2 size={14}/> Scene JSON</button>
             <span className="pm-tabs-meta">VERSION {doc.schemaVersion} · LOCAL ONLY</span>
           </div>
-          {detailsTab==="overview"?<div className="pm-detail-content" role="tabpanel">
+          {detailsTab==="animation"?<div role="tabpanel" className="pm-animation-surface">
+            <AnimationTimeline layer={layer} duration={doc.duration} time={Math.min(time,doc.duration)}
+              onSeek={value=>{setPlaying(false);setTime(value);setSeekVersion(v=>v+1);}}
+              onEdit={fn=>{setPlaying(false);commit(d=>updateLayer(d,layer.id,fn));}}/>
+          </div>:detailsTab==="overview"?<div className="pm-detail-content" role="tabpanel">
             <div className="pm-detail-metric pm-pattern-metric"><span>{pattern.label}</span><strong>{pattern.value}</strong></div>
             {layer.kind==="formula"?<div className="pm-detail-metric"><span>Parameter a</span><strong>{layer.formula.a.toFixed(2)}</strong></div>:<div className="pm-detail-metric"><span>Frequency X</span><strong>{layer.params.frequencyX}</strong></div>}
             {layer.kind==="formula"?<div className="pm-detail-metric"><span>Parameter b</span><strong>{layer.formula.b.toFixed(2)}</strong></div>:<div className="pm-detail-metric"><span>{layer.kind==="polar-rose"?"Curve type":"Frequency Y"}</span><strong>{layer.kind==="polar-rose"?"Polar rose":layer.params.frequencyY}</strong></div>}

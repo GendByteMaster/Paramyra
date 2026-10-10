@@ -1,8 +1,21 @@
 import { z } from "zod";
 import { sceneSchema, sceneParamsSchema, type SceneDocument as LegacyScene, type SceneKind } from "../scenes/schema";
 import { validateFormula, type Formula, defaultFormula } from "../math/formula";
+import { KEYFRAME_LIMIT, propertyBounds } from "../animation/keyframes";
 
+const keyframeSchema=z.object({
+  property:z.enum(["offset.x","offset.y","opacity"]),
+  time:z.number().finite().min(0).max(60),
+  value:z.number().finite().min(-2).max(2),
+  ease:z.enum(["linear","ease-in","ease-out","ease-in-out","hold"]),
+}).strict().superRefine((frame,ctx)=>{
+  const range=propertyBounds(frame.property);
+  if(frame.value<range.min||frame.value>range.max){
+    ctx.addIssue({code:"custom",message:"Keyframe value outside property bounds",path:["value"]});
+  }
+});
 const layerCore = {
+  keyframes:z.array(keyframeSchema).max(KEYFRAME_LIMIT).optional(),
   id: z.string().min(1).max(64),
   title: z.string().min(1).max(120),
   params: sceneParamsSchema,
@@ -53,6 +66,13 @@ export const documentSchema = z.object({
   doc.layers.forEach((layer, index) => {
     if (ids.has(layer.id)) ctx.addIssue({ code: "custom", message: "Layer IDs must be unique", path: ["layers", index, "id"] });
     ids.add(layer.id);
+    const distinct=new Set<string>();
+    for(const [frameIndex,frame] of (layer.keyframes??[]).entries()){
+      const key=frame.property+":"+frame.time;
+      if(distinct.has(key))ctx.addIssue({code:"custom",message:"Duplicate keyframe property/time",path:["layers",index,"keyframes",frameIndex]});
+      distinct.add(key);
+      if(frame.time>doc.duration)ctx.addIssue({code:"custom",message:"Keyframe must fit document duration",path:["layers",index,"keyframes",frameIndex,"time"]});
+    }
   });
 });
 

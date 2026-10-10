@@ -4,6 +4,7 @@ import { useEffect, useRef, type KeyboardEvent, type PointerEvent, type WheelEve
 import { drawDocument, defaultView, type CanvasView } from "@/core/rendering/canvas2d";
 import { clampZoom, hitTestLayer, pixelScale, zoomAt, type Camera, type Size } from "@/core/rendering/geometry";
 import { documentFromScene, type MathDocument } from "@/core/document/schema";
+import { resolveAnimatedDocument } from "@/core/animation/keyframes";
 import type { SceneDocument } from "@/core/scenes/schema";
 
 type Props = {
@@ -117,7 +118,7 @@ export function SceneCanvas(props: Props) {
     const point = canvasPoint(event);
     const scene = "layers" in p.scene ? p.scene : documentFromScene(p.scene);
     const shouldPan = event.button === 1 || event.altKey || p.tool === "pan";
-    const id = shouldPan ? null : hitTestLayer(scene, timeRef.current, size, camera, point);
+    const id = shouldPan ? null : hitTestLayer(resolveAnimatedDocument(scene,timeRef.current), timeRef.current, size, camera, point);
     if (id && p.onLayerOffsetChange) {
       const layer = scene.layers.find(l => l.id === id)!;
       p.onLayerMoveStart?.(id);
