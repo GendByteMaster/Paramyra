@@ -34,6 +34,12 @@ body:has(.pm-ng-root) #main-content {
   background: transparent;
   overflow: hidden;
 }
+.pm-ng-root.pm-ng-fullscreen {
+  margin: 0;
+  width: 100vw;
+  height: 100dvh;
+  border-radius: 0;
+}
 .pm-ng-projectbar {
   flex: 0 0 auto;
   min-height: 60px;
@@ -159,7 +165,7 @@ body:has(.pm-ng-root) #main-content {
   background: #080e18;
 }
 .pm-ng-reactflow { background: radial-gradient(ellipse at 45% 35%, #1b2f4655, transparent 72%), #080e18; }
-.pm-ng-reactflow .react-flow__node { width: 236px; }
+.pm-ng-reactflow .react-flow__node { width: 252px; }
 .pm-ng-rf-node { border-radius: 12px; }
 .pm-ng-rf-node-header { height: 43px; border-radius: 11px 11px 0 0; }
 .pm-ng-rf-node-header strong { font-size: 12px; }
