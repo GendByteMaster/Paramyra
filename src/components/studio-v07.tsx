@@ -152,9 +152,25 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
     const id=makeLayerId();
     commit(d=>duplicateLayer(d,layer.id,id));setSelected(id);
   };
-  const remove=()=>{
-    if(doc.layers.length<=1)return setNotice("At least one layer is required.");
-    commit(d=>removeLayer(d,layer.id));setSelected(doc.layers.find(l=>l.id!==layer.id)!.id);
+  const removeById=(id:string)=>{
+    const index=doc.layers.findIndex(l=>l.id===id);
+    if(index<0)return;
+    if(doc.layers.length<=1)return setNotice("At least one layer is required. Add another layer before deleting this one.");
+    const remaining=doc.layers.filter(l=>l.id!==id);
+    commit(d=>removeLayer(d,id));
+    if(selected===id)setSelected(remaining[Math.min(index,remaining.length-1)].id);
+    setNotice(doc.layers[index].title+" deleted. Use Undo to restore.");
+  };
+  const remove=()=>removeById(layer.id);
+  const addFormula=()=>{
+    if(doc.layers.length>=12)return setNotice("Maximum 12 layers.");
+    const item=newFormulaLayer(makeLayerId());
+    commit(d=>addLayer(d,item));
+    setSelected(item.id);
+    setInspectorOpen(true);
+    setNotice("Formula layer added. Edit its expression in the Inspector.");
+    if(window.matchMedia("(max-width:959px)").matches)setLibraryOpen(false);
+    requestAnimationFrame(()=>root.current?.querySelector(".pm-formula-editor")?.scrollIntoView({block:"nearest",behavior:"smooth"}));
   };
   const download=()=>{
     const url=URL.createObjectURL(new Blob([JSON.stringify(doc,null,2)],{type:"application/json"}));
@@ -253,11 +269,18 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
         </div>
         <div className="pm-layers-panel">
           <div className="pm-layers-heading"><span><Layers3 size={14}/> Layers ({doc.layers.length}/12)</span><button type="button" aria-label="Add layer" disabled={doc.layers.length>=12} onClick={add}><Plus size={16}/></button></div>
-          <select aria-label="New layer kind" value={addKind} onChange={e=>setAddKind(e.target.value as SceneKind|"formula")}>{presets.map(p=><option key={p.kind} value={p.kind}>{p.title}</option>)}<option value="formula">Custom Formula</option></select>
+          <div className="pm-layer-create">
+            <select aria-label="New layer kind" value={addKind} onChange={e=>setAddKind(e.target.value as SceneKind|"formula")}>{presets.map(p=><option key={p.kind} value={p.kind}>{p.title}</option>)}<option value="formula">Custom Formula</option></select>
+            <button type="button" className="pm-formula-add" aria-label="Add formula layer" title="Create a formula and open its editor" disabled={doc.layers.length>=12} onClick={addFormula}>ƒx Formula</button>
+          </div>
           <div className="pm-layer-list">{doc.layers.map((l,index)=><div key={l.id} className={"pm-layer-row"+(selected===l.id?" selected":"")}>
             <button type="button" className="pm-layer-select" aria-label={"Select layer "+l.title} aria-pressed={selected===l.id} onClick={()=>setSelected(l.id)}><span>{index+1}</span><span>{l.title}</span></button>
-            <button type="button" aria-label={"Toggle visibility "+l.title} onClick={()=>commit(d=>updateLayer(d,l.id,x=>({...x,visible:!x.visible})))}>{l.visible?<Eye size={15}/>:<EyeOff size={15}/>}</button>
+            <button type="button" aria-label={"Toggle visibility "+l.title} title={l.visible?"Hide layer":"Show layer"} onClick={()=>commit(d=>updateLayer(d,l.id,x=>({...x,visible:!x.visible})))}>{l.visible?<Eye size={15}/>:<EyeOff size={15}/>}</button>
+            <button type="button" className="pm-layer-remove" aria-label={"Delete layer "+l.title}
+              title={doc.layers.length===1?"A document must contain at least one layer":"Delete layer — Undo to restore"}
+              disabled={doc.layers.length===1} onClick={()=>removeById(l.id)}><Trash2 size={15}/></button>
           </div>)}</div>
+          {doc.layers.length===1&&<p className="pm-layer-minimum">At least one layer is required.</p>}
         </div>
         <div className="pm-sidebar-bottom"><span className="pm-label">CUSTOM PRESETS</span>
           <div className="pm-save-preset"><input aria-label="Preset name" placeholder="Preset name" value={presetName} maxLength={120} onChange={e=>setPresetName(e.target.value)}/><button type="button" onClick={savePreset}>Save</button></div>
@@ -339,7 +362,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
             <div className="pm-layer-actions"><button type="button" aria-label="Duplicate layer" disabled={doc.layers.length>=12} onClick={duplicate}><Copy size={14}/> Duplicate</button>
               <button type="button" aria-label="Move layer up" disabled={doc.layers.indexOf(layer)>=doc.layers.length-1} onClick={()=>commit(d=>moveLayer(d,layer.id,1))}>↑</button>
               <button type="button" aria-label="Move layer down" disabled={doc.layers.indexOf(layer)===0} onClick={()=>commit(d=>moveLayer(d,layer.id,-1))}>↓</button>
-              <button type="button" aria-label="Delete layer" disabled={doc.layers.length===1} onClick={remove}><Trash2 size={15}/></button></div>
+              <button type="button" className="pm-inspector-delete" aria-label="Delete layer" title={doc.layers.length===1?"At least one layer is required":"Delete selected layer — Undo to restore"} disabled={doc.layers.length===1} onClick={remove}><Trash2 size={15}/> Delete</button></div>
             <div className="pm-style-fields"><label>Color<input type="color" aria-label="Layer color" value={layer.color} onChange={e=>commit(d=>updateLayer(d,layer.id,l=>({...l,color:e.target.value})),"color:"+layer.id)}/></label>
               <label>Opacity<input type="range" aria-label="Layer opacity" min="0" max="1" step=".05" value={layer.opacity} onChange={e=>commit(d=>updateLayer(d,layer.id,l=>({...l,opacity:e.target.valueAsNumber})),"opacity:"+layer.id)}/></label>
             </div>

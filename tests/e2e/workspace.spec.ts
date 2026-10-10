@@ -417,3 +417,53 @@ test("v2 multilayer JSON import migrates into v3 formula-capable project", async
   await expect(page.getByRole("tabpanel")).toContainText('"schemaVersion": 3');
   await expect(page.getByRole("tabpanel")).toContainText('"x": 1');
 });
+
+
+test("formula shortcut reveals the editor without replacing existing layers", async ({ page }) => {
+  await page.goto("/studio");
+  const library=page.getByRole("complementary",{name:"Scene library"});
+  if(!(await library.isVisible()))await page.getByRole("button",{name:"Toggle scene library"}).click();
+  await library.getByRole("button",{name:"Add formula layer"}).click();
+  await expect(page.locator(".pm-viewport-heading")).toContainText("2 layers");
+  await expect(page.getByRole("combobox",{name:"Mathematical form"})).toHaveValue("formula");
+  await expect(page.getByRole("textbox",{name:"Formula Y expression"})).toHaveValue("a*sin(b*x+t)");
+  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers.length)).toBe(2);
+});
+
+test("inline delete removes an arbitrary unselected layer, then Undo and Redo restore history", async ({ page }) => {
+  await page.goto("/studio");
+  const library=page.getByRole("complementary",{name:"Scene library"});
+  if(!(await library.isVisible()))await page.getByRole("button",{name:"Toggle scene library"}).click();
+  await library.getByRole("button",{name:"Add formula layer"}).click();
+  if(!(await library.isVisible()))await page.getByRole("button",{name:"Toggle scene library"}).click();
+  await library.getByRole("button",{name:"Delete layer Lissajous Curves"}).click();
+  await expect(library.locator(".pm-layer-row")).toHaveCount(1);
+  await expect(page.getByRole("combobox",{name:"Mathematical form"})).toHaveValue("formula");
+  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers.map((l:{kind:string})=>l.kind))).toEqual(["formula"]);
+  if(await page.getByRole("button",{name:"Close scene library"}).isVisible()){
+    await page.getByRole("button",{name:"Close scene library"}).click({position:{x:350,y:300}});
+  }
+  await page.getByRole("button",{name:"Undo"}).click();
+  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers.length)).toBe(2);
+  await page.getByRole("button",{name:"Redo"}).click();
+  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers.length)).toBe(1);
+  await page.reload();
+  await expect(page.locator(".pm-viewport-heading")).toContainText("1 layers");
+});
+
+test("deleting the selected layer selects an adjacent layer and protects the last layer", async ({ page }) => {
+  await page.goto("/studio");
+  const library=page.getByRole("complementary",{name:"Scene library"});
+  if(!(await library.isVisible()))await page.getByRole("button",{name:"Toggle scene library"}).click();
+  await library.getByRole("button",{name:"Add layer"}).click();
+  await expect(page.getByRole("combobox",{name:"Mathematical form"})).toHaveValue("polar-rose");
+  await library.getByRole("button",{name:"Delete layer Polar Rose"}).click();
+  await expect(library.locator(".pm-layer-row")).toHaveCount(1);
+  await expect(page.getByRole("combobox",{name:"Mathematical form"})).toHaveValue("lissajous");
+  await expect(library.getByRole("button",{name:"Delete layer Lissajous Curves"})).toBeDisabled();
+  if(await page.getByRole("button",{name:"Close scene library"}).isVisible()){
+    await page.getByRole("button",{name:"Close scene library"}).click({position:{x:350,y:300}});
+  }
+  await expect(page.getByRole("button",{name:"Delete layer",exact:true})).toBeDisabled();
+  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers.length)).toBe(1);
+});

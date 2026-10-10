@@ -47,3 +47,10 @@
 
 ## Excluded
 Symbolic algebra/derivatives, piecewise syntax, implicit equations, units/dimensional analysis, cross-layer parameter references, scripted functions, collaborative editing, 3D, GPU/WASM expression compilation, simulation solvers, keyframe authoring and cloud storage.
+
+## Usability follow-up — Formula discovery and Layer delete
+- The Layers panel exposes **ƒx Formula** as a direct action. The new formula layer is selected, the Inspector opens, and the mobile Library drawer closes. It does not replace existing layers.
+- Each Layers row exposes permanent Show/Hide and Delete actions (including touch sizes and accessible labels).
+- Deleting any layer is a single document history operation; Undo/Redo restore the state. If the deleted layer was selected, selection moves to the nearest surviving layer. Deleting a different layer preserves selection.
+- The last layer remains protected by the v3 MathDocument minimum-of-one constraint; both Inspector and Layers-row Delete are disabled and the reason is shown.
+- Automated E2E covers direct formula creation and inline layer delete/undo/redo on desktop and mobile.

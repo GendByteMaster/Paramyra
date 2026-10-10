@@ -79,3 +79,27 @@
 .pm-formula-feedback[data-valid=true] { color:#8ddbc2; }
 .pm-formula-help {font-size:11px;line-height:1.7;color:#829bbd;margin:0;}
 .pm-transport-equation code { overflow:hidden; text-overflow:ellipsis; white-space:nowrap;max-width:100%; }
+
+/* Formula v0.9 discoverability + inline layer management. */
+.pm-layer-create {display:flex;gap:7px;min-width:0;align-items:center;}
+.pm-layer-create select {flex:1;min-width:0;}
+.pm-layers-panel .pm-formula-add {
+  flex:none;white-space:nowrap;min-height:34px;padding:0 9px;
+  border:1px solid #87b6ff70;border-radius:8px;
+  background:linear-gradient(140deg,#224879,#1b3254);
+  color:#e1efff;font-size:11px;font-weight:680;
+}
+.pm-layers-panel .pm-formula-add:hover:not(:disabled){background:#345d91;}
+.pm-layers-panel .pm-formula-add:disabled {opacity:.38;cursor:not-allowed;}
+.pm-layer-row .pm-layer-select {min-width:0;}
+.pm-layer-row >button:not(.pm-layer-select) {flex:none;min-width:30px;min-height:30px;}
+.pm-layer-row .pm-layer-remove {color:#ecb5b5;border-color:#b882824d;background:#38232b;}
+.pm-layer-row .pm-layer-remove:hover:not(:disabled) {color:#fff;background:#8a343f;border-color:#e5a3a3;}
+.pm-layer-row .pm-layer-remove:disabled {opacity:.27;cursor:not-allowed;}
+.pm-layer-minimum {font-size:10px;color:#8b9fbb;margin:0;}
+.pm-inspector .pm-layer-actions .pm-inspector-delete {color:#f1babb;border-color:#b875754d;}
+.pm-inspector .pm-layer-actions .pm-inspector-delete:hover:not(:disabled) {background:#4e2734;color:white;}
+@media (max-width:959px) {
+  .pm-layer-row >button:not(.pm-layer-select){min-width:36px;min-height:36px;}
+  .pm-layers-panel .pm-formula-add {min-height:38px;}
+}
