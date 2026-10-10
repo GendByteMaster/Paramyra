@@ -205,3 +205,14 @@
 @media (prefers-reduced-motion:reduce) {
  .pm-ng-root *, .pm-ng-root *::before, .pm-ng-root *::after {transition:none!important;animation:none!important}
 }
+
+
+/* M3.1 Live binding: explicit, readable priority control without a new sidebar. */
+.pm-ng-live-panel {border:1px solid #82c9bc61;border-radius:13px;background:linear-gradient(140deg,#193f456e,#1631457a);padding:13px;margin:12px 0 16px}
+.pm-ng-live-heading {display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.pm-ng-live-heading strong {font-size:13px;color:#d2f8ef}
+.pm-ng-live-heading span {font-size:10px;letter-spacing:.09em;font-weight:800;color:#9ae7d2}
+.pm-ng-live-panel p {font-size:11px;line-height:1.5;color:#a7c8cf;margin:5px 0 10px}
+.pm-ng-live-switch {display:flex;align-items:center;gap:9px;color:#d9f6ed;font-size:12px;font-weight:650;cursor:pointer;padding:8px 0}
+.pm-ng-live-switch input {width:18px;height:18px;accent-color:#75dfc8;cursor:pointer}
+.pm-ng-live-panel .pm-ng-note {color:#a8c0d2}
