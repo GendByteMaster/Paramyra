@@ -176,45 +176,6 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
       </label>
       <output className="pm-timeline-visible" aria-label="Visible timeline range">{window.start.toFixed(2)}–{window.end.toFixed(2)}s</output>
     </div>
-    <div className="pm-animation-control-row">
-      <label>Property<select aria-label="Animated property" value={active} onChange={e=>setProperty(e.target.value as AnimatableProperty)}>
-        {available.map(p=><option key={p} value={p}>{names[p]}</option>)}
-      </select></label>
-      <label>Value<input type="number" aria-label="Animated value" min={bounds.min} max={bounds.max}
-        step={bounds.step} value={Number(currentValue.toFixed(4))}
-        onChange={e=>setValue(e.target.valueAsNumber)}/></label>
-      <label>Easing<select aria-label="Keyframe easing" value={selected?.ease??"ease-in-out"}
-        disabled={!selected} onChange={e=>{
-          if(!selected)return;
-          const ease=e.target.value as KeyframeEase;
-          setFrameEase(selected,ease);
-        }}>{EASES.map(ease=><option key={ease} value={ease}>{ease}</option>)}</select></label>
-    </div>
-    <div className="pm-animation-controls">
-      <button type="button" onClick={add} disabled={!Number.isFinite(currentValue)||!Number.isFinite(time)}
-        aria-label="Add keyframe at playhead"><Plus size={14}/> {selected?"Update keyframe":"Add keyframe"}</button>
-      <button type="button" aria-label="Delete keyframe at playhead" disabled={!selected}
-        onClick={()=>onEdit(l=>deleteKeyframe(l,active,selected!.time))}><Trash2 size={14}/> Remove</button>
-      {selected&&<label className="pm-keyframe-time-label">Keyframe time
-        <input type="number" key={active+":"+selected.time} aria-label="Keyframe time" min={0}
-          max={duration} step={0.01} defaultValue={selected.time}
-          onBlur={e=>move(active,selected.time,e.target.valueAsNumber)}
-          onKeyDown={e=>{if(e.key==="Enter")e.currentTarget.blur();}}/>
-      </label>}
-      <small>{time.toFixed(2)}s / {duration.toFixed(2)}s</small>
-    </div>
-    <div className="pm-animation-batch" role="group" aria-label="Multi-keyframe selection">
-      <span>{selectedRefs.length} selected</span>
-      <button type="button" aria-label="Select all keyframes in current track" disabled={!frames.length}
-        onClick={()=>setSelection({layerId:layer.id,keys:frames.map(f=>frameKey(f.property,f.time)),anchor:frameKey(active,frames[0].time)})}>Select track</button>
-      <button type="button" aria-label="Clear keyframe selection" disabled={!selectedRefs.length} onClick={clearSelection}>Clear</button>
-      <label>Shift (s)<input type="number" aria-label="Keyframe group shift" step="0.01"
-        value={batchOffset} onChange={e=>setBatchOffset(e.target.value)}/></label>
-      <button type="button" aria-label="Move selected keyframes" disabled={!selectedRefs.length}
-        onClick={()=>applyDelta(selectedRefs,Number(batchOffset))}>Move selected</button>
-      <button type="button" aria-label="Delete selected keyframes" disabled={!selectedRefs.length}
-        onClick={()=>{onEdit(l=>deleteKeyframes(l,selectedRefs));clearSelection();}}>Delete selected</button>
-    </div>
     <div className="pm-animation-layout">
       <section className="pm-animation-track-column" aria-label="Timeline tracks">
         <div className="pm-animation-section-title"><span>PROPERTY TRACKS</span><small>{available.length} channels · {layer.keyframes?.length??0} keys</small></div>
@@ -330,6 +291,45 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
       <path d={"M"+(playhead/100*640)+" 0V128"} stroke="#d2e5ff9c" strokeWidth="1" strokeDasharray="5 4"/>
     </svg>
       </section>
+    </div>
+    <div className="pm-animation-control-row">
+      <label>Property<select aria-label="Animated property" value={active} onChange={e=>setProperty(e.target.value as AnimatableProperty)}>
+        {available.map(p=><option key={p} value={p}>{names[p]}</option>)}
+      </select></label>
+      <label>Value<input type="number" aria-label="Animated value" min={bounds.min} max={bounds.max}
+        step={bounds.step} value={Number(currentValue.toFixed(4))}
+        onChange={e=>setValue(e.target.valueAsNumber)}/></label>
+      <label>Easing<select aria-label="Keyframe easing" value={selected?.ease??"ease-in-out"}
+        disabled={!selected} onChange={e=>{
+          if(!selected)return;
+          const ease=e.target.value as KeyframeEase;
+          setFrameEase(selected,ease);
+        }}>{EASES.map(ease=><option key={ease} value={ease}>{ease}</option>)}</select></label>
+    </div>
+    <div className="pm-animation-controls">
+      <button type="button" onClick={add} disabled={!Number.isFinite(currentValue)||!Number.isFinite(time)}
+        aria-label="Add keyframe at playhead"><Plus size={14}/> {selected?"Update keyframe":"Add keyframe"}</button>
+      <button type="button" aria-label="Delete keyframe at playhead" disabled={!selected}
+        onClick={()=>onEdit(l=>deleteKeyframe(l,active,selected!.time))}><Trash2 size={14}/> Remove</button>
+      {selected&&<label className="pm-keyframe-time-label">Keyframe time
+        <input type="number" key={active+":"+selected.time} aria-label="Keyframe time" min={0}
+          max={duration} step={0.01} defaultValue={selected.time}
+          onBlur={e=>move(active,selected.time,e.target.valueAsNumber)}
+          onKeyDown={e=>{if(e.key==="Enter")e.currentTarget.blur();}}/>
+      </label>}
+      <small>{time.toFixed(2)}s / {duration.toFixed(2)}s</small>
+    </div>
+    <div className="pm-animation-batch" role="group" aria-label="Multi-keyframe selection">
+      <span>{selectedRefs.length} selected</span>
+      <button type="button" aria-label="Select all keyframes in current track" disabled={!frames.length}
+        onClick={()=>setSelection({layerId:layer.id,keys:frames.map(f=>frameKey(f.property,f.time)),anchor:frameKey(active,frames[0].time)})}>Select track</button>
+      <button type="button" aria-label="Clear keyframe selection" disabled={!selectedRefs.length} onClick={clearSelection}>Clear</button>
+      <label>Shift (s)<input type="number" aria-label="Keyframe group shift" step="0.01"
+        value={batchOffset} onChange={e=>setBatchOffset(e.target.value)}/></label>
+      <button type="button" aria-label="Move selected keyframes" disabled={!selectedRefs.length}
+        onClick={()=>applyDelta(selectedRefs,Number(batchOffset))}>Move selected</button>
+      <button type="button" aria-label="Delete selected keyframes" disabled={!selectedRefs.length}
+        onClick={()=>{onEdit(l=>deleteKeyframes(l,selectedRefs));clearSelection();}}>Delete selected</button>
     </div>
     <p className="pm-animation-help">Zoom and pan the ruler · drag across property rows for box selection · Ctrl/Cmd-click toggles · Shift-click extends · Snap aligns edits to the grid or nearby keyframes. All layers is an overview; edits remain on the selected layer.</p>
   </div>;
