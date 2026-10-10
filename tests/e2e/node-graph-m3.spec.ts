@@ -38,9 +38,9 @@ test("M3 rejects numeric cycles and allows undoing new nodes without changing St
   await expect(page.getByText("4 LINKS")).toBeVisible();
   const add=page.getByRole("button",{name:/Number.*Fixed numeric input/});
   await add.click();
-  await expect(page.getByText("6 NODES")).toBeVisible();
+  await expect(page.getByText("6 NODES",{exact:true})).toBeVisible();
   await page.getByRole("button",{name:"Undo graph edit"}).click();
-  await expect(page.getByText("5 NODES")).toBeVisible();
+  await expect(page.getByText("5 NODES",{exact:true})).toBeVisible();
   await expect.poll(()=>page.evaluate(()=>localStorage.getItem("paramyra.document.v3"))).toBe(before);
 });
 
