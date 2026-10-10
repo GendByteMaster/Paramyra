@@ -280,9 +280,9 @@ test("layers are real composited objects and undo/redo is stable", async ({ page
   await page.getByRole("button", { name: "Redo" }).click();
   await expect(page.locator(".pm-viewport-heading")).toContainText("2 layers");
   await page.getByRole("button", { name: "Duplicate layer" }).click();
-  await expect(page.locator(".pm-layer-row")).toHaveCount(3);
+  await expect(page.locator(".pm-viewport-heading")).toContainText("3 layers");
   await page.getByRole("button", { name: "Delete layer" }).click();
-  await expect(page.locator(".pm-layer-row")).toHaveCount(2);
+  await expect(page.locator(".pm-viewport-heading")).toContainText("2 layers");
 });
 
 test("timeline, camera tools and custom presets are interactive", async ({ page }) => {
