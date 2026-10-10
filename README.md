@@ -1,9 +1,41 @@
 # Paramyra
 
-Interactive Mathematics & Physics Studio — explore mathematical scenes, experiment with parameters, and create your own visualizations.
+**Where mathematics comes alive.** Interactive Mathematics & Physics Studio: explore, simulate, and create.
 
-**Stack:** Next.js 16, React 19, TypeScript, Tailwind CSS v4.
+[![CI](https://github.com/GendByteMaster/Paramyra/actions/workflows/ci.yml/badge.svg)](https://github.com/GendByteMaster/Paramyra/actions/workflows/ci.yml)
 
-**Status:** Foundation in progress. Source changes are prepared in feature branches and reviewed through pull requests.
+## Foundation scope
 
-UI design follows Apple Human Interface Guidelines. [Animata](https://github.com/codse/animata) is an optional source of MIT-licensed interface interactions; the mathematical renderer is independent of UI animations.
+- Next.js 16 App Router, React 19, TypeScript (strict), Tailwind CSS v4
+- Gallery with three mathematical scene presets
+- Shared deterministic math functions and Canvas 2D renderer
+- Interactive Playground and Studio with live parameter editing
+- Local save/load, JSON import/export, reduced-motion support
+- Apple HIG-inspired accessible and adaptive UI
+- Animata selectively adapted for UI-only effects; see [integration policy](docs/ANIMATA.md)
+
+## Running
+
+Node.js 22 recommended.
+
+    npm install
+    npm run dev
+
+Open http://localhost:3000. Verify with:
+
+    npm run lint
+    npm run typecheck
+    npm test
+    npm run build
+    npx playwright install chromium
+    npm run test:e2e
+
+### Deployment
+
+Import this repository into Vercel and select **Next.js** with the repository root. No environment variables are required for the foundation. Vercel deployment is not yet confirmed.
+
+### Project principles
+
+The Gallery, Playground, and Studio share one scene schema, mathematical functions, and rendering system. The scene engine has no dependency on Next.js or UI animation libraries. Local projects are stored in the current browser only; authentication, online publishing, keyframes, and 3D are future milestones. See [architecture](docs/ARCHITECTURE.md).
+
+MIT licensed.
