@@ -2,7 +2,8 @@ import { z } from "zod";
 import { propertyBounds, supportsProperty, type AnimatableProperty } from "../animation/keyframes";
 import type { MathDocument, MathLayer } from "../document/schema";
 
-export const GRAPH_KEY = "paramyra.nodegraph.v2";
+export const GRAPH_KEY = "paramyra.nodegraph.v3";
+export const PREVIOUS_GRAPH_KEY = "paramyra.nodegraph.v2";
 export const LEGACY_GRAPH_KEY = "paramyra.nodegraph.v1";
 export const GRAPH_NODE_LIMIT = 32;
 export const GRAPH_EDGE_LIMIT = 64;
@@ -37,6 +38,11 @@ const liveBindingSchema = z.object({
 });
 export type LiveBinding = z.infer<typeof liveBindingSchema>;
 export const DISABLED_BINDING: LiveBinding = {enabled:false,layerId:null,priority:"keyframes-win"};
+const groupSchema=z.object({
+  id:z.string().min(1).max(64),
+  title:z.string().min(1).max(64),
+  nodeIds:z.array(z.string().min(1).max(64)).min(2).max(GRAPH_NODE_LIMIT),
+}).strict();
 const legacyGraphSchema = z.object({
   schemaVersion:z.literal(1),
   id:z.string().min(1).max(64),
@@ -44,8 +50,17 @@ const legacyGraphSchema = z.object({
   nodes:z.array(nodeSchema).min(1).max(GRAPH_NODE_LIMIT),
   edges:z.array(edgeSchema).max(GRAPH_EDGE_LIMIT),
 }).strict();
-export const graphSchema = z.object({
+const v2GraphSchema = z.object({
   schemaVersion: z.literal(2),
+  binding:liveBindingSchema,
+  id:z.string().min(1).max(64),
+  title:z.string().min(1).max(120),
+  nodes:z.array(nodeSchema).min(1).max(GRAPH_NODE_LIMIT),
+  edges:z.array(edgeSchema).max(GRAPH_EDGE_LIMIT),
+}).strict();
+export const graphSchema = z.object({
+  schemaVersion: z.literal(3),
+  groups: z.array(groupSchema).max(16),
   binding:liveBindingSchema,
   id: z.string().min(1).max(64),
   title: z.string().min(1).max(120),
@@ -55,6 +70,20 @@ export const graphSchema = z.object({
   const nodes = new Map(graph.nodes.map(node => [node.id, node]));
   if (nodes.size !== graph.nodes.length)
     context.addIssue({ code: "custom", message: "Duplicate node ID" });
+  const groupIds=new Set<string>();
+  const members=new Set<string>();
+  for(const group of graph.groups){
+    if(nodes.has(group.id)||groupIds.has(group.id))
+      context.addIssue({code:"custom",message:"Duplicate graph group ID"});
+    groupIds.add(group.id);
+    for(const id of group.nodeIds){
+      if(!nodes.has(id)||members.has(id))
+        context.addIssue({code:"custom",message:"Invalid or overlapping group membership"});
+      members.add(id);
+    }
+    if(new Set(group.nodeIds).size!==group.nodeIds.length)
+      context.addIssue({code:"custom",message:"Repeated node in group"});
+  }
   const edges = new Set<string>();
   const edgeIds = new Set<string>();
   const targets = new Set<string>();
@@ -118,10 +147,14 @@ export function inputPorts(kind: GraphKind): readonly GraphPort[] {
 export function parseGraph(value: unknown): NodeGraph | null {
   const result = graphSchema.safeParse(value);
   if(result.success)return result.data;
+  const previous=v2GraphSchema.safeParse(value);
+  if(previous.success){
+    const migrated=graphSchema.safeParse({...previous.data,schemaVersion:3,groups:[]});
+    return migrated.success?migrated.data:null;
+  }
   const old=legacyGraphSchema.safeParse(value);
   if(!old.success)return null;
-  // Migration always passes through the strict v2 graph validator.
-  const migrated=graphSchema.safeParse({...old.data,schemaVersion:2,binding:DISABLED_BINDING});
+  const migrated=graphSchema.safeParse({...old.data,schemaVersion:3,groups:[],binding:DISABLED_BINDING});
   return migrated.success?migrated.data:null;
 }
 export function updateGraphBinding(graph:NodeGraph,binding:LiveBinding):NodeGraph {
@@ -129,7 +162,7 @@ export function updateGraphBinding(graph:NodeGraph,binding:LiveBinding):NodeGrap
 }
 export function initialGraph(): NodeGraph {
   return {
-    schemaVersion: 2, binding:DISABLED_BINDING, id: "graph-1", title: "Sine motion",
+    schemaVersion: 3, groups:[], binding:DISABLED_BINDING, id: "graph-1", title: "Sine motion",
     nodes: [
       { id: "time", kind: "time", title: "Timeline Time", x: 90, y: 340 },
       { id: "amp", kind: "constant", title: "Amplitude", x: 90, y: 95, value: 1 },
@@ -164,6 +197,8 @@ export function removeGraphNode(graph: NodeGraph, id: string): NodeGraph {
   return parseGraph({
     ...graph, nodes: graph.nodes.filter(node => node.id !== id),
     edges: graph.edges.filter(edge => edge.source !== id && edge.target !== id),
+    groups:graph.groups.map(group=>({...group,nodeIds:group.nodeIds.filter(nodeId=>nodeId!==id)}))
+      .filter(group=>group.nodeIds.length>=2),
   }) ?? graph;
 }
 export function updateGraphNode(graph: NodeGraph, id: string, patch: Partial<Pick<GraphNode, "title" | "x" | "y" | "value" | "property">>): NodeGraph {
