@@ -36,7 +36,7 @@ export function BezierCurveEditor({frame,onChange}:{frame:LayerKeyframe;onChange
   const circle=(handle:1|2)=>{
     const cx=x(handle===1?handles.x1:handles.x2);
     const cy=y(handle===1?handles.y1:handles.y2);
-    return <circle key={handle} cx={cx} cy={cy} r="8" className={"pm-bezier-handle pm-bezier-handle-"+handle}
+    return <circle key={handle} cx={cx} cy={cy} r="14" className={"pm-bezier-handle pm-bezier-handle-"+handle}
       role="button" tabIndex={0} aria-label={"Bezier control handle "+handle}
       onPointerDown={e=>{
         if(e.button!==0)return;
