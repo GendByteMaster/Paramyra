@@ -17,7 +17,8 @@ export function BezierCurveEditor({frame,onChange}:{frame:LayerKeyframe;onChange
   const x=(n:number)=>18+n*164;
   const y=(n:number)=>142-n*124;
   const commit=(value:BezierHandles)=>{
-    if(validBezier(value))onChange(value);
+    if(validBezier(value)&&(["x1","y1","x2","y2"] as const).some(axis=>value[axis]!==stored[axis]))
+      onChange(value);
     setPreview(null);
   };
   const fromPointer=(e:PointerEvent<SVGCircleElement>,handle:1|2):BezierHandles=>{
@@ -29,7 +30,8 @@ export function BezierCurveEditor({frame,onChange}:{frame:LayerKeyframe;onChange
     return handle===1?{...current,x1:nx,y1:ny}:{...current,x2:nx,y2:ny};
   };
   const edit=(axis:Axis,raw:number)=>{
-    if(Number.isFinite(raw)&&raw>=0&&raw<=1)commit({...stored,[axis]:clamp(raw)});
+    if(Number.isFinite(raw)&&raw>=0&&raw<=1&&clamp(raw)!==stored[axis])
+      commit({...stored,[axis]:clamp(raw)});
   };
   const circle=(handle:1|2)=>{
     const cx=x(handle===1?handles.x1:handles.x2);
@@ -66,8 +68,8 @@ export function BezierCurveEditor({frame,onChange}:{frame:LayerKeyframe;onChange
   };
   return <div className="pm-bezier-editor" role="group" aria-label="Cubic Bezier curve editor">
     <div className="pm-animation-section-title"><span>CUBIC BEZIER</span><small>Outgoing segment · drag or enter handles</small></div>
-    <svg className="pm-bezier-plane" viewBox="0 0 200 160" preserveAspectRatio="none" role="img"
-      aria-label="Cubic Bezier easing curve">
+    <svg className="pm-bezier-plane" viewBox="0 0 200 160" preserveAspectRatio="none" role="group"
+      aria-label="Cubic Bezier control handles">
       <path d="M18 18V142H182" className="pm-bezier-axes"/>
       <path d="M18 142L182 18" className="pm-bezier-diagonal"/>
       <path d={`M18 142L${x(handles.x1)} ${y(handles.y1)} M182 18L${x(handles.x2)} ${y(handles.y2)}`} className="pm-bezier-guide"/>
