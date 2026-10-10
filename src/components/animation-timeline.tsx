@@ -49,10 +49,24 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
   const suppressClick=useRef(false);
   const suppressTrackClick=useRef(false);
   const trackList=useRef<HTMLDivElement|null>(null);
+  const focusAfterMove=useRef<string|null>(null);
   const boxDrag=useRef<BoxDrag|null>(null);
   const boxCleanup=useRef<(()=>void)|null>(null);
   const [boxVisual,setBoxVisual]=useState<BoxVisual|null>(null);
   useEffect(()=>()=>{boxCleanup.current?.();},[]);
+  // Re-rendering a moved marker changes its React key. Restore keyboard focus
+  // to the new marker so repeated arrow presses remain usable.
+  useEffect(()=>{
+    const target=focusAfterMove.current;
+    if(!target)return;
+    focusAfterMove.current=null;
+    const buttons=trackList.current?.querySelectorAll<HTMLButtonElement>(".pm-keyframe-marker");
+    for(const button of buttons??[]){
+      if(frameKey(button.dataset.property as AnimatableProperty,Number(button.dataset.time))===target){
+        button.focus();break;
+      }
+    }
+  },[layer.keyframes]);
   const available=ANIMATABLE_PROPERTIES.filter(p=>supportsProperty(layer,p));
   const active=available.includes(property)?property:"opacity";
   const getFrames=(p:AnimatableProperty)=>(layer.keyframes??[]).filter(frame=>frame.property===p).sort((a,b)=>a.time-b.time);
@@ -81,29 +95,31 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
   };
   const clearSelection=()=>setSelection({layerId:layer.id,keys:[],anchor:""});
   const applyDelta=(refs:KeyframeRef[],delta:number,useSnap=true)=>{
-    if(!Number.isFinite(delta)||!refs.length)return;
+    if(!Number.isFinite(delta)||!refs.length)return false;
     // Keyboard precision nudges must not be swallowed by optional grid snapping.
     const adjusted=!useSnap||snap===0?delta:snapTo(refs[0].time+delta,refs,400)-refs[0].time;
     const changed=moveKeyframes(layer,refs,adjusted,duration);
-    if(changed===layer)return;
+    if(changed===layer)return false;
     onEdit(l=>moveKeyframes(l,refs,adjusted,duration));
     setSelection({layerId:layer.id,keys:refs.map(f=>frameKey(f.property,Math.round((f.time+adjusted)*100)/100)),anchor:frameKey(refs[0].property,Math.round((refs[0].time+adjusted)*100)/100)});
+    return true;
   };
   const bounds=propertyBounds(active);
   const currentValue=sampleProperty(layer,active,time);
   const playhead=timelineFraction(time,window)*100;
   const playheadVisible=playhead>=0&&playhead<=100;
   const move=(p:AnimatableProperty,from:number,to:number,useSnap=true)=>{
-    if(!Number.isFinite(to)||to<0||to>duration||to>60)return;
+    if(!Number.isFinite(to)||to<0||to>duration||to>60)return false;
     const snapped=useSnap?snapTo(to,[{property:p,time:from}],400):Math.round(to*100)/100;
     // Validate atomically before seeking or changing selection; collisions are no-ops.
-    if(moveKeyframe(layer,p,from,snapped,duration)===layer)return;
+    if(moveKeyframe(layer,p,from,snapped,duration)===layer)return false;
     onEdit(l=>moveKeyframe(l,p,from,snapped,duration));
     const previousKey=frameKey(p,from),nextKey=frameKey(p,snapped);
     setSelection(previous=>previous.layerId!==layer.id||!previous.keys.includes(previousKey)
       ?previous:{...previous,keys:previous.keys.map(key=>key===previousKey?nextKey:key),
         anchor:previous.anchor===previousKey?nextKey:previous.anchor});
     setProperty(p);onSeek(snapped);
+    return true;
   };
   const setFrameEase=(frame:LayerKeyframe,ease:KeyframeEase)=>{
     const next:LayerKeyframe=ease==="bezier"
@@ -276,9 +292,11 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
                 if(e.key==="ArrowLeft"||e.key==="ArrowRight"){
                   e.preventDefault();
                   const delta=(e.key==="ArrowRight"?1:-1)*(e.shiftKey?0.1:0.01);
-                  if(selectedKeys.includes(frameKey(p,frame.time))&&selectedRefs.length>1)
-                    applyDelta(selectedRefs,delta,false);
-                  else move(p,frame.time,clamp(frame.time+delta,0,duration),false);
+                  const group=selectedKeys.includes(frameKey(p,frame.time))&&selectedRefs.length>1;
+                  const changed=group
+                    ?applyDelta(selectedRefs,delta,false)
+                    :move(p,frame.time,clamp(frame.time+delta,0,duration),false);
+                  if(changed)focusAfterMove.current=frameKey(p,Math.round((frame.time+delta)*100)/100);
                 }else if(e.key==="Delete"||e.key==="Backspace"){
                   e.preventDefault();
                   if(selectedKeys.includes(frameKey(p,frame.time))&&selectedRefs.length>1){
