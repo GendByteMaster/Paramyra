@@ -64,3 +64,26 @@ test("Animation timeline and Export Image options are usable on mobile",async({p
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(2);
 });
+
+test("M2 multitrack editor moves styled keyframes with exact time and Undo",async({page})=>{
+  await page.goto("/studio");
+  await page.getByRole("button",{name:"Pause animation"}).click();
+  await page.getByRole("tab",{name:"Animation"}).click();
+  const panel=page.getByLabel("Keyframe Animation Editor");
+  await expect(panel.getByLabel("Animation property tracks")).toBeVisible();
+  await expect(panel.getByRole("button",{name:"Formula a"})).toHaveCount(0);
+  await panel.getByRole("combobox",{name:"Animated property"}).selectOption("params.strokeWidth");
+  const slider=page.getByRole("slider",{name:"Timeline position"});
+  await slider.focus();await slider.press("Home");
+  await panel.getByRole("button",{name:"Add keyframe at playhead"}).click();
+  await panel.getByRole("spinbutton",{name:"Animated value"}).fill("2.5");
+  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers[0].keyframes[0].value)).toBe(2.5);
+  const exactTime=panel.getByRole("spinbutton",{name:"Keyframe time"});
+  await exactTime.fill("2.25");
+  await exactTime.press("Tab");
+  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers[0].keyframes[0].time)).toBe(2.25);
+  await page.getByRole("button",{name:"Undo",exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers[0].keyframes[0].time)).toBe(0);
+  await page.getByRole("button",{name:"Redo",exact:true}).click();
+  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers[0].keyframes[0].time)).toBe(2.25);
+});
