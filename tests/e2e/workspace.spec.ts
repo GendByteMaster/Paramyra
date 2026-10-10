@@ -467,3 +467,21 @@ test("deleting the selected layer selects an adjacent layer and protects the las
   await expect(page.getByRole("button",{name:"Delete layer",exact:true})).toBeDisabled();
   await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers.length)).toBe(1);
 });
+
+
+test("Undo after creating a selected layer keeps Canvas and Inspector selection coherent", async ({ page }) => {
+  await page.goto("/studio");
+  const library = page.getByRole("complementary", {name:"Scene library"});
+  if (!(await library.isVisible())) await page.getByRole("button", {name:"Toggle scene library"}).click();
+  await library.getByRole("button", {name:"Add formula layer"}).click();
+  await expect(page.getByRole("combobox", {name:"Mathematical form"})).toHaveValue("formula");
+  if(await page.getByRole("button", {name:"Close scene library"}).isVisible()){
+    await page.getByRole("button", {name:"Close scene library"}).click({position:{x:350,y:300}});
+  }
+  await page.getByRole("button", {name:"Undo"}).click();
+  await expect(page.getByRole("combobox", {name:"Mathematical form"})).toHaveValue("lissajous");
+  await expect(page.locator(".pm-viewport-heading")).toContainText("1 layers");
+  if (!(await library.isVisible())) await page.getByRole("button", {name:"Toggle scene library"}).click();
+  await expect(library.getByRole("button",{name:"Select layer Lissajous Curves"})).toHaveAttribute("aria-pressed","true");
+  await expect(library.locator(".pm-layer-row.selected")).toHaveCount(1);
+});

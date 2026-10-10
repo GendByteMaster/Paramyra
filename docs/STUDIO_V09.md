@@ -54,3 +54,11 @@ Symbolic algebra/derivatives, piecewise syntax, implicit equations, units/dimens
 - Deleting any layer is a single document history operation; Undo/Redo restore the state. If the deleted layer was selected, selection moves to the nearest surviving layer. Deleting a different layer preserves selection.
 - The last layer remains protected by the v3 MathDocument minimum-of-one constraint; both Inspector and Layers-row Delete are disabled and the reason is shown.
 - Automated E2E covers direct formula creation and inline layer delete/undo/redo on desktop and mobile.
+
+## v0.9 release-hardening gate
+- Verified Preview deployment must match the exact head SHA; READY is a **build result**, not visual acceptance.
+- Source Vercel project has SSO protection enabled for Preview. Do not infer public accessibility or claim interactive smoke tests have run against the deployed endpoint.
+- Headless CI now captures screenshots of the Formula Editor at desktop 1920×1080, desktop 1365×768 and mobile 390×844, for desktop/mobile browser profiles. Review them manually from the GitHub Actions `paramyra-visual-review` artifact.
+- Added 12-layer stress smoke with mixed explicit, polar, parametric and tangent formulas. Assertions cover responsiveness, persistence, Fit, zoom, live timeline and rendering. A permissive headless frame-gap guard detects gross stalls, **not** production-grade FPS, thermal throttling or memory usage.
+- Undo/Redo selection fallback uses one authoritative effective layer ID across layer list, Inspector and Canvas.
+- Manual on-device performance, actual Vercel UI inspection (subject to SSO), visual comparison, and dependency stack verification remain blocking gates before merge.

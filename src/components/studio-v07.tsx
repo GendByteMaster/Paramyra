@@ -78,7 +78,10 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
   const [history,setHistory]=useState(()=>initializeHistory(loadDoc(initialKind)));
   const doc=history.present;
   const [selected,setSelected]=useState(()=>loadDoc(initialKind).layers[0].id);
-  const layer=layerById(doc,selected);
+  // Selection may reference a layer removed by Undo/Redo or replaced by import.
+  // Keep Inspector, Canvas highlighting and Layer list aligned with the same fallback.
+  const effectiveSelected=doc.layers.some(l=>l.id===selected)?selected:doc.layers[0].id;
+  const layer=layerById(doc,effectiveSelected);
   const [presetsSaved,setPresetsSaved]=useState<MathDocument[]>(loadPresets);
   const [presetName,setPresetName]=useState("");
   const [addKind,setAddKind]=useState<SceneKind|"formula">("polar-rose");
@@ -273,8 +276,8 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
             <select aria-label="New layer kind" value={addKind} onChange={e=>setAddKind(e.target.value as SceneKind|"formula")}>{presets.map(p=><option key={p.kind} value={p.kind}>{p.title}</option>)}<option value="formula">Custom Formula</option></select>
             <button type="button" className="pm-formula-add" aria-label="Add formula layer" title="Create a formula and open its editor" disabled={doc.layers.length>=12} onClick={addFormula}>ƒx Formula</button>
           </div>
-          <div className="pm-layer-list">{doc.layers.map((l,index)=><div key={l.id} className={"pm-layer-row"+(selected===l.id?" selected":"")}>
-            <button type="button" className="pm-layer-select" aria-label={"Select layer "+l.title} aria-pressed={selected===l.id} onClick={()=>setSelected(l.id)}><span>{index+1}</span><span>{l.title}</span></button>
+          <div className="pm-layer-list">{doc.layers.map((l,index)=><div key={l.id} className={"pm-layer-row"+(effectiveSelected===l.id?" selected":"")}>
+            <button type="button" className="pm-layer-select" aria-label={"Select layer "+l.title} aria-pressed={effectiveSelected===l.id} onClick={()=>setSelected(l.id)}><span>{index+1}</span><span>{l.title}</span></button>
             <button type="button" aria-label={"Toggle visibility "+l.title} title={l.visible?"Hide layer":"Show layer"} onClick={()=>commit(d=>updateLayer(d,l.id,x=>({...x,visible:!x.visible})))}>{l.visible?<Eye size={15}/>:<EyeOff size={15}/>}</button>
             <button type="button" className="pm-layer-remove" aria-label={"Delete layer "+l.title}
               title={doc.layers.length===1?"A document must contain at least one layer":"Delete layer — Undo to restore"}
@@ -294,7 +297,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
               <button type="button" className="pm-icon-btn" aria-label="Toggle scene details" aria-pressed={detailsOpen} onClick={()=>setDetailsOpen(v=>!v)}><Info size={16}/></button>
             </div></div>
           <div className="pm-canvas-area">
-            <div className="pm-canvas-surface"><SceneCanvas scene={doc} playing={playing} view={view} tool={tool} selectedLayerId={selected}
+            <div className="pm-canvas-surface"><SceneCanvas scene={doc} playing={playing} view={view} tool={tool} selectedLayerId={effectiveSelected}
               onSelectLayer={setSelected} onLayerOffsetChange={moveLayerOffset} onSizeChange={setCanvasSize}
               onLayerMoveStart={id=>{dragGroup.current="drag:"+id;last.current.key="";}}
               onLayerMoveEnd={id=>{if(dragGroup.current==="drag:"+id){dragGroup.current=null;last.current.key="";}}}
