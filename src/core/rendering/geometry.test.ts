@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { documentFromScene } from "../document/schema";
+import { documentFromScene, newFormulaLayer } from "../document/schema";
 import { presets } from "../scenes/presets";
 import { fitCamera, gridStep, hitTestLayer, layerWorldPoint, pixelScale, screenToWorld, worldToScreen, zoomAt } from "./geometry";
 
@@ -57,5 +57,31 @@ describe("professional canvas world geometry", () => {
       expect(px).toBeGreaterThanOrEqual(85);
       expect(px).toBeLessThan(500);
     }
+  });
+});
+
+describe("formula layer world-space integration", () => {
+  it("samples explicit, parametric and polar curves in the same coordinate system", () => {
+    const explicit = newFormulaLayer("fx","explicit");
+    const parametric = newFormulaLayer("fu","parametric");
+    const polar = newFormulaLayer("fr","polar");
+    const size={width:900,height:600};
+    const p0=layerWorldPoint(explicit,0,0,size);
+    const p1=layerWorldPoint(parametric,0,0,size);
+    const p2=layerWorldPoint(polar,0,0,size);
+    expect(p0.x).toBeCloseTo(-3);
+    expect(p0.y).toBeCloseTo(Math.sin(-9));
+    expect(p1.x).toBeCloseTo(1);
+    expect(p1.y).toBeCloseTo(0);
+    expect(p2.x).toBeCloseTo(1);
+    expect(p2.y).toBeCloseTo(0);
+  });
+  it("ignores invalid-domain samples without breaking fit", () => {
+    const layer = newFormulaLayer("domain");
+    const invalid = {...layer,formula:{...layer.formula,exprY:"sqrt(x)" }};
+    const doc = {...documentFromScene(presets[0]),layers:[invalid]};
+    const result=fitCamera(doc,0,{width:800,height:600},{zoom:1,pan:{x:0,y:0}});
+    expect(Number.isFinite(result.zoom)).toBe(true);
+    expect(Number.isFinite(result.pan.x + result.pan.y)).toBe(true);
   });
 });

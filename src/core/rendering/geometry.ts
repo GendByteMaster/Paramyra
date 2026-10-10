@@ -1,4 +1,5 @@
 import { harmonicWave, lissajous, polarRose } from "../math/curves";
+import { evaluateExpression } from "../math/expression";
 import type { MathDocument, MathLayer } from "../document/schema";
 
 export type Size = Readonly<{ width: number; height: number }>;
@@ -25,6 +26,18 @@ export function pixelScale(size: Size, zoom: number): number {
 /** All mathematical models share one world coordinate system: +Y is up. */
 export function sampleLayer(layer: MathLayer, t: number, time: number, size: Size): Vec2 {
   const p = layer.params;
+  if (layer.kind === "formula") {
+    const formula = layer.formula;
+    const value = formula.min + (formula.max - formula.min) * t;
+    const env = { x: value, u: value, theta: value, t: time, a: formula.a, b: formula.b, c: formula.c };
+    const vars = formula.mode === "explicit" ? ["x", "t", "a", "b", "c"]
+      : formula.mode === "parametric" ? ["u", "t", "a", "b", "c"]
+      : ["theta", "t", "a", "b", "c"];
+    const r = evaluateExpression(formula.exprY, vars, env);
+    if (formula.mode === "explicit") return { x: value, y: r };
+    if (formula.mode === "polar") return { x: r * Math.cos(value), y: r * Math.sin(value) };
+    return { x: evaluateExpression(formula.exprX, vars, env), y: r };
+  }
   if (layer.kind === "wave") {
     const x = 2 * t - 1;
     return { x: x * (size.width * 0.46) / baseRadius(size),
@@ -63,7 +76,7 @@ export function visibleBounds(doc: MathDocument, time: number, size: Size): Boun
     if (!layer.visible || layer.opacity <= 0) continue;
     for (let i = 0; i <= SAMPLES; i++) {
       const p = layerWorldPoint(layer, i / SAMPLES, time, size);
-      if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+      if (!Number.isFinite(p.x) || !Number.isFinite(p.y) || Math.abs(p.x) > 100 || Math.abs(p.y) > 100) continue;
       minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x);
       minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y);
     }
@@ -126,10 +139,15 @@ export function hitTestLayer(doc: MathDocument, time: number, size: Size, view: 
     const layer = doc.layers[index];
     if (!layer.visible || layer.opacity <= 0) continue;
     const threshold = Math.max(10, layer.params.strokeWidth * 2 + 6);
-    let previous = worldToScreen(layerWorldPoint(layer, 0, time, size), size, view);
-    for (let i = 1; i <= SAMPLES; i++) {
-      const current = worldToScreen(layerWorldPoint(layer, i / SAMPLES, time, size), size, view);
-      if (segmentDistanceSquared(screen, previous, current) <= threshold * threshold) return layer.id;
+    let previous: Vec2 | null = null;
+    for (let i = 0; i <= SAMPLES; i++) {
+      const world = layerWorldPoint(layer, i / SAMPLES, time, size);
+      if (!Number.isFinite(world.x + world.y) || Math.abs(world.x) > 100 || Math.abs(world.y) > 100) {
+        previous = null; continue;
+      }
+      const current = worldToScreen(world, size, view);
+      if (previous && Math.hypot(current.x - previous.x, current.y - previous.y) < Math.max(size.width, size.height) * 1.5
+        && segmentDistanceSquared(screen, previous, current) <= threshold * threshold) return layer.id;
       previous = current;
     }
   }
