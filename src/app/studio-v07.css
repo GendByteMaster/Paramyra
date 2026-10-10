@@ -556,3 +556,48 @@
  .pm-bezier-plane {height:170px;}
  .pm-bezier-editor {padding:9px;}
 }
+
+/* v1.0 M2.3 — Professional Timeline: viewport, snapping, multitrack overview and box selection */
+.pm-timeline-toolbar {display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:9px;
+  background:#101f30;border:1px solid #6289af55;border-radius:11px;}
+.pm-timeline-mode,.pm-timeline-zoom {display:flex;align-items:center;gap:3px;padding:3px;border-radius:9px;
+  background:#091a2b;border:1px solid #709abb3b;}
+.pm-timeline-mode button,.pm-timeline-zoom button {min-height:30px;padding:5px 9px;border-radius:7px;border:0;
+  color:#a7bdd8;background:transparent;font-size:11px;font-weight:650;white-space:nowrap;}
+.pm-timeline-mode button[aria-pressed=true] {background:#1c5b67;color:#d9fff7;}
+.pm-timeline-zoom button:not(:disabled):hover,.pm-timeline-mode button:hover {background:#294b6a;}
+.pm-timeline-zoom button:disabled {opacity:.3;cursor:not-allowed;}
+.pm-timeline-zoom output {min-width:36px;text-align:center;color:#b6f8e6;font:700 11px ui-monospace,monospace;}
+.pm-timeline-snap {display:flex;align-items:center;gap:6px;font-size:11px;color:#b4c9df;}
+.pm-timeline-snap select {min-height:34px;border:1px solid #709db463;background:#152b42;border-radius:7px;
+  color:#dbedff;padding:5px 8px;font-size:11px;}
+.pm-timeline-visible {color:#8db1c7;font:10px ui-monospace,monospace;margin-left:auto;}
+.pm-multitrack {position:relative;isolation:isolate;}
+.pm-multitrack-row {position:relative;}
+.pm-multitrack-row .pm-animation-track {touch-action:pan-y;}
+.pm-timeline-selection-box {position:absolute;z-index:5;pointer-events:none;border:1px solid #a0f1df;
+  background:#65bdbb3e;border-radius:4px;box-shadow:inset 0 0 0 1px #baffda29;}
+.pm-overview {display:grid;gap:9px;}
+.pm-overview p {font-size:10px;color:#98adc5;line-height:1.5;margin:0 0 5px;}
+.pm-overview-layer {padding:8px;border:1px solid #709abb3c;border-radius:10px;background:#101e30;display:grid;gap:5px;}
+.pm-overview-layer.is-current {border-color:#63cfba88;background:#102937;}
+.pm-overview-layer-title {display:flex;align-items:center;gap:8px;width:100%;text-align:left;
+  background:transparent;border:0;border-radius:7px;padding:7px 6px;color:#c5d9f3;font-size:11px;font-weight:730;}
+.pm-overview-layer-title:focus-visible {outline:2px solid #91e9f8;}
+.pm-overview-layer-title span:nth-child(2) {flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pm-overview-layer-title small {color:#90a8c3;font-size:10px;white-space:nowrap;}
+.pm-overview-layer-color {width:9px;height:9px;border-radius:50%;flex:none;}
+.pm-overview-empty {color:#859bb7;font-size:10px;padding:7px 10px;}
+.pm-overview-row {display:grid;grid-template-columns:minmax(70px,110px) minmax(0,1fr);align-items:center;gap:9px;}
+.pm-overview-row >span {padding:0 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#aec4e0;font-size:10px;}
+.pm-overview-track {height:28px;min-width:0;margin:0 8px;position:relative;border-radius:7px;
+  border:1px solid #789dbe3a;background:#0c1b2d;}
+.pm-overview-key {position:absolute;top:50%;width:14px;height:14px;transform:translate(-50%,-50%) rotate(45deg);
+  border-radius:3px;border:2px solid #9debd9;background:#286e85;cursor:pointer;}
+.pm-overview-key:focus-visible {outline:2px solid white;outline-offset:3px;}
+@media(max-width:760px) {
+  .pm-timeline-toolbar {gap:6px;padding:7px;}
+  .pm-timeline-mode button,.pm-timeline-zoom button {min-height:34px;padding:6px 8px;}
+  .pm-timeline-visible {width:100%;margin:0;}
+  .pm-overview-row {grid-template-columns:80px minmax(0,1fr);gap:5px;}
+}
