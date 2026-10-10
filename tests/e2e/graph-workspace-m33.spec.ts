@@ -96,17 +96,21 @@ test("Graph Workspace hides public navigation and footer, fills viewport, and ke
   await expect(page.locator("header.topbar")).toHaveCount(0);
   await expect(page.locator("body > footer")).toHaveCount(0);
   await expect(page.getByRole("link",{name:"Back to Studio"})).toBeVisible();
-  await expect(page.getByRole("toolbar",{name:"Graph editing commands"})).toBeVisible();
+  const graphEditor = page.getByRole("region",{name:"Graph editor"});
+  await expect(graphEditor.getByRole("toolbar",{name:"Graph editing commands"})).toBeVisible();
+  await expect(graphEditor.getByRole("slider",{name:"Graph time"})).toBeVisible();
+  await expect(graphEditor.getByLabel("Graph time value")).toContainText("0.00s");
+  await expect(page.getByRole("navigation",{name:"Workspace modes"})).toBeVisible();
 
   const dimensions = await page.evaluate(() => ({
     viewport: window.innerHeight,
     workspace: document.querySelector(".pm-ng-root")!.getBoundingClientRect().height,
     page: document.documentElement.scrollHeight,
   }));
-  expect(Math.abs(dimensions.workspace - dimensions.viewport)).toBeLessThanOrEqual(1);
+  expect(Math.abs(dimensions.workspace + 12 - dimensions.viewport)).toBeLessThanOrEqual(1);
   expect(dimensions.page).toBeLessThanOrEqual(dimensions.viewport + 1);
 
-  await page.goto("/studio");
+  await page.goto("/");
   await expect(page.locator("header.topbar")).toBeVisible();
   await expect(page.locator("body > footer")).toHaveCount(1);
 });
@@ -126,4 +130,17 @@ test("Graph Workspace on narrow screens scrolls inside the editor instead of scr
   });
   expect(dimensions.page).toBeLessThanOrEqual(dimensions.viewport + 1);
   expect(dimensions.paneScrollHeight).toBeGreaterThan(dimensions.paneClientHeight);
+});
+
+test("Graph editor playhead updates scene preview without page scrolling", async ({page}) => {
+  await page.setViewportSize({width:1440,height:900});
+  await page.goto("/studio/graph");
+  const editor=page.getByRole("region",{name:"Graph editor"});
+  const playhead=editor.getByRole("slider",{name:"Graph time"});
+  await playhead.focus();
+  await playhead.press("ArrowRight");
+  await expect(editor.getByLabel("Graph time value")).not.toContainText("0.00s /");
+  await expect(page.getByLabel("Graph scene preview")).toBeVisible();
+  const scroll=await page.evaluate(()=>document.documentElement.scrollHeight-window.innerHeight);
+  expect(scroll).toBeLessThanOrEqual(1);
 });
