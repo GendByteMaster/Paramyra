@@ -330,3 +330,22 @@
     transform:translateX(-50%);max-height:calc(100dvh - 14px);
   }
 }
+
+/* Short desktop screens: keep Plot and copy controls inside the initial window view. */
+@media(min-width:761px) and (max-height:850px) {
+  .pm-calculator-window { --pm-calculator-top:10px; }
+  .pm-calc-window-titlebar {min-height:48px;padding:6px 10px;}
+  .pm-calc-window-content {padding:8px 12px 5px;}
+  .pm-calc-window-content .pm-calculator {gap:7px;}
+  .pm-calc-window-content .pm-calc-key {min-height:36px;}
+  .pm-calc-keypad {gap:4px;}
+  .pm-calc-window-content .pm-formula-expression {min-height:36px;padding:6px 8px;}
+  .pm-calc-eval-inputs input {min-height:30px;padding:4px 7px;}
+  .pm-calc-eval-inputs label {gap:3px;}
+  .pm-calculator-display {min-height:66px;padding:9px;}
+  .pm-calc-actions {gap:6px;}
+  .pm-calc-actions button {min-height:31px;padding:4px 7px;}
+  .pm-calc-window-footer {padding:5px 12px;}
+  .pm-calc-reference summary {min-height:24px;padding:3px;}
+  .pm-calc-header-controls button {min-height:27px;padding:3px 5px;}
+}

@@ -72,3 +72,19 @@ test("Calculator Pro docks and resizes desktop window, restoring size after relo
   const restored=await dialog.boundingBox();expect(restored).not.toBeNull();
   expect(restored!.width).toBeGreaterThan(original!.width+30);
 });
+
+test("Calculator Pro short desktop keeps Plot controls within the visible window",async({page})=>{
+  await page.setViewportSize({width:1365,height:768});
+  await page.goto("/studio");await expect(page.locator(".pm-workspace")).toBeVisible();
+  await page.getByRole("button",{name:"Open calculator window",exact:true}).click();
+  const metrics=await page.evaluate(()=>{
+    const panel=document.querySelector(".pm-calc-window-content")!.getBoundingClientRect();
+    const plot=document.querySelector(".pm-calc-plot")!.getBoundingClientRect();
+    const actions=document.querySelector(".pm-calc-actions")!.getBoundingClientRect();
+    return {plotBottom:plot.bottom,actionsBottom:actions.bottom,panelBottom:panel.bottom,
+      plotWidth:plot.width,viewportHeight:innerHeight};
+  });
+  expect(metrics.plotWidth).toBeGreaterThan(90);
+  expect(metrics.actionsBottom).toBeLessThanOrEqual(metrics.panelBottom+1);
+  expect(metrics.plotBottom).toBeLessThanOrEqual(metrics.viewportHeight-20);
+});
