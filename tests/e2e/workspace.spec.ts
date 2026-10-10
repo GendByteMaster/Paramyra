@@ -344,7 +344,8 @@ test("reset layer preserves the other layers in a composition", async ({ page })
     await page.getByRole("button", { name: "Close scene library" }).click({ position: { x: 350, y: 300 } });
   }
   await page.getByRole("button", { name: "Reset layer" }).click();
-  await expect(page.locator(".pm-layer-row")).toHaveCount(2);
+  await expect(page.locator(".pm-viewport-heading")).toContainText("2 layers");
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("paramyra.document.v2")!).layers.length)).toBe(2);
 });
 
 test("canvas tools toggle between selection and pan", async ({ page }) => {
