@@ -427,3 +427,76 @@
   .pm-multitrack .pm-animation-track {margin:0 10px;}
   .pm-keyframe-marker {width:19px;height:19px;}
 }
+
+/* Animation Workspace v1.0 — responsive editor split, keyboard-resizable dock and focus mode. */
+.pm-grid.pm-animation-focus {grid-template-columns:minmax(0,1fr)!important;}
+.pm-grid.pm-animation-focus > .pm-sidebar,
+.pm-grid.pm-animation-focus > .pm-inspector,
+.pm-grid.pm-animation-focus > .pm-library-backdrop {display:none!important;}
+.pm-center.pm-animation-workspace {
+  --pm-editor-height:390px;
+  grid-template-rows:minmax(210px,1fr) minmax(290px,var(--pm-editor-height));
+  min-height:0;
+}
+.pm-center.pm-animation-workspace .pm-details {
+  position:relative;display:flex;flex-direction:column;
+  min-height:0;max-height:none;overflow:hidden;
+  border-color:#5597a96b;
+  box-shadow:0 -10px 36px #03101c1f,inset 0 1px #c0ffff1c;
+}
+.pm-center.pm-animation-workspace .pm-details-header {min-height:43px;padding:6px 13px 5px;border-bottom:1px solid #70b3c631;}
+.pm-animation-header-actions {display:flex;align-items:center;gap:7px;}
+.pm-animation-header-actions button {display:inline-flex;gap:5px;align-items:center;justify-content:center;
+  min-height:30px;padding:5px 9px;border:1px solid #8bb4d546;border-radius:8px;
+  color:#c4ddef;background:#193149;font-size:10px;font-weight:690;cursor:pointer;}
+.pm-animation-header-actions button[aria-pressed=true] {color:#d0fff4;background:#1c595d;border-color:#71d7c672;}
+.pm-animation-header-actions button.pm-icon-btn {min-width:30px;padding:5px;}
+.pm-animation-open[aria-pressed=true] {color:#baffea;background:#245451;border-color:#71d7c672;}
+.pm-animation-resizer {height:10px;min-height:10px;display:grid;place-items:center;cursor:row-resize;
+  touch-action:none;user-select:none;background:#14273c;border-bottom:1px solid #527c9f3b;}
+.pm-animation-resizer span {display:block;width:72px;height:3px;border-radius:5px;background:#89bbd1a1;}
+.pm-animation-resizer:hover,.pm-animation-resizer:focus-visible {background:#234967;outline:2px solid #8ac9e3;outline-offset:-2px;}
+.pm-center.pm-animation-workspace .pm-animation-surface {
+  min-height:0;max-height:none;flex:1 1 auto;overflow:auto;
+  scrollbar-width:thin;scrollbar-color:#456786 transparent;
+}
+.pm-center.pm-animation-workspace .pm-tabs {padding-top:4px;padding-bottom:4px;}
+.pm-center.pm-animation-workspace .pm-animation-editor {min-height:100%;gap:13px;}
+.pm-center.pm-animation-workspace .pm-animation-graph {height:156px;}
+.pm-center.pm-animation-workspace .pm-multitrack {max-height:none;overflow:visible;}
+.pm-center.pm-animation-workspace .pm-animation-control-row {grid-template-columns:minmax(170px,1.5fr) minmax(85px,.45fr) minmax(120px,.8fr);}
+.pm-center.pm-animation-workspace .pm-animation-track {background:linear-gradient(90deg,#1b2a3f,#112b3a);border-color:#81a9ca45;}
+.pm-center.pm-animation-workspace .pm-multitrack-row.is-active {background:#39587f38;}
+.pm-center.pm-animation-workspace .pm-animation-heading span {font-size:11px;letter-spacing:.08em;}
+.pm-center.pm-animation-workspace .pm-animation-help {font-size:11px;}
+.pm-center.pm-animation-workspace button:focus-visible {outline:2px solid #a8eddf;outline-offset:2px;}
+@media(min-width:1100px) {
+  .pm-center.pm-animation-workspace .pm-animation-layout {display:grid;grid-template-columns:minmax(0,1.2fr) minmax(270px,.85fr);gap:17px;align-items:start;}
+  .pm-center.pm-animation-workspace .pm-animation-graph {height:206px;}
+  .pm-center.pm-animation-workspace .pm-animation-editor {padding:14px 18px;}
+  .pm-center.pm-animation-workspace .pm-animation-graph-label {margin:0 0 8px;}
+}
+@media(min-width:960px) and (min-height:680px) {
+  .pm-center.pm-animation-workspace {grid-template-rows:minmax(190px,1fr) minmax(290px,var(--pm-editor-height));}
+  .pm-center.pm-animation-workspace .pm-details {max-height:none;}
+}
+@media(max-width:959px) {
+  .pm-center.pm-animation-workspace {grid-template-rows:auto auto;}
+  .pm-center.pm-animation-workspace .pm-details {height:auto;max-height:none;}
+  .pm-center.pm-animation-workspace .pm-animation-surface {overflow:visible;max-height:none;}
+  .pm-animation-resizer {display:none;}
+}
+@media(max-width:760px) {
+  /* Keep primary tools clickable. Previously an overflowing, unwrapped toolbar caused mobile E2E timeouts. */
+  .pm-projectbar {max-width:100%;min-width:0;}
+  .pm-project-actions {width:100%;max-width:100%;min-width:0;flex-wrap:wrap;justify-content:flex-start;gap:7px;}
+  .pm-project-actions > button,.pm-project-actions > label {flex-shrink:0;}
+  .pm-project-actions .pm-toolbar-rule {display:none;}
+  .pm-workspace {max-width:100vw;}
+  .pm-animation-header-actions {gap:4px;}
+  .pm-animation-header-actions button {padding:5px 7px;}
+  .pm-center.pm-animation-workspace .pm-animation-control-row {grid-template-columns:minmax(0,1fr) minmax(74px,.5fr);}
+  .pm-center.pm-animation-workspace .pm-animation-control-row label:last-child {grid-column:1/-1;}
+  .pm-center.pm-animation-workspace .pm-animation-graph {height:150px;}
+  .pm-center.pm-animation-workspace .pm-animation-editor {padding:12px;}
+}
