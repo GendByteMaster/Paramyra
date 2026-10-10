@@ -80,9 +80,10 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
     setProperty(p);
   };
   const clearSelection=()=>setSelection({layerId:layer.id,keys:[],anchor:""});
-  const applyDelta=(refs:KeyframeRef[],delta:number)=>{
+  const applyDelta=(refs:KeyframeRef[],delta:number,useSnap=true)=>{
     if(!Number.isFinite(delta)||!refs.length)return;
-    const adjusted=snap===0?delta:snapTo(refs[0].time+delta,refs,400)-refs[0].time;
+    // Keyboard precision nudges must not be swallowed by optional grid snapping.
+    const adjusted=!useSnap||snap===0?delta:snapTo(refs[0].time+delta,refs,400)-refs[0].time;
     const changed=moveKeyframes(layer,refs,adjusted,duration);
     if(changed===layer)return;
     onEdit(l=>moveKeyframes(l,refs,adjusted,duration));
@@ -92,11 +93,16 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
   const currentValue=sampleProperty(layer,active,time);
   const playhead=timelineFraction(time,window)*100;
   const playheadVisible=playhead>=0&&playhead<=100;
-  const move=(p:AnimatableProperty,from:number,to:number)=>{
+  const move=(p:AnimatableProperty,from:number,to:number,useSnap=true)=>{
     if(!Number.isFinite(to)||to<0||to>duration||to>60)return;
-    const snapped=snapTo(to,[{property:p,time:from}],400);
-    if(getFrames(p).some(frame=>frame.time!==from&&Math.abs(frame.time-snapped)<0.005))return;
+    const snapped=useSnap?snapTo(to,[{property:p,time:from}],400):Math.round(to*100)/100;
+    // Validate atomically before seeking or changing selection; collisions are no-ops.
+    if(moveKeyframe(layer,p,from,snapped,duration)===layer)return;
     onEdit(l=>moveKeyframe(l,p,from,snapped,duration));
+    const previousKey=frameKey(p,from),nextKey=frameKey(p,snapped);
+    setSelection(previous=>previous.layerId!==layer.id||!previous.keys.includes(previousKey)
+      ?previous:{...previous,keys:previous.keys.map(key=>key===previousKey?nextKey:key),
+        anchor:previous.anchor===previousKey?nextKey:previous.anchor});
     setProperty(p);onSeek(snapped);
   };
   const setFrameEase=(frame:LayerKeyframe,ease:KeyframeEase)=>{
@@ -118,8 +124,9 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
       ?{...selected,value:raw}:{property:active,time:Math.round(time*100)/100,value:raw,ease:"ease-in-out"};
     onEdit(l=>upsertKeyframe(l,frame));
   };
+  // Graph samples the *visible* Timeline viewport, not the entire document.
   const points=Array.from({length:81},(_,index)=>{
-    const at=duration*index/80;
+    const at=window.start+(window.end-window.start)*index/80;
     const value=sampleProperty(layer,active,at);
     return (index/80*640).toFixed(1)+","+(8+(1-(value-bounds.min)/(bounds.max-bounds.min))*110).toFixed(1);
   }).join(" ");
@@ -268,7 +275,20 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
               onKeyDown={e=>{
                 if(e.key==="ArrowLeft"||e.key==="ArrowRight"){
                   e.preventDefault();
-                  move(p,frame.time,clamp(frame.time+(e.key==="ArrowRight"?1:-1)*(e.shiftKey?0.1:0.01),0,duration));
+                  const delta=(e.key==="ArrowRight"?1:-1)*(e.shiftKey?0.1:0.01);
+                  if(selectedKeys.includes(frameKey(p,frame.time))&&selectedRefs.length>1)
+                    applyDelta(selectedRefs,delta,false);
+                  else move(p,frame.time,clamp(frame.time+delta,0,duration),false);
+                }else if(e.key==="Delete"||e.key==="Backspace"){
+                  e.preventDefault();
+                  if(selectedKeys.includes(frameKey(p,frame.time))&&selectedRefs.length>1){
+                    onEdit(l=>deleteKeyframes(l,selectedRefs));clearSelection();
+                  }else{
+                    onEdit(l=>deleteKeyframe(l,p,frame.time));
+                    setSelection(previous=>previous.layerId!==layer.id?previous:{
+                      ...previous,keys:previous.keys.filter(key=>key!==frameKey(p,frame.time)),
+                      anchor:previous.anchor===frameKey(p,frame.time)?"":previous.anchor});
+                  }
                 }
               }}/>)}
           </div>
@@ -281,14 +301,15 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
       <section className="pm-animation-graph-column" aria-label="Graph inspector">
     {selected?.ease==="bezier"&&<BezierCurveEditor frame={selected}
       onChange={bezier=>onEdit(l=>upsertKeyframe(l,{...selected,ease:"bezier",bezier}))}/>}
-    <div className="pm-animation-graph-label"><span>GRAPH EDITOR</span><small>Value over time · {names[active]}</small></div>
+    <div className="pm-animation-graph-label"><span>GRAPH EDITOR</span><small>Value · {names[active]} · {window.start.toFixed(2)}–{window.end.toFixed(2)}s</small></div>
     <svg className="pm-animation-graph" role="img" aria-label={"Interpolation graph for "+names[active]}
       viewBox="0 0 640 128" preserveAspectRatio="none">
       <path d="M0 8H640 M0 63H640 M0 118H640" stroke="#6f8dae44" strokeWidth="1" fill="none"/>
       <polyline points={points} fill="none" stroke="#6de7cf" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-      {frames.map(frame=><circle key={frame.time} cx={frame.time/duration*640}
+      {frames.filter(frame=>timelineFraction(frame.time,window)>=0&&timelineFraction(frame.time,window)<=1)
+        .map(frame=><circle key={frame.time} cx={timelineFraction(frame.time,window)*640}
         cy={8+(1-(frame.value-bounds.min)/(bounds.max-bounds.min))*110} r="5.5" fill="#bce9ff" stroke="#376e97" strokeWidth="2"/>)}
-      <path d={"M"+(playhead/100*640)+" 0V128"} stroke="#d2e5ff9c" strokeWidth="1" strokeDasharray="5 4"/>
+      {playheadVisible&&<path d={"M"+(playhead/100*640)+" 0V128"} stroke="#d2e5ff9c" strokeWidth="1" strokeDasharray="5 4"/>}
     </svg>
       </section>
     </div>
@@ -331,6 +352,6 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
       <button type="button" aria-label="Delete selected keyframes" disabled={!selectedRefs.length}
         onClick={()=>{onEdit(l=>deleteKeyframes(l,selectedRefs));clearSelection();}}>Delete selected</button>
     </div>
-    <p className="pm-animation-help">Zoom and pan the ruler · drag across property rows for box selection · Ctrl/Cmd-click toggles · Shift-click extends · Snap aligns edits to the grid or nearby keyframes. All layers is an overview; edits remain on the selected layer.</p>
+    <p className="pm-animation-help">Zoom and pan synchronize Timeline and Graph · drag across rows for box selection · Ctrl/Cmd-click toggles · Shift-click extends · Arrow keys nudge selected markers by 0.01s (Shift: 0.1s), Delete removes them · Snap applies to pointer edits; keyboard precision bypasses it. All layers is a read-only overview.</p>
   </div>;
 }
