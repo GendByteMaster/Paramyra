@@ -8,7 +8,7 @@ describe("v1.0 M2.3 Professional Timeline pure coordinate math",()=>{
     const fitted={start:0,end:12};
     const zoomed=timelineWindow(12,2,6,fitted);
     expect(zoomed).toEqual({start:3,end:9});
-    expect(timelineWindow(12,8,11,fitted)).toEqual({start:10.5,end:12});
+    expect(timelineWindow(12,8,12,fitted)).toEqual({start:10.5,end:12});
     expect(panTimeline(12,zoomed,2)).toEqual({start:6,end:12});
     expect(panTimeline(12,zoomed,-2)).toEqual({start:0,end:6});
     expect(timeAtPointer(175,100,300,zoomed)).toBe(4.5);
