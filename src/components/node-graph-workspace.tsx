@@ -1,20 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, ArrowRight, Braces, Check, ChevronRight, CircleDot, Download,
-  Focus, GitBranch, Grid2X2, Layers3, Link2, Minus, MousePointer2,
-  Play, Plus, Redo2, Search, SlidersHorizontal, Trash2, Undo2, Upload, X,
+  GitBranch, Grid2X2, Layers3, Link2, Play, Plus, Redo2, Search, SlidersHorizontal, Trash2, Undo2, Upload, X,
 } from "lucide-react";
 import { SceneCanvas } from "./scene-canvas";
+import { GraphReactFlowCanvas } from "./graph-react-flow";
 import { compileGraph, resolveLiveScene } from "@/core/graph/live";
 import { persistGraph, readStoredGraph } from "@/core/graph/storage";
 import { commitGraph, initializeGraphHistory, redoGraph, undoGraph } from "@/core/graph/history";
 import { documentFromScene, parseDocument, type MathDocument } from "@/core/document/schema";
 import { presetFor } from "@/core/scenes/presets";
 import { addGraphNode, connectGraph, createGraphNode,
-  disconnectGraph, evaluateGraph, inputPorts, parseGraph, projectGraph,
+  disconnectGraph, evaluateGraph, parseGraph, projectGraph,
   removeGraphNode, TARGET_PROPERTIES, updateGraphBinding, updateGraphNode,
   type GraphKind, type GraphPort, type GraphNode, type NodeGraph } from "@/core/graph/model";
 
@@ -53,28 +53,6 @@ function readDocument(): MathDocument {
   return documentFromScene(presetFor("lissajous"));
 }
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
-function anchor(node: GraphNode, port?: GraphPort) {
-  if (!port) return { x: node.x + WIDTH, y: node.y + 65 + inputPorts(node.kind).length * 34 };
-  return { x: node.x, y: node.y + 65 + inputPorts(node.kind).indexOf(port) * 34 };
-}
-function fittedViewport(nodes: readonly GraphNode[], width: number, height: number) {
-  const minX=Math.min(...nodes.map(node=>node.x));
-  const minY=Math.min(...nodes.map(node=>node.y));
-  const maxX=Math.max(...nodes.map(node=>node.x+WIDTH));
-  const maxY=Math.max(...nodes.map(node=>node.y+170));
-  const margin=48;
-  const zoom=clamp(Math.min((width-margin*2)/(maxX-minX),(height-margin*2)/(maxY-minY)),.25,1.35);
-  return {zoom,x:Math.round((width-(maxX-minX)*zoom)/2-minX*zoom),
-    y:Math.round((height-(maxY-minY)*zoom)/2-minY*zoom)};
-}
-function curve(from: {x:number;y:number}, to:{x:number;y:number}) {
-  const pull = Math.max(62, Math.abs(to.x - from.x) * 0.48);
-  return "M" + from.x + " " + from.y + " C" + (from.x + pull) + " " + from.y +
-    " " + (to.x - pull) + " " + to.y + " " + to.x + " " + to.y;
-}
-type Drag = { pointerId: number; id: string; clientX: number; clientY: number; x: number; y: number };
-type Pan = { pointerId: number; x: number; y: number; clientX: number; clientY: number };
-
 export function NodeGraphClient() {
   const hydrated = useSyncExternalStore(sync, client, server);
   if (!hydrated) return <div className="shell section" role="status">Opening Node Graph Workspace…</div>;
@@ -93,13 +71,7 @@ function GraphWorkspace() {
   const [edgeId, setEdgeId] = useState<string | null>(null);
   const [libraryOpen, setLibraryOpen] = useState(true);
   const [inspectorOpen, setInspectorOpen] = useState(true);
-  const [viewport, setViewport] = useState({ x: 55, y: 90, zoom: 0.78 });
-  const [dragPosition, setDragPosition] = useState<{id:string;x:number;y:number}|null>(null);
-  const drag = useRef<Drag|null>(null);
-  const pan = useRef<Pan|null>(null);
-  const canvas = useRef<HTMLDivElement|null>(null);
-  const firstGraphNodes = useRef(graph.nodes);
-  const importRef = useRef<HTMLInputElement|null>(null);
+   const importRef = useRef<HTMLInputElement|null>(null);
   const selected = graph.nodes.find(node => node.id === selectedId) ?? null;
   const effectiveLayer = documentModel.layers.some(layer => layer.id === layerId) ? layerId : documentModel.layers[0].id;
   const projection = useMemo(() => projectGraph(documentModel, graph, effectiveLayer, time),
@@ -114,20 +86,6 @@ function GraphWorkspace() {
   useEffect(() => {
     persistGraph(graph);
   }, [graph]);
-  useEffect(() => {
-    const element=canvas.current;
-    if (!element || typeof ResizeObserver==="undefined") return;
-    let firstLayout=true;
-    const observer=new ResizeObserver(()=>{
-      if (!firstLayout)return;
-      const rect=element.getBoundingClientRect();
-      if (rect.width<100 || rect.height<100)return;
-      firstLayout=false;
-      setViewport(fittedViewport(firstGraphNodes.current,rect.width,rect.height));
-    });
-    observer.observe(element);
-    return ()=>observer.disconnect();
-  },[]);
   useEffect(() => {
     const listener = (event: StorageEvent) => {
       if (event.key === DOC_KEY) setDocumentModel(readDocument());
@@ -177,49 +135,17 @@ function GraphWorkspace() {
     else { commit(() => next); setNotice("Numeric connection created."); }
     setActiveSource(null);
   };
-  const startMove = (event:ReactPointerEvent<HTMLElement>, node:GraphNode) => {
-    if (event.button !== 0) return;
-    event.preventDefault();
-    event.stopPropagation();
-    setSelectedId(node.id);
-    setEdgeId(null);
-    drag.current = { pointerId: event.pointerId, id: node.id, clientX:event.clientX, clientY:event.clientY, x:node.x, y:node.y };
-    event.currentTarget.setPointerCapture(event.pointerId);
+  const chooseSource = (id:string)=>{
+    setSelectedId(id);setEdgeId(null);
+    setActiveSource(current=>current===id?null:id);
   };
-  const moveNode = (event:ReactPointerEvent<HTMLElement>) => {
-    const state=drag.current;
-    if (!state || event.pointerId !== state.pointerId) return;
-    setDragPosition({ id:state.id,
-      x:clamp(Math.round(state.x + (event.clientX-state.clientX)/viewport.zoom),0,2200),
-      y:clamp(Math.round(state.y + (event.clientY-state.clientY)/viewport.zoom),0,1600) });
+  const chooseTarget = (target:string,port:GraphPort)=>{
+    setSelectedId(target);setEdgeId(null);
+    if(activeSource)connect(activeSource,target,port);
+    else setNotice("Click a source RESULT or drag its handle to the input.");
   };
-  const finishMove = (event:ReactPointerEvent<HTMLElement>) => {
-    const state=drag.current;
-    if (!state || state.pointerId !== event.pointerId) return;
-    drag.current=null;
-    const x=clamp(Math.round(state.x+(event.clientX-state.clientX)/viewport.zoom),0,2200);
-    const y=clamp(Math.round(state.y+(event.clientY-state.clientY)/viewport.zoom),0,1600);
-    setDragPosition(null);
-    if (x !== state.x || y !== state.y) commit(old => updateGraphNode(old,state.id,{x,y}));
-  };
-  const panStart=(event:ReactPointerEvent<HTMLDivElement>)=>{
-    if (event.button !== 0 || (event.target as HTMLElement).closest(".pm-ng-node,.pm-ng-minimap,.pm-ng-canvas-controls")) return;
-    pan.current={pointerId:event.pointerId,x:viewport.x,y:viewport.y,clientX:event.clientX,clientY:event.clientY};
-    setEdgeId(null);
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-  const panMove=(event:ReactPointerEvent<HTMLDivElement>)=>{
-    if (!pan.current || pan.current.pointerId !== event.pointerId) return;
-    const p=pan.current;
-    setViewport(old=>({...old,x:p.x+event.clientX-p.clientX,y:p.y+event.clientY-p.clientY}));
-  };
-  const panEnd=(event:ReactPointerEvent<HTMLDivElement>)=>{
-    if (pan.current?.pointerId===event.pointerId) pan.current=null;
-  };
-  const fit=()=>{
-    const rect=canvas.current?.getBoundingClientRect();
-    if (!rect?.width || !rect.height) return;
-    setViewport(fittedViewport(graph.nodes,rect.width,rect.height));
+  const move = (id:string,point:{x:number;y:number})=>{
+    commit(old=>updateGraphNode(old,id,{x:point.x,y:point.y}));
   };
   const apply=()=>{
     // Re-read the authoritative Studio document immediately before the write.
@@ -256,14 +182,6 @@ function GraphWorkspace() {
       setNotice("Validated graph imported. Live binding state restored from the file.");
     } catch { setNotice("Unable to import graph JSON."); }
   };
-  const graphPositions = useMemo(() => {
-    const positioned=new Map(graph.nodes.map(node=>[node.id,node]));
-    if (dragPosition) {
-      const node=positioned.get(dragPosition.id);
-      if (node) positioned.set(node.id,{...node,x:dragPosition.x,y:dragPosition.y});
-    }
-    return positioned;
-  },[graph,dragPosition]);
   const selectedEdge = graph.edges.find(edge=>edge.id===edgeId);
   const connectedOutput = graph.nodes.filter(node=>node.kind==="output").length;
 
@@ -272,7 +190,7 @@ function GraphWorkspace() {
       <div className="pm-ng-identity">
         <Link href="/studio" aria-label="Back to Studio" className="pm-ng-icon"><ArrowLeft size={17}/></Link>
         <span className="pm-ng-app-icon"><GitBranch size={21}/></span>
-        <div className="pm-ng-title"><span>PARAMYRA / WORKSPACES</span><h1>Node Graph <small>v1.0 · M3</small></h1></div>
+        <div className="pm-ng-title"><span>PARAMYRA / WORKSPACES</span><h1>Node Graph <small>v1.0 · M3.2</small></h1></div>
       </div>
       <nav className="pm-ng-modes" aria-label="Workspace modes">
         <Link href="/studio"><Layers3 size={15}/> Studio</Link>
@@ -309,57 +227,18 @@ function GraphWorkspace() {
           <div><span className="pm-ng-eyebrow">GRAPH CANVAS · LOCAL</span><h2>{graph.title}</h2></div>
           <div className="pm-ng-canvas-meta"><span>{graph.nodes.length} NODES</span><span>{graph.edges.length} LINKS</span><span className={sceneError?"pm-ng-error-dot":"pm-ng-ok-dot"}>{sceneError?"INVALID OUTPUT":graph.binding.enabled?"LIVE BINDING":"READY"}</span></div>
         </div>
-        <div className="pm-ng-board" ref={canvas} tabIndex={0} aria-label="Interactive node canvas" onPointerDown={panStart} onPointerMove={panMove} onPointerUp={panEnd} onPointerCancel={panEnd} onLostPointerCapture={panEnd}>
-          <div className="pm-ng-world" style={{transform:"translate("+viewport.x+"px,"+viewport.y+"px) scale("+viewport.zoom+")"}}>
-            <svg className="pm-ng-wires" width="2600" height="1900" aria-hidden="true">
-              <defs><linearGradient id="ng-wire" x1="0" x2="1"><stop offset="0%" stopColor="#76b6ff"/><stop offset="100%" stopColor="#8aebd9"/></linearGradient></defs>
-              {graph.edges.map(edge=>{
-                const source=graphPositions.get(edge.source),target=graphPositions.get(edge.target);
-                if (!source||!target)return null;
-                const d=curve(anchor(source),anchor(target,edge.port));
-                return <g key={edge.id} className={edgeId===edge.id?"is-selected":""}>
-                  <path d={d} className="pm-ng-wire-glow"/>
-                  <path d={d} className="pm-ng-wire" stroke={edgeId===edge.id?"#c3e9ff":"url(#ng-wire)"}/>
-                </g>;
-              })}
-            </svg>
-            {graph.nodes.map(node=>{
-              const p=graphPositions.get(node.id)??node;
-              const selected=selectedId===node.id;
-              const ports=inputPorts(node.kind);
-              return <article key={node.id} className={"pm-ng-node kind-"+node.kind+(selected?" is-selected":"")} style={{left:p.x,top:p.y,width:WIDTH}} aria-label={node.title+" node"}>
-                <header className="pm-ng-node-header" onPointerDown={event=>startMove(event,node)} onPointerMove={moveNode} onPointerUp={finishMove} onPointerCancel={finishMove} onLostPointerCapture={finishMove}>
-                  <span className="pm-ng-node-indicator"/><strong>{node.title}</strong><span className="pm-ng-node-type">{node.kind}</span>
-                </header>
-                {ports.map(port=><button key={port} type="button" className="pm-ng-port-row input" aria-label={"Connect "+node.title+" input "+port} onClick={()=>{
-                  setSelectedId(node.id);setEdgeId(null);
-                  if(activeSource)connect(activeSource,node.id,port);
-                  else setNotice("Choose a source output port first, then this input.");
-                }}>
-                  <span className={"pm-ng-handle"+(activeSource?" accepting":"")}/><span>{port.toUpperCase()}</span><small>{graph.edges.some(edge=>edge.target===node.id&&edge.port===port)?"Connected":"Number"}</small>
-                </button>)}
-                {node.kind!=="output"?<button type="button" className={"pm-ng-port-row output"+(activeSource===node.id?" pending":"")} aria-label={"Use "+node.title+" output as source"} onClick={()=>{
-                    setSelectedId(node.id);setEdgeId(null);setActiveSource(activeSource===node.id?null:node.id);
-                  }}>
-                    <span>RESULT</span><small>{values[node.id]===undefined?"Number":values[node.id].toFixed(3)}</small><span className="pm-ng-handle"/>
-                  </button>:<div className="pm-ng-output-destination"><ChevronRight size={13}/>{names[node.property!]}</div>}
-              </article>;
-            })}
-          </div>
-          {activeSource&&<div className="pm-ng-connect-hint" role="status"><Link2 size={15}/> Choose an input port <button type="button" onClick={()=>setActiveSource(null)} aria-label="Cancel connection"><X size={15}/></button></div>}
-          <div className="pm-ng-canvas-controls">
-            <button type="button" aria-label="Zoom graph out" title="Zoom out" onClick={()=>setViewport(v=>({...v,zoom:clamp(Number((v.zoom-.15).toFixed(2)),.25,2)}))}><Minus size={17}/></button>
-            <output aria-label="Graph zoom">{Math.round(viewport.zoom*100)}%</output>
-            <button type="button" aria-label="Zoom graph in" title="Zoom in" onClick={()=>setViewport(v=>({...v,zoom:clamp(Number((v.zoom+.15).toFixed(2)),.25,2)}))}><Plus size={17}/></button>
-            <button type="button" aria-label="Fit graph" title="Fit to graph" onClick={fit}><Focus size={17}/></button>
-          </div>
-          <div className="pm-ng-minimap" aria-label="Node minimap"><svg viewBox="0 0 2400 1750" role="img" aria-label="Graph node positions">
-            {graph.nodes.map(node=><rect key={node.id} x={node.x} y={node.y} width={WIDTH} height={145} rx="17" fill={node.id===selectedId?"#91baff":"#57759b"} stroke="#a4b9d4" strokeWidth="5"/>)}
-          </svg><span>OVERVIEW</span></div>
+        <div className="pm-ng-board" aria-label="Interactive node canvas">
+          <GraphReactFlowCanvas graph={graph} selectedNodeId={selectedId}
+            selectedEdgeId={edgeId} values={values} activeSource={activeSource}
+            onSelectNode={setSelectedId} onSelectEdge={setEdgeId}
+            onSource={chooseSource} onTarget={chooseTarget} onCancel={()=>setActiveSource(null)}
+            onConnect={connect} onMove={move}
+            onDisconnect={id=>{commit(old=>disconnectGraph(old,id));setEdgeId(null);
+              setNotice("Connection removed.");}}/>
         </div>
         <div className="pm-ng-footer">
-          <div className="pm-ng-footer-left"><MousePointer2 size={15}/> Drag nodes to arrange · click output, then input to connect · click an edge in Inspector to remove</div>
-          <span>ZOOM {Math.round(viewport.zoom*100)}% <span className="pm-ng-divider"/> NUMERIC / ACYCLIC</span>
+          <div className="pm-ng-footer-left"><Link2 size={15}/> Drag output → input to connect · Space + drag pans · select edges to edit · Ctrl/⌘ Z to undo</div>
+          <span>REACT FLOW <span className="pm-ng-divider"/> TYPED DAG</span>
         </div>
       </section>
       {inspectorOpen&&<aside className="pm-ng-inspector" aria-label="Graph inspector">
