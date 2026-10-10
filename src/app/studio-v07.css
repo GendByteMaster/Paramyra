@@ -500,3 +500,19 @@
   .pm-center.pm-animation-workspace .pm-animation-graph {height:150px;}
   .pm-center.pm-animation-workspace .pm-animation-editor {padding:12px;}
 }
+
+.pm-animation-section-title {display:flex;align-items:center;justify-content:space-between;gap:9px;margin:0 0 8px;
+  color:#a3c9eb;font-size:10px;letter-spacing:.08em;font-weight:760;}
+.pm-animation-section-title small {font-size:10px;font-weight:550;color:#8099b6;letter-spacing:0;}
+.pm-animation-track-column,.pm-animation-graph-column {min-width:0;}
+.pm-animation-track-column {padding:10px 11px 12px;border:1px solid #668bb745;border-radius:12px;background:#0d2033;}
+.pm-animation-graph-column {padding:12px;border:1px solid #6a96b84a;border-radius:12px;background:#0d1d2c;}
+.pm-animation-graph-column .pm-animation-graph {display:block;width:100%;}
+.pm-animation-track {cursor:crosshair;}
+.pm-keyframe-marker {cursor:ew-resize;}
+@media(max-width:1099px) {
+  .pm-animation-layout {display:grid;gap:12px;}
+}
+@media(max-width:760px) {
+  .pm-animation-track-column,.pm-animation-graph-column {padding:9px;}
+}
