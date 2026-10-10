@@ -1,5 +1,5 @@
 import {describe,it,expect} from "vitest";
-import {documentFromScene,parseDocument,newFormulaLayer} from "../document/schema";
+import {documentFromScene,parseDocument,newFormulaLayer,type MathLayer} from "../document/schema";
 import {presets} from "../scenes/presets";
 import {commitDocument,initializeHistory,undoDocument,redoDocument} from "../document/history";
 import {duplicateLayer,updateLayer} from "../document/operations";
@@ -10,7 +10,7 @@ const f=(property:LayerKeyframe["property"],time:number,value:number,ease:LayerK
 
 describe("deterministic Animation Studio keyframes",()=>{
   it("interpolates linear, holds, eases and clamps endpoints",()=>{
-    let layer=newFormulaLayer("a");
+    let layer:MathLayer=newFormulaLayer("a");
     layer=upsertKeyframe(layer,f("offset.x",2,-1));
     layer=upsertKeyframe(layer,f("offset.x",6,1));
     expect(sampleProperty(layer,"offset.x",-2)).toBe(-1);
