@@ -92,6 +92,8 @@ test("M2.3 marquee selects keys across tracks without mutating document",async({
   await editor.getByRole("button",{name:"Add keyframe at playhead"}).click();
   await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers[0].keyframes.length)).toBe(2);
   const before=await page.evaluate(()=>localStorage.getItem("paramyra.document.v3"));
+  await editor.getByRole("button",{name:"Toggle box selection tool"}).click();
+  await expect(editor.getByRole("button",{name:"Toggle box selection tool"})).toHaveAttribute("aria-pressed","true");
   const first=await opacity.boundingBox(),second=await position.boundingBox();
   expect(first).not.toBeNull();expect(second).not.toBeNull();
   await page.mouse.move(first!.x+first!.width*.17,first!.y+first!.height/2);
