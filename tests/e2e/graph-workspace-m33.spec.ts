@@ -5,10 +5,10 @@ test("M3.3 full Graph Workspace groups and ungroups multiple nodes as one histor
   await expect(page.getByRole("toolbar",{name:"Graph editing commands"})).toBeVisible();
   await page.getByRole("button",{name:"Select all nodes"}).click();
   await expect(page.getByLabel("Selected node count")).toContainText("5 selected");
-  await page.getByRole("button",{name:"Group selected nodes"}).click();
+  await page.getByRole("button",{name:"Group selected nodes",exact:true}).click();
   await expect(page.locator(".pm-ng-rf-group")).toHaveCount(1);
   await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.nodegraph.v3")!).groups[0].nodeIds.length)).toBe(5);
-  await page.getByRole("button",{name:"Ungroup selected nodes"}).click();
+  await page.getByRole("button",{name:"Ungroup selected nodes",exact:true}).click();
   await expect(page.locator(".pm-ng-rf-group")).toHaveCount(0);
   await page.getByRole("button",{name:"Undo graph edit"}).click();
   await expect(page.locator(".pm-ng-rf-group")).toHaveCount(1);
@@ -34,7 +34,7 @@ test("M3.3 copy/paste remaps all node and edge IDs, preserves graph and leaves S
 test("M3.3 portable project exports scene and graph together and validates before restoring",async({page})=>{
   await page.goto("/studio/graph");
   await page.getByRole("button",{name:"Select all nodes"}).click();
-  await page.getByRole("button",{name:"Group selected nodes"}).click();
+  await page.getByRole("button",{name:"Group selected nodes",exact:true}).click();
   const downloadPromise=page.waitForEvent("download");
   await page.getByRole("button",{name:"Export full project"}).click();
   const download=await downloadPromise;
