@@ -106,8 +106,10 @@ test("M2.3 marquee selects keys across tracks without mutating document",async({
   await editor.locator(".pm-animation-layout").evaluate(element=>{
     const scroller=element.closest(".pm-animation-surface");
     if(!(scroller instanceof HTMLElement))throw new Error("Timeline scroll owner missing");
-    const delta=element.getBoundingClientRect().top-scroller.getBoundingClientRect().top;
-    scroller.scrollTop=Math.max(0,scroller.scrollTop+delta-68);
+    // Since M2.4, the track/graph layout is the FIRST editing surface, directly
+    // beneath the toolbar. Return the shared scroll owner to the top rather
+    // than aligning two child tracks independently.
+    scroller.scrollTop=0;
   });
   await expect(opacity).toBeInViewport();
   await expect(position).toBeInViewport();
