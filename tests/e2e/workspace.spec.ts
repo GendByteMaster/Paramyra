@@ -19,7 +19,7 @@ test("parameters remain saved after reload", async ({ page }) => {
   await expect(slider).toHaveValue("12");
   await page.reload();
   await expect(page.locator("#frequencyX")).toHaveValue("12");
-  await page.getByRole("button", { name: "Reset" }).click();
+  await page.getByRole("button", { name: "Reset", exact: true }).click();
   await expect(page.locator("#frequencyX")).toHaveValue("3");
 });
 
