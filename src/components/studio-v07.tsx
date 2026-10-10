@@ -7,7 +7,7 @@ import { SceneCanvas } from "./scene-canvas";
 import { SceneGlyph } from "./scene-glyph";
 import { FormulaEditor } from "./formula-editor";
 import { CalculatorWindow } from "./calculator-window";
-import { defaultFormula } from "@/core/math/formula";
+import { defaultFormula, validateFormula } from "@/core/math/formula";
 import { presets, presetFor } from "@/core/scenes/presets";
 import { defaultView, type CanvasView } from "@/core/rendering/canvas2d";
 import { clampZoom, fitCamera, type Size } from "@/core/rendering/geometry";
@@ -186,6 +186,17 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
     setNotice("Formula layer added. Edit its expression in the Inspector.");
     if(window.matchMedia("(max-width:959px)").matches)setLibraryOpen(false);
     requestAnimationFrame(()=>root.current?.querySelector(".pm-formula-editor")?.scrollIntoView({block:"nearest",behavior:"smooth"}));
+  };
+  const plotFromCalculator=(expression:string):boolean=>{
+    if(doc.layers.length>=12){setNotice("Maximum 12 layers.");return false;}
+    const base=layer.kind==="formula"?layer.formula:defaultFormula("explicit");
+    const formula={...defaultFormula("explicit"),a:base.a,b:base.b,c:base.c,exprY:expression};
+    if(validateFormula(formula)){setNotice("Cannot plot: expected a valid y=f(x,t) expression.");return false;}
+    const item={...newFormulaLayer(makeLayerId()),title:"Plot · "+expression.slice(0,80),formula};
+    commit(d=>addLayer(d,item));
+    setSelected(item.id);setInspectorOpen(true);
+    setNotice("Graph layer added. Use Undo to restore.");
+    return true;
   };
   const download=()=>{
     const url=URL.createObjectURL(new Blob([JSON.stringify(doc,null,2)],{type:"application/json"}));
@@ -411,7 +422,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
       </aside>}
     </div>
     <CalculatorWindow open={calculatorOpen} onClose={closeCalculator}
-      formula={layer.kind==="formula"?layer.formula:defaultFormula()}/>
+      formula={layer.kind==="formula"?layer.formula:defaultFormula()} onPlot={plotFromCalculator}/>
     <div className="pm-statusbar"><div><span className="pm-status-dot"/> PARAMYRA ENGINE · {doc.layers.length} LAYERS</div><div>SCENE DOCUMENT V3 · ZOOM {Math.round(view.zoom*100)}% · LOCAL PROJECT</div></div>
   </div>;
 }

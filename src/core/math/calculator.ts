@@ -5,17 +5,18 @@ export type CalculatorResult =
   | Readonly<{ ok: true; value: number; display: string }>
   | Readonly<{ ok: false; error: string }>;
 
-const VARIABLES = ["a", "b", "c", "x", "u", "theta", "t"] as const;
+const VARIABLES = ["a", "b", "c", "x", "u", "theta", "t", "ans"] as const;
+export type CalculatorOptions = Readonly<{angleUnit?: "rad" | "deg"; ans?: number}>;
 
 /** Uses the same bounded, non-executable parser as rendered curves. */
-export function calculateExpression(source: string, values: CalculatorVariables): CalculatorResult {
+export function calculateExpression(source: string, values: CalculatorVariables, options: CalculatorOptions = {}): CalculatorResult {
   try {
     compileExpression(source, VARIABLES);
-    if (![values.a, values.b, values.c, values.x, values.t].every(Number.isFinite)) {
+    if (![values.a, values.b, values.c, values.x, values.t, options.ans ?? 0].every(Number.isFinite)) {
       return { ok: false, error: "Variables must be finite numbers." };
     }
-    const environment: MathEnv = { ...values, u: values.x, theta: values.x };
-    const value = evaluateExpression(source, VARIABLES, environment);
+    const environment: MathEnv = { ...values, u: values.x, theta: values.x, ans: options.ans ?? 0 };
+    const value = evaluateExpression(source, VARIABLES, environment, {angleUnit: options.angleUnit});
     if (!Number.isFinite(value)) return { ok: false, error: "Undefined or out-of-range result." };
     return { ok: true, value, display: formatCalculatorNumber(value) };
   } catch (error) {
