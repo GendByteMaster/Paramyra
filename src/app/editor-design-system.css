@@ -132,6 +132,39 @@
 @media (min-width: 960px) and (max-width: 1279px) {
   .pm-editor-shell { --editor-left: 210px; --editor-right: 300px; }
 }
+@media (min-width: 960px) {
+  .pm-editor-shell .pm-editor-pane-layout,
+  .pm-editor-shell .pm-editor-pane-layout.pm-grid,
+  .pm-editor-shell .pm-editor-pane-layout.pm-ng-layout {
+    display: grid;
+    grid-template-columns: var(--editor-left) minmax(0, 1fr) var(--editor-right);
+    min-width: 0;
+    gap: var(--editor-gutter);
+    align-items: stretch;
+  }
+  .pm-editor-shell .pm-editor-pane-layout:is(.pm-no-library, .no-library) {
+    grid-template-columns: minmax(0, 1fr) var(--editor-right);
+  }
+  .pm-editor-shell .pm-editor-pane-layout:is(.pm-no-inspector, .no-inspector) {
+    grid-template-columns: var(--editor-left) minmax(0, 1fr);
+  }
+  .pm-editor-shell .pm-editor-pane-layout:is(.pm-no-library, .no-library):is(.pm-no-inspector, .no-inspector) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pm-editor-shell .pm-editor-pane-layout.pm-animation-focus {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .pm-editor-shell .pm-editor-pane-layout > :is(.pm-ng-center, .pm-ng-library, .pm-ng-inspector) {
+    order: 0;
+    flex: initial;
+    min-height: 0;
+    max-height: none;
+  }
+  .pm-editor-shell .pm-ng-projectbar { flex-wrap: nowrap; }
+  .pm-editor-shell .pm-ng-actions { flex: 1 1 auto; width: auto; justify-content: flex-end; overflow-x: auto; scrollbar-width: thin; }
+  .pm-editor-shell .pm-project-actions { overflow-x: auto; scrollbar-width: thin; }
+  .pm-editor-shell .pm-ng-inspector-scroll { display: flex; flex-direction: column; }
+}
 @media (min-width: 960px) and (min-height: 680px) {
   html:has(.pm-editor-shell),
   body:has(.pm-editor-shell) {
@@ -220,6 +253,8 @@
     gap: var(--editor-gutter);
     overflow: visible;
   }
+}
+@media (max-width: 959px) {
   .pm-editor-shell .pm-editor-pane-layout.pm-ng-layout {
     display: flex;
     flex-direction: column;
