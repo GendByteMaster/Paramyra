@@ -32,6 +32,7 @@ describe("v1.0 M2.2 deterministic Bezier and atomic multi-keyframe operations",(
     const frames=[frame,key("opacity",12,.8)];
     const valid={...doc,layers:[{...doc.layers[0],keyframes:frames}]};
     expect(parseDocument(valid)).toEqual(valid);
+    expect(upsertKeyframe(valid.layers[0],{...frame,bezier:{...DEFAULT_BEZIER}})).toBe(valid.layers[0]); // no empty Undo entry
     expect(parseDocument({...doc,layers:[{...doc.layers[0],keyframes:[key("opacity",0,.2)]}]})).not.toBeNull();
     const reject=(value:unknown)=>parseDocument({...doc,layers:[{...doc.layers[0],keyframes:[value]}]});
     expect(reject({...frame,bezier:{...DEFAULT_BEZIER,x1:-.01}})).toBeNull();
