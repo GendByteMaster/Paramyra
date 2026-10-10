@@ -4,7 +4,7 @@ import { validateFormula, type Formula, defaultFormula } from "../math/formula";
 import { KEYFRAME_LIMIT, propertyBounds } from "../animation/keyframes";
 
 const keyframeSchema=z.object({
-  property:z.enum(["offset.x","offset.y","opacity"]),
+  property:z.enum(["offset.x","offset.y","opacity","params.strokeWidth","formula.a","formula.b","formula.c"]),
   time:z.number().finite().min(0).max(60),
   value:z.number().finite().min(-2).max(2),
   ease:z.enum(["linear","ease-in","ease-out","ease-in-out","hold"]),
@@ -71,6 +71,8 @@ export const documentSchema = z.object({
       const key=frame.property+":"+frame.time;
       if(distinct.has(key))ctx.addIssue({code:"custom",message:"Duplicate keyframe property/time",path:["layers",index,"keyframes",frameIndex]});
       distinct.add(key);
+      if(layer.kind!=="formula"&&frame.property.startsWith("formula."))
+        ctx.addIssue({code:"custom",message:"Formula tracks are only valid on formula layers",path:["layers",index,"keyframes",frameIndex,"property"]});
       if(frame.time>doc.duration)ctx.addIssue({code:"custom",message:"Keyframe must fit document duration",path:["layers",index,"keyframes",frameIndex,"time"]});
     }
   });
