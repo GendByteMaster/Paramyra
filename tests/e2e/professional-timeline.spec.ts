@@ -100,9 +100,15 @@ test("M2.3 marquee selects keys across tracks without mutating document",async({
   const before=await page.evaluate(()=>localStorage.getItem("paramyra.document.v3"));
   await editor.getByRole("button",{name:"Toggle box selection tool"}).click();
   await expect(editor.getByRole("button",{name:"Toggle box selection tool"})).toHaveAttribute("aria-pressed","true");
-  // Raw Playwright mouse coordinates never auto-scroll; both rows must be visible first.
-  await opacity.scrollIntoViewIfNeeded();
-  await position.scrollIntoViewIfNeeded();
+  // Move the SHARED scroll owner, not each track separately. Sequential
+  // scrollIntoViewIfNeeded calls fight in the split editor and may evict the
+  // previous target after the second call (especially under a sticky toolbar).
+  await editor.locator(".pm-animation-layout").evaluate(element=>{
+    const scroller=element.closest(".pm-animation-surface");
+    if(!(scroller instanceof HTMLElement))throw new Error("Timeline scroll owner missing");
+    const delta=element.getBoundingClientRect().top-scroller.getBoundingClientRect().top;
+    scroller.scrollTop=Math.max(0,scroller.scrollTop+delta-68);
+  });
   await expect(opacity).toBeInViewport();
   await expect(position).toBeInViewport();
   const first=await opacity.boundingBox(),second=await position.boundingBox();
