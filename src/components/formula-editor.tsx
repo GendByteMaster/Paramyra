@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { Calculator } from "lucide-react";
 import { defaultFormula, validateFormula, type Formula, type FormulaMode } from "@/core/math/formula";
 
-type Props = { layerId: string; formula: Formula; onChange: (next: Formula) => void };
-export function FormulaEditor({ layerId, formula, onChange }: Props) {
+type Props = { layerId: string; formula: Formula; onChange: (next: Formula) => void; onOpenCalculator: () => void };
+export function FormulaEditor({ layerId, formula, onChange, onOpenCalculator }: Props) {
   const [editing, setEditing] = useState({ layerId, committed: formula, draft: formula });
   // Sync Undo/Redo and selection without resetting an incomplete expression on every keystroke.
   if (editing.layerId !== layerId || editing.committed !== formula) {
@@ -28,6 +29,9 @@ export function FormulaEditor({ layerId, formula, onChange }: Props) {
   };
   return <section className="pm-inspector-section pm-formula-editor" aria-label="Formula editor">
     <div className="pm-inspector-sectionhead"><span>02 / FORMULA EDITOR</span><span className="pm-formula-type">f(x)</span></div>
+    <button type="button" className="pm-formula-launch" aria-label="Open calculator from Formula Editor" aria-haspopup="dialog" aria-controls="pm-scientific-calculator-window" onClick={onOpenCalculator}>
+      <Calculator size={16}/> Open Calculator <span>↗</span>
+    </button>
     <label className="pm-formula-field">Curve type
       <select aria-label="Formula mode" value={draft.mode} onChange={e=>chooseMode(e.target.value as FormulaMode)}>
         <option value="explicit">Explicit · y = f(x,t)</option>

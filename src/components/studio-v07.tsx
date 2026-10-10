@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore, type ChangeEvent } from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, ChevronDown, ChevronUp, CircleDot, Copy, Download, Eye, EyeOff, FileJson2, Grid3X3, Info, Layers3, Maximize2, Minimize2, Minus, Move, MousePointer2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Pause, Play, Plus, Redo2, RotateCcw, Search, SlidersHorizontal, Trash2, Undo2, Upload, Waves } from "lucide-react";
+import { ArrowLeft, Calculator, Check, ChevronDown, ChevronUp, CircleDot, Copy, Download, Eye, EyeOff, FileJson2, Grid3X3, Info, Layers3, Maximize2, Minimize2, Minus, Move, MousePointer2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Pause, Play, Plus, Redo2, RotateCcw, Search, SlidersHorizontal, Trash2, Undo2, Upload, Waves } from "lucide-react";
 import { SceneCanvas } from "./scene-canvas";
 import { SceneGlyph } from "./scene-glyph";
 import { FormulaEditor } from "./formula-editor";
+import { CalculatorWindow } from "./calculator-window";
 import { defaultFormula } from "@/core/math/formula";
 import { presets, presetFor } from "@/core/scenes/presets";
 import { defaultView, type CanvasView } from "@/core/rendering/canvas2d";
@@ -73,6 +74,7 @@ export function StudioClient(props:{initialKind?:SceneKind;mode?:"studio"|"playg
 }
 function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mode?:"studio"|"playground"}) {
   const root=useRef<HTMLDivElement>(null);
+  const returnCalculatorFocus=useRef<HTMLElement|null>(null);
   const last=useRef({key:"",at:0});
   const dragGroup=useRef<string|null>(null);
   const [history,setHistory]=useState(()=>initializeHistory(loadDoc(initialKind)));
@@ -99,6 +101,16 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
   const [seekVersion,setSeekVersion]=useState(0);
   const [fullscreen,setFullscreen]=useState(false);
   const [notice,setNotice]=useState("");
+  const [calculatorOpen,setCalculatorOpen]=useState(false);
+  const openCalculator=()=>{
+    returnCalculatorFocus.current=document.activeElement instanceof HTMLElement?document.activeElement:null;
+    if(window.matchMedia("(max-width:959px)").matches)setLibraryOpen(false);
+    setCalculatorOpen(true);
+  };
+  const closeCalculator=()=>{
+    setCalculatorOpen(false);
+    requestAnimationFrame(()=>returnCalculatorFocus.current?.isConnected&&returnCalculatorFocus.current.focus());
+  };
 
   useEffect(()=>{
     const listener=()=>setFullscreen(document.fullscreenElement===root.current);
@@ -251,6 +263,9 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
         <button type="button" className="pm-icon-btn" aria-label="Toggle inspector" aria-pressed={inspectorOpen} onClick={()=>setInspectorOpen(v=>!v)}>{inspectorOpen?<PanelRightClose size={17}/>:<PanelRightOpen size={17}/>}</button>
         <button type="button" className="pm-icon-btn pm-fullscreen-button" aria-label={fullscreen?"Exit fullscreen":"Enter fullscreen"} aria-pressed={fullscreen} onClick={()=>{void toggleFullscreen();}}>{fullscreen?<Minimize2 size={17}/>:<Maximize2 size={17}/>}</button>
         <span className="pm-toolbar-rule"/>
+        <button type="button" className="pm-action pm-calculator-launch" aria-label="Open calculator window"
+          aria-haspopup="dialog" aria-expanded={calculatorOpen} aria-controls="pm-scientific-calculator-window"
+          onClick={openCalculator}><Calculator size={16}/><span className="pm-calc-launch-label">Calculator</span></button>
         <label className="pm-action pm-action-quiet pm-import"><Upload size={15}/> Import<input className="sr-only" type="file" aria-label="Import scene JSON" accept=".json,application/json" onChange={importFile}/></label>
         <button type="button" className="pm-action pm-action-primary" onClick={download}><Download size={15}/> Export JSON</button>
       </div>
@@ -370,7 +385,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
               <label>Opacity<input type="range" aria-label="Layer opacity" min="0" max="1" step=".05" value={layer.opacity} onChange={e=>commit(d=>updateLayer(d,layer.id,l=>({...l,opacity:e.target.valueAsNumber})),"opacity:"+layer.id)}/></label>
             </div>
           </section>
-          {layer.kind==="formula"&&<FormulaEditor layerId={layer.id} formula={layer.formula} onChange={formula=>commit(d=>updateLayer(d,layer.id,l=>l.kind==="formula"?{...l,formula}:l),"formula:"+layer.id)}/>}
+          {layer.kind==="formula"&&<FormulaEditor layerId={layer.id} formula={layer.formula} onOpenCalculator={openCalculator} onChange={formula=>commit(d=>updateLayer(d,layer.id,l=>l.kind==="formula"?{...l,formula}:l),"formula:"+layer.id)}/>}
           <section className="pm-inspector-section"><div className="pm-inspector-sectionhead"><span>{layer.kind==="formula"?"03 / STROKE & POSITION":"02 / PARAMETERS"}</span><Waves size={16}/></div>
             {shownFields.map(({key,label,min,max,step})=>{
               const shownLabel=layer.kind==="polar-rose"&&key==="frequencyX"?"Symmetry (k)":label;
@@ -395,6 +410,8 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
         </div>
       </aside>}
     </div>
+    <CalculatorWindow open={calculatorOpen} onClose={closeCalculator}
+      formula={layer.kind==="formula"?layer.formula:defaultFormula()}/>
     <div className="pm-statusbar"><div><span className="pm-status-dot"/> PARAMYRA ENGINE · {doc.layers.length} LAYERS</div><div>SCENE DOCUMENT V3 · ZOOM {Math.round(view.zoom*100)}% · LOCAL PROJECT</div></div>
   </div>;
 }
