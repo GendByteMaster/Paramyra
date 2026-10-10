@@ -30,6 +30,7 @@ test("M2.3 timeline zoom, pan and fit use a bounded time viewport",async({page})
 
 test("M2.3 All Layers shows authoritative document tracks and navigates to another layer",async({page})=>{
   await page.goto("/studio");
+  await expect.poll(()=>page.evaluate(()=>localStorage.getItem("paramyra.document.v3"))).not.toBeNull();
   const firstTitle=await page.evaluate(()=>{
     const key="paramyra.document.v3";
     const doc=JSON.parse(localStorage.getItem(key)!);
