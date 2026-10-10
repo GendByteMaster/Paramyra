@@ -63,6 +63,16 @@ function anchor(node: GraphNode, port?: GraphPort) {
   if (!port) return { x: node.x + WIDTH, y: node.y + 65 + inputPorts(node.kind).length * 34 };
   return { x: node.x, y: node.y + 65 + inputPorts(node.kind).indexOf(port) * 34 };
 }
+function fittedViewport(nodes: readonly GraphNode[], width: number, height: number) {
+  const minX=Math.min(...nodes.map(node=>node.x));
+  const minY=Math.min(...nodes.map(node=>node.y));
+  const maxX=Math.max(...nodes.map(node=>node.x+WIDTH));
+  const maxY=Math.max(...nodes.map(node=>node.y+170));
+  const margin=48;
+  const zoom=clamp(Math.min((width-margin*2)/(maxX-minX),(height-margin*2)/(maxY-minY)),.25,1.35);
+  return {zoom,x:Math.round((width-(maxX-minX)*zoom)/2-minX*zoom),
+    y:Math.round((height-(maxY-minY)*zoom)/2-minY*zoom)};
+}
 function curve(from: {x:number;y:number}, to:{x:number;y:number}) {
   const pull = Math.max(62, Math.abs(to.x - from.x) * 0.48);
   return "M" + from.x + " " + from.y + " C" + (from.x + pull) + " " + from.y +
@@ -94,6 +104,7 @@ function GraphWorkspace() {
   const drag = useRef<Drag|null>(null);
   const pan = useRef<Pan|null>(null);
   const canvas = useRef<HTMLDivElement|null>(null);
+  const firstGraphNodes = useRef(graph.nodes);
   const importRef = useRef<HTMLInputElement|null>(null);
   const selected = graph.nodes.find(node => node.id === selectedId) ?? null;
   const effectiveLayer = documentModel.layers.some(layer => layer.id === layerId) ? layerId : documentModel.layers[0].id;
@@ -106,6 +117,20 @@ function GraphWorkspace() {
     try { localStorage.setItem(GRAPH_KEY, JSON.stringify(graph)); }
     catch { /* user can still download JSON */ }
   }, [graph]);
+  useEffect(() => {
+    const element=canvas.current;
+    if (!element || typeof ResizeObserver==="undefined") return;
+    let firstLayout=true;
+    const observer=new ResizeObserver(()=>{
+      if (!firstLayout)return;
+      const rect=element.getBoundingClientRect();
+      if (rect.width<100 || rect.height<100)return;
+      firstLayout=false;
+      setViewport(fittedViewport(firstGraphNodes.current,rect.width,rect.height));
+    });
+    observer.observe(element);
+    return ()=>observer.disconnect();
+  },[]);
   useEffect(() => {
     const listener = (event: StorageEvent) => {
       if (event.key === DOC_KEY) setDocumentModel(readDocument());
@@ -189,13 +214,7 @@ function GraphWorkspace() {
   const fit=()=>{
     const rect=canvas.current?.getBoundingClientRect();
     if (!rect?.width || !rect.height) return;
-    const minX=Math.min(...graph.nodes.map(node=>node.x));
-    const minY=Math.min(...graph.nodes.map(node=>node.y));
-    const maxX=Math.max(...graph.nodes.map(node=>node.x+WIDTH));
-    const maxY=Math.max(...graph.nodes.map(node=>node.y+170));
-    const zoom=clamp(Math.min((rect.width-90)/(maxX-minX),(rect.height-90)/(maxY-minY)),0.35,1.35);
-    setViewport({zoom,x:Math.round((rect.width-(maxX-minX)*zoom)/2-minX*zoom),
-      y:Math.round((rect.height-(maxY-minY)*zoom)/2-minY*zoom)});
+    setViewport(fittedViewport(graph.nodes,rect.width,rect.height));
   };
   const apply=()=>{
     // Re-read the authoritative Studio document immediately before the write.
@@ -322,9 +341,9 @@ function GraphWorkspace() {
           </div>
           {activeSource&&<div className="pm-ng-connect-hint" role="status"><Link2 size={15}/> Choose an input port <button type="button" onClick={()=>setActiveSource(null)} aria-label="Cancel connection"><X size={15}/></button></div>}
           <div className="pm-ng-canvas-controls">
-            <button type="button" aria-label="Zoom graph out" title="Zoom out" onClick={()=>setViewport(v=>({...v,zoom:clamp(Number((v.zoom-.15).toFixed(2)),.35,2)}))}><Minus size={17}/></button>
+            <button type="button" aria-label="Zoom graph out" title="Zoom out" onClick={()=>setViewport(v=>({...v,zoom:clamp(Number((v.zoom-.15).toFixed(2)),.25,2)}))}><Minus size={17}/></button>
             <output aria-label="Graph zoom">{Math.round(viewport.zoom*100)}%</output>
-            <button type="button" aria-label="Zoom graph in" title="Zoom in" onClick={()=>setViewport(v=>({...v,zoom:clamp(Number((v.zoom+.15).toFixed(2)),.35,2)}))}><Plus size={17}/></button>
+            <button type="button" aria-label="Zoom graph in" title="Zoom in" onClick={()=>setViewport(v=>({...v,zoom:clamp(Number((v.zoom+.15).toFixed(2)),.25,2)}))}><Plus size={17}/></button>
             <button type="button" aria-label="Fit graph" title="Fit to graph" onClick={fit}><Focus size={17}/></button>
           </div>
           <div className="pm-ng-minimap" aria-label="Node minimap"><svg viewBox="0 0 2400 1750" role="img" aria-label="Graph node positions">
