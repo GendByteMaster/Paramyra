@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { documentFromScene, newFormulaLayer } from "@/core/document/schema";
-import { presets } from "@/core/scenes/presets";
+import { documentFromScene, newFormulaLayer } from "../document/schema";
+import { presets } from "../scenes/presets";
 import { addGraphNode, connectGraph, createGraphNode, disconnectGraph, evaluateGraph,
   initialGraph, parseGraph, projectGraph, removeGraphNode, updateGraphNode } from "./model";
 import { commitGraph, initializeGraphHistory, redoGraph, undoGraph } from "./history";
