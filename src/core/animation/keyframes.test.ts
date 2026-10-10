@@ -35,7 +35,8 @@ describe("deterministic Animation Studio keyframes",()=>{
     expect(parseDocument(edited)).toEqual(edited);
     expect(original.layers[0].keyframes).toBeUndefined();
     expect(resolveAnimatedDocument(edited,6).layers[0].offset.y).toBe(0);
-    expect(resolveAnimatedDocument(edited,6).layers[0].offset.y).not.toBe(edited.layers[0].offset.y);
+    expect(resolveAnimatedDocument(edited,3).layers[0].offset.y).toBe(-0.5);
+    expect(edited.layers[0].offset.y).toBe(0);
     const history=commitDocument(initializeHistory(original),edited);
     expect(undoDocument(history).present).toEqual(original);
     expect(redoDocument(undoDocument(history)).present).toEqual(edited);
