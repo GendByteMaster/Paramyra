@@ -3,15 +3,15 @@
 ## Boundaries
 
 - App Router: routing, page composition, metadata, and (later) server APIs.
-- Scene Document: a versioned, Zod-validated plain JSON model (currently schema v1).
+- Scene Document: strict versioned Zod-validated JSON. Public gallery retains schema v1; Studio uses MathDocument v2, with migration of valid v1 scenes.
 - Math core: deterministic pure functions; no React imports, DOM, or arbitrary evaluation.
-- Renderer: Canvas 2D adapter, independently replaceable by SVG/Three adapters.
+- Geometry: pure coordinate transforms, curve sampling, hit testing and camera-fitting independent of React.\n- Renderer: Canvas 2D adapter using that shared geometry. SVG/Three are potential future adapters, not implemented features.
 - UI features: Gallery, Playground, Studio depend on the same scene schema and rendering contract.
-- Persistence: browser localStorage for this small foundation only; move larger documents to IndexedDB and later server persistence.
+- Persistence: browser localStorage for one current document and up to 12 user presets; use JSON export for backups. Future IndexedDB/cloud storage are not implemented.
 
 ## Deliberate limits
 
-The first working version has one active scene and controls, **not** multi-layer editing, visual expression parsing, physics, 3D, online accounts, or video export. These are milestones, not implemented features.
+Studio v0.7 includes up to 12 layers, deterministic timeline playback, local presets and Undo/Redo. v0.8 adds direct manipulation, mathematical grid and geometry-driven Fit. Arbitrary expression parsing, keyframes, numerical physics, 3D, accounts and video export remain future milestones.
 
 ## Security and performance
 

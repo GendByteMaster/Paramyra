@@ -5,6 +5,20 @@
 [![CI](https://github.com/GendByteMaster/Paramyra/actions/workflows/ci.yml/badge.svg)](https://github.com/GendByteMaster/Paramyra/actions/workflows/ci.yml)
 
 
+## Studio v0.8 — Professional Canvas (draft preview)
+
+Building on Studio v0.7, the canvas now provides:
+- Selection of visible mathematical curves by stroke hit-testing, with topmost-layer priority.
+- Direct curve dragging to change per-layer offsets (bounded by the existing v2 schema), including Undo/Redo.
+- **Select** and **Pan** tools. In Select mode, drag blank canvas or hold **Alt** to pan; middle-button drag also pans. Focus the canvas and use arrow keys to nudge the selected layer (Shift = larger step).
+- One shared mathematical world coordinate system for renderer, hit testing, responsive 1/2/5 Cartesian grid and numeric ticks.
+- Wheel zoom anchored under the pointer (0.1–8×) and true **Fit scene**, computed from visible geometry rather than resetting to 100%.
+- Independent **Reset layer** (restores only selected layer's parameters/offset) and **Reset camera** controls. Layer reset retains other layers and custom style.
+
+The v0.8 branch is stacked on the v0.7 Draft PR. Manual browser acceptance and final CI on merged HEAD remain required before release.
+
+See [Studio v0.8 architecture and verification checklist](docs/STUDIO_V08.md).
+
 ## Studio v0.7 — layered workspace (preview)
 
 The Studio now uses a separate, strict **SceneDocument v2** model:
@@ -50,6 +64,6 @@ Import this repository into Vercel and select **Next.js** with the repository ro
 
 ### Project principles
 
-The Gallery, Playground, and Studio share one scene schema, mathematical functions, and rendering system. The scene engine has no dependency on Next.js or UI animation libraries. Local projects are stored in the current browser only; authentication, online publishing, keyframes, and 3D are future milestones. See [architecture](docs/ARCHITECTURE.md).
+The Gallery, Playground, and Studio share one legacy scene schema, the versioned Studio MathDocument v2 model, mathematical functions, and rendering system. The scene engine has no dependency on Next.js or UI animation libraries. Local projects are stored in the current browser only; authentication, online publishing, keyframes, and 3D are future milestones. See [architecture](docs/ARCHITECTURE.md).
 
 MIT licensed.
