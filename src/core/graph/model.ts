@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { propertyBounds, supportsProperty, type AnimatableProperty } from "@/core/animation/keyframes";
-import type { MathDocument, MathLayer } from "@/core/document/schema";
+import { propertyBounds, supportsProperty, type AnimatableProperty } from "../animation/keyframes";
+import type { MathDocument, MathLayer } from "../document/schema";
 
 export const GRAPH_KEY = "paramyra.nodegraph.v1";
 export const GRAPH_NODE_LIMIT = 32;
