@@ -87,6 +87,9 @@ test("Calculator is an independent desktop window with dragging, maximize and Es
   await expect(scratch).toBeFocused();
   const before=await dialog.boundingBox();
   expect(before).not.toBeNull();
+  // A floating window must not start beneath the bottom edge of a short desktop viewport.
+  expect(before!.y).toBeGreaterThanOrEqual(8);
+  expect(before!.y+before!.height).toBeLessThanOrEqual(768-8);
   const grip=page.locator(".pm-calc-window-grip");
   await grip.dragTo(page.locator(".pm-viewport-toolbar"),{force:true});
   const after=await dialog.boundingBox();
