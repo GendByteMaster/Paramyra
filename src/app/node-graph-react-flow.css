@@ -173,3 +173,8 @@
  .pm-ng-selection-summary {margin-left:0}
  .pm-ng-commandbar button {padding:7px 9px}
 }
+
+
+.pm-ng-group-members {display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
+.pm-ng-group-members span {padding:6px 9px;font-size:11px;color:#bbe0ee;background:#24445d;border:1px solid #8cc1e34d;border-radius:7px}
+.pm-ng-inspector-scroll > .pm-ng-inspector-section[aria-label="Selected graph group"] {order:-2}
