@@ -81,7 +81,7 @@ test("M3.3 Shift-click multi-selection enables group operations from real React 
   await expect(page.getByLabel("Selected node count")).toContainText("2 selected");
   await expect(page.getByRole("button",{name:"Group selected nodes",exact:true})).toBeEnabled();
   await page.getByRole("button",{name:"Group selected nodes",exact:true}).click();
-  const group=page.getByRole("group",{name:"Selected graph group"});
+  const group=page.getByRole("region",{name:"Selected graph group"});
   await expect(group).toBeVisible();
   await group.getByRole("textbox",{name:"Group name"}).fill("Oscillator Sources");
   await expect(page.locator(".pm-ng-rf-group-header")).toContainText("Oscillator Sources");
