@@ -107,3 +107,9 @@ export function ungroupGraphNodes(graph:NodeGraph,groupId:string):NodeGraph {
   if(!graph.groups.some(g=>g.id===groupId))return graph;
   return parseGraph({...graph,groups:graph.groups.filter(g=>g.id!==groupId)})??graph;
 }
+
+/** Named group is metadata, never part of the executable numeric DAG. */
+export function renameGraphGroup(graph:NodeGraph,id:string,title:string):NodeGraph {
+  if(!title.trim()||title.length>64||!graph.groups.some(g=>g.id===id))return graph;
+  return parseGraph({...graph,groups:graph.groups.map(g=>g.id===id?{...g,title}:g)})??graph;
+}
