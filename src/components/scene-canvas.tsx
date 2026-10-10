@@ -4,11 +4,12 @@ import { useEffect, useRef, type KeyboardEvent, type PointerEvent, type WheelEve
 import { drawDocument, defaultView, type CanvasView } from "@/core/rendering/canvas2d";
 import { clampZoom, hitTestLayer, pixelScale, zoomAt, type Camera, type Size } from "@/core/rendering/geometry";
 import { documentFromScene, type MathDocument } from "@/core/document/schema";
-import { resolveAnimatedDocument } from "@/core/animation/keyframes";
+import { resolveLiveScene, type CompiledGraph } from "@/core/graph/live";
 import type { SceneDocument } from "@/core/scenes/schema";
 
 type Props = {
   scene: SceneDocument | MathDocument;
+  liveGraph?: CompiledGraph | null;
   playing?: boolean;
   zoom?: number;
   view?: CanvasView;
@@ -73,7 +74,7 @@ export function SceneCanvas(props: Props) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       const doc = "layers" in p.scene ? p.scene : documentFromScene(p.scene);
       const view = p.view ?? { ...defaultView, zoom: p.zoom ?? 1 };
-      drawDocument(ctx, width, height, doc, timeRef.current, { ...view, selectedLayerId: p.selectedLayerId });
+      drawDocument(ctx, width, height, doc, timeRef.current, { ...view, selectedLayerId: p.selectedLayerId }, false, p.liveGraph);
       if (now - notified >= 100 && p.onTimeChange) {
         notified = now;
         p.onTimeChange(timeRef.current);
@@ -118,7 +119,7 @@ export function SceneCanvas(props: Props) {
     const point = canvasPoint(event);
     const scene = "layers" in p.scene ? p.scene : documentFromScene(p.scene);
     const shouldPan = event.button === 1 || event.altKey || p.tool === "pan";
-    const id = shouldPan ? null : hitTestLayer(resolveAnimatedDocument(scene,timeRef.current), timeRef.current, size, camera, point);
+    const id = shouldPan ? null : hitTestLayer(resolveLiveScene(scene,timeRef.current,p.liveGraph??null).document, timeRef.current, size, camera, point);
     if (id && p.onLayerOffsetChange) {
       const layer = scene.layers.find(l => l.id === id)!;
       p.onLayerMoveStart?.(id);
