@@ -47,7 +47,8 @@ function ParameterValueInput({ label, value, min, max, step, onCommit }: {
       const parsed = Number(draft);
       if (Number.isFinite(parsed)) {
         const bounded = Math.min(max, Math.max(min, parsed));
-        onCommit(Number(bounded.toFixed(4)));
+        const quantized = min + Math.round((bounded - min) / step) * step;
+        onCommit(Number(Math.min(max, Math.max(min, quantized)).toFixed(4)));
       }
     }
     setDraft(null);

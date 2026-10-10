@@ -191,7 +191,9 @@ test("polar rose only exposes parameters that affect its curve", async ({ page }
   await expect(page.locator("#frequencyY")).toHaveCount(0);
   await expect(page.getByRole("complementary", { name: "Scene inspector" })).toContainText("Petals from a single equation");
   await expect(page.getByRole("tabpanel")).toContainText("Petal count");
-  await page.getByRole("spinbutton", { name: "Set Symmetry (k) numerically" }).fill("6");
-  await page.getByRole("spinbutton", { name: "Set Symmetry (k) numerically" }).press("Enter");
+  const symmetry = page.getByRole("spinbutton", { name: "Set Symmetry (k) numerically" });
+  await symmetry.fill("6.4");
+  await symmetry.press("Enter");
+  await expect(symmetry).toHaveValue("6");
   await expect(page.getByRole("tabpanel")).toContainText("12");
 });
