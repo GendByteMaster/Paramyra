@@ -7,7 +7,9 @@ import "./studio-shell.css";
 import "./studio-density.css";
 import "./studio-fullscreen.css";
 import "./studio-v07.css";
+import "@xyflow/react/dist/style.css";
 import "./node-graph.css";
+import "./node-graph-react-flow.css";
 
 export const metadata: Metadata = {
   title: { default: "Paramyra — Mathematics Comes Alive", template: "%s | Paramyra" },
