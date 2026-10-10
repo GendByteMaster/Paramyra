@@ -290,8 +290,8 @@ function GraphWorkspace() {
   const selectedEdge = graph.edges.find(edge=>edge.id===edgeId);
   const connectedOutput = graph.nodes.filter(node=>node.kind==="output").length;
 
-  return <div className={"pm-ng-root"+(fullscreen?" pm-ng-fullscreen":"")} ref={rootRef} aria-label="Node Graph Workspace">
-    <header className="pm-ng-projectbar">
+  return <div className={"pm-ng-root pm-editor-shell"+(fullscreen?" pm-ng-fullscreen":"")} ref={rootRef} aria-label="Node Graph Workspace">
+    <header className="pm-ng-projectbar pm-editor-topbar">
       <div className="pm-ng-identity">
         <Link href="/studio" aria-label="Back to Studio" className="pm-ng-icon"><ArrowLeft size={17}/></Link>
         <span className="pm-ng-app-icon"><GitBranch size={21}/></span>
@@ -314,11 +314,11 @@ function GraphWorkspace() {
         <button className="pm-ng-button pm-ng-primary" type="button" onClick={apply} disabled={!!projection.error||!connectedOutput||graph.binding.enabled}><Play size={15}/> Apply to Studio</button>
       </div>
     </header>
-    <div className={"pm-ng-layout"+(!libraryOpen?" no-library":"")+(!inspectorOpen?" no-inspector":"")}>
-      {libraryOpen&&<aside className="pm-ng-library" aria-label="Node library">
-        <div className="pm-ng-pane-header"><span className="pm-ng-eyebrow">NODE LIBRARY</span><h2>Building blocks</h2><p>Compose mathematics with typed numeric ports.</p></div>
+    <div className={"pm-ng-layout pm-editor-pane-layout"+(!libraryOpen?" no-library":"")+(!inspectorOpen?" no-inspector":"")}>
+      {libraryOpen&&<aside className="pm-ng-library pm-editor-panel" aria-label="Node library">
+        <div className="pm-ng-pane-header pm-editor-panel-heading"><span className="pm-ng-eyebrow">NODE LIBRARY</span><h2>Building blocks</h2><p>Compose mathematics with typed numeric ports.</p></div>
         <label className="pm-ng-search"><Search size={15}/><input type="search" aria-label="Search graph nodes" placeholder="Search nodes…" value={query} onChange={e=>setQuery(e.target.value)}/></label>
-        <div className="pm-ng-library-scroll">
+        <div className="pm-ng-library-scroll pm-editor-content-scroll">
         {categories.map(group=>{
           const kinds=group.kinds.filter(kind=>(kindNames[kind]+" "+details[kind]).toLowerCase().includes(query.toLowerCase()));
           return kinds.length?<section key={group.title}><h3>{group.title}</h3>{kinds.map(kind=><button type="button" key={kind} onClick={()=>add(kind)} className="pm-ng-library-item">
@@ -329,8 +329,8 @@ function GraphWorkspace() {
         </div>
         <div className="pm-ng-library-footer"><div className="pm-ng-info-mark"><Check size={14}/> Deterministic DAG</div><p>Only local numeric operations. No arbitrary JavaScript or network execution.</p></div>
       </aside>}
-      <section className="pm-ng-center" aria-label="Graph editor">
-        <div className="pm-ng-canvasbar">
+      <section className="pm-ng-center pm-editor-panel" aria-label="Graph editor">
+        <div className="pm-ng-canvasbar pm-editor-viewport-heading">
           <div><span className="pm-ng-eyebrow">GRAPH CANVAS · LOCAL</span><h2>{graph.title}</h2></div>
           <div className="pm-ng-canvas-meta"><span>{graph.nodes.length} NODES</span><span>{graph.edges.length} LINKS</span><span className={sceneError?"pm-ng-error-dot":"pm-ng-ok-dot"}>{sceneError?"INVALID OUTPUT":graph.binding.enabled?"LIVE BINDING":"READY"}</span></div>
         </div>
@@ -371,9 +371,9 @@ function GraphWorkspace() {
           <span>REACT FLOW <span className="pm-ng-divider"/> TYPED DAG</span>
         </div>
       </section>
-      {inspectorOpen&&<aside className="pm-ng-inspector" aria-label="Graph inspector">
-        <div className="pm-ng-pane-header"><span className="pm-ng-eyebrow">INSPECTOR</span><h2>Properties</h2><p>Configuration and deterministic output.</p></div>
-        <div className="pm-ng-inspector-scroll">
+      {inspectorOpen&&<aside className="pm-ng-inspector pm-editor-panel" aria-label="Graph inspector">
+        <div className="pm-ng-pane-header pm-editor-panel-heading"><span className="pm-ng-eyebrow">INSPECTOR</span><h2>Properties</h2><p>Configuration and deterministic output.</p></div>
+        <div className="pm-ng-inspector-scroll pm-editor-content-scroll">
           {selectedGroup&&<section className="pm-ng-inspector-section" aria-label="Selected graph group">
             <h3><span>01 / GROUP</span><Group size={15}/></h3>
             <label className="pm-ng-field">Group name
@@ -435,6 +435,6 @@ function GraphWorkspace() {
         </div>
       </aside>}
     </div>
-    <div className="pm-ng-statusbar"><span><span className={sceneError?"pm-ng-error-dot":"pm-ng-ok-dot"}/> PARAMYRA GRAPH ENGINE <span className="pm-ng-divider"/> LOCAL / NO EXECUTABLE CODE</span><span role="status" aria-live="polite" className="pm-ng-status-text">{notice}</span><span>{graph.nodes.length} NODES · {graph.edges.length} EDGES</span></div>
+    <div className="pm-ng-statusbar pm-editor-statusbar"><span><span className={sceneError?"pm-ng-error-dot":"pm-ng-ok-dot"}/> PARAMYRA GRAPH ENGINE <span className="pm-ng-divider"/> LOCAL / NO EXECUTABLE CODE</span><span role="status" aria-live="polite" className="pm-ng-status-text">{notice}</span><span>{graph.nodes.length} NODES · {graph.edges.length} EDGES</span></div>
   </div>;
 }
