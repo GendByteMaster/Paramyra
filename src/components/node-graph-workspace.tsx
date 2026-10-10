@@ -8,12 +8,14 @@ import {
   Play, Plus, Redo2, Search, SlidersHorizontal, Trash2, Undo2, Upload, X,
 } from "lucide-react";
 import { SceneCanvas } from "./scene-canvas";
+import { compileGraph, resolveLiveScene } from "@/core/graph/live";
+import { persistGraph, readStoredGraph } from "@/core/graph/storage";
 import { commitGraph, initializeGraphHistory, redoGraph, undoGraph } from "@/core/graph/history";
 import { documentFromScene, parseDocument, type MathDocument } from "@/core/document/schema";
 import { presetFor } from "@/core/scenes/presets";
-import { GRAPH_KEY, addGraphNode, connectGraph, createGraphNode,
+import { addGraphNode, connectGraph, createGraphNode,
   disconnectGraph, evaluateGraph, initialGraph, inputPorts, parseGraph, projectGraph,
-  removeGraphNode, TARGET_PROPERTIES, updateGraphNode,
+  removeGraphNode, TARGET_PROPERTIES, updateGraphBinding, updateGraphNode,
   type GraphKind, type GraphPort, type GraphNode, type NodeGraph } from "@/core/graph/model";
 
 const DOC_KEY = "paramyra.document.v3";
@@ -39,14 +41,6 @@ const names: Record<string, string> = {
   "params.strokeWidth": "Stroke Width", "formula.a": "Formula A",
   "formula.b": "Formula B", "formula.c": "Formula C",
 };
-function readGraph(): NodeGraph {
-  try {
-    const raw = localStorage.getItem(GRAPH_KEY);
-    const parsed = raw ? parseGraph(JSON.parse(raw)) : null;
-    if (parsed) return parsed;
-  } catch { /* inaccessible browser storage */ }
-  return initialGraph();
-}
 function readDocument(): MathDocument {
   // Match Studio's migration preference before ever writing its authoritative v3 key.
   for (const key of [DOC_KEY, "paramyra.document.v2", "paramyra.scene.v1"]) {
@@ -87,7 +81,7 @@ export function NodeGraphClient() {
   return <GraphWorkspace />;
 }
 function GraphWorkspace() {
-  const [history, setHistory] = useState(() => initializeGraphHistory(readGraph()));
+  const [history, setHistory] = useState(() => initializeGraphHistory(readStoredGraph()));
   const graph = history.present;
   const [documentModel, setDocumentModel] = useState(readDocument);
   const [selectedId, setSelectedId] = useState("product");
@@ -110,12 +104,15 @@ function GraphWorkspace() {
   const effectiveLayer = documentModel.layers.some(layer => layer.id === layerId) ? layerId : documentModel.layers[0].id;
   const projection = useMemo(() => projectGraph(documentModel, graph, effectiveLayer, time),
     [documentModel, graph, effectiveLayer, time]);
+  const compiled = useMemo(() => compileGraph(graph), [graph]);
+  const liveScene = useMemo(() => resolveLiveScene(documentModel,time,compiled),
+    [documentModel,time,compiled]);
+  const sceneError = graph.binding.enabled ? liveScene.error : projection.error;
   const values = projection.result.values;
   const evaluation = useMemo(() => evaluateGraph(graph, time), [graph, time]);
 
   useEffect(() => {
-    try { localStorage.setItem(GRAPH_KEY, JSON.stringify(graph)); }
-    catch { /* user can still download JSON */ }
+    persistGraph(graph);
   }, [graph]);
   useEffect(() => {
     const element=canvas.current;
@@ -157,6 +154,14 @@ function GraphWorkspace() {
     return () => window.removeEventListener("keydown", onKey);
   }, [edgeId, selectedId]);
   const commit = (update:(current:NodeGraph)=>NodeGraph) => setHistory(h => commitGraph(h, update(h.present)));
+  const toggleLive = () => {
+    const enabled=!graph.binding.enabled;
+    const next=updateGraphBinding(graph,{enabled,layerId:enabled?effectiveLayer:graph.binding.layerId,priority:"keyframes-win"});
+    if(next===graph){setNotice("Unable to enable Live Graph on this layer.");return;}
+    commit(()=>next);
+    setNotice(enabled?"Live Graph enabled. Timeline keyframes have priority on conflicting channels.":
+      "Live Graph disabled. Studio uses base values and keyframes.");
+  };
   const add = (kind:GraphKind) => {
     const node = createGraphNode(kind, crypto.randomUUID(), 240 + graph.nodes.length * 26, 120 + graph.nodes.length * 22);
     const next = addGraphNode(graph, node);
@@ -220,6 +225,7 @@ function GraphWorkspace() {
     // Re-read the authoritative Studio document immediately before the write.
     const current=readDocument();
     const result=projectGraph(current,graph,current.layers.some(layer=>layer.id===effectiveLayer)?effectiveLayer:current.layers[0].id,time);
+    if (graph.binding.enabled) return setNotice("Disable Live Graph before baking static values.");
     if (result.error) return setNotice("Not applied: "+result.error);
     if (result.document === current) return setNotice("No outputs to apply.");
     try {
@@ -246,7 +252,8 @@ function GraphWorkspace() {
       setSelectedId("");
       setEdgeId(null);
       setActiveSource(null);
-      setNotice("Validated graph imported.");
+      setLayerId(parsed.binding.layerId??effectiveLayer);
+      setNotice("Validated graph imported. Live binding state restored from the file.");
     } catch { setNotice("Unable to import graph JSON."); }
   };
   const graphPositions = useMemo(() => {
@@ -279,7 +286,7 @@ function GraphWorkspace() {
         <input ref={importRef} type="file" accept=".json,application/json" className="sr-only" aria-label="Import graph JSON" onChange={importGraph}/>
         <button className="pm-ng-button" type="button" onClick={()=>importRef.current?.click()}><Upload size={15}/> Import</button>
         <button className="pm-ng-button" type="button" onClick={exportGraph}><Download size={15}/> Export</button>
-        <button className="pm-ng-button pm-ng-primary" type="button" onClick={apply} disabled={!!projection.error||!connectedOutput}><Play size={15}/> Apply to Studio</button>
+        <button className="pm-ng-button pm-ng-primary" type="button" onClick={apply} disabled={!!projection.error||!connectedOutput||graph.binding.enabled}><Play size={15}/> Apply to Studio</button>
       </div>
     </header>
     <div className={"pm-ng-layout"+(!libraryOpen?" no-library":"")+(!inspectorOpen?" no-inspector":"")}>
@@ -300,7 +307,7 @@ function GraphWorkspace() {
       <section className="pm-ng-center" aria-label="Graph editor">
         <div className="pm-ng-canvasbar">
           <div><span className="pm-ng-eyebrow">GRAPH CANVAS · LOCAL</span><h2>{graph.title}</h2></div>
-          <div className="pm-ng-canvas-meta"><span>{graph.nodes.length} NODES</span><span>{graph.edges.length} LINKS</span><span className={projection.error?"pm-ng-error-dot":"pm-ng-ok-dot"}>{projection.error?"INVALID OUTPUT":"READY"}</span></div>
+          <div className="pm-ng-canvas-meta"><span>{graph.nodes.length} NODES</span><span>{graph.edges.length} LINKS</span><span className={sceneError?"pm-ng-error-dot":"pm-ng-ok-dot"}>{sceneError?"INVALID OUTPUT":graph.binding.enabled?"LIVE BINDING":"READY"}</span></div>
         </div>
         <div className="pm-ng-board" ref={canvas} tabIndex={0} aria-label="Interactive node canvas" onPointerDown={panStart} onPointerMove={panMove} onPointerUp={panEnd} onPointerCancel={panEnd} onLostPointerCapture={panEnd}>
           <div className="pm-ng-world" style={{transform:"translate("+viewport.x+"px,"+viewport.y+"px) scale("+viewport.zoom+")"}}>
@@ -384,22 +391,32 @@ function GraphWorkspace() {
           </section>
           <section className="pm-ng-inspector-section">
             <h3><span>03 / SCENE OUTPUT</span><Layers3 size={15}/></h3>
-            <label className="pm-ng-field">Studio layer<select aria-label="Target Studio layer" value={effectiveLayer} onChange={e=>setLayerId(e.target.value)}>
+            <div className="pm-ng-live-panel" role="group" aria-label="Live Graph binding">
+              <div className="pm-ng-live-heading"><strong>Live Graph</strong><span>{graph.binding.enabled?"ACTIVE":"OFF"}</span></div>
+              <p>Evaluate at the Studio playhead on every animation frame. Existing keyframes win when targeting the same property.</p>
+              <label className="pm-ng-live-switch"><input type="checkbox" aria-label="Enable Live Graph" checked={graph.binding.enabled} onChange={toggleLive}/> Enable real-time scene binding</label>
+              {graph.binding.enabled&&<p className="pm-ng-note">Binding target: {documentModel.layers.find(layer=>layer.id===graph.binding.layerId)?.title??"Missing layer"}. Graph editing is saved separately from Studio.</p>}
+              {liveScene.blocked.length>0&&graph.binding.enabled&&<p className="pm-ng-note" role="status">Keyframes override: {liveScene.blocked.map(property=>names[property]).join(", ")}</p>}
+            </div>
+            <label className="pm-ng-field">Studio layer<select aria-label="Target Studio layer" value={effectiveLayer} onChange={e=>{
+              setLayerId(e.target.value);
+              if(graph.binding.enabled)commit(old=>updateGraphBinding(old,{...old.binding,layerId:e.target.value}));
+            }}>
               {documentModel.layers.map(layer=><option value={layer.id} key={layer.id}>{layer.title}</option>)}
             </select></label>
             <label className="pm-ng-field">Time (seconds)<input type="range" aria-label="Graph time" min={0} max={documentModel.duration} step=".05" value={time} onChange={e=>setTime(e.target.valueAsNumber)}/></label>
             <div className="pm-ng-values"><span>Playhead</span><output aria-label="Graph time value">{time.toFixed(2)}s</output></div>
             <div className="pm-ng-preview" aria-label="Graph scene preview">
-              <SceneCanvas scene={projection.document} time={time} seekVersion={time} playing={false}/>
+              <SceneCanvas scene={graph.binding.enabled?liveScene.document:projection.document} time={time} seekVersion={time} playing={false}/>
             </div>
             <div className="pm-ng-output-values">{Object.entries(evaluation.outputs).map(([name,value])=><div key={name}><span>{names[name]}</span><strong>{value.toFixed(4)}</strong></div>)}</div>
-            <p className={projection.error?"pm-ng-validation-error":"pm-ng-validation-ok"} role="status">{projection.error??"Graph output is valid for the selected layer."}</p>
-            <button type="button" className="pm-ng-button pm-ng-primary pm-ng-apply" onClick={apply} disabled={!!projection.error||!connectedOutput}>Apply static values <ArrowRight size={15}/></button>
-            <p className="pm-ng-note">Preview is read-only. Applying stores valid static values in MathDocument v3; existing animated channels are protected.</p>
+            <p className={sceneError?"pm-ng-validation-error":"pm-ng-validation-ok"} role="status">{sceneError??(graph.binding.enabled?"Live output is active; keyframes take precedence.":"Graph output is valid for the selected layer.")}</p>
+            <button type="button" className="pm-ng-button pm-ng-primary pm-ng-apply" onClick={apply} disabled={!!projection.error||!connectedOutput||graph.binding.enabled}>Apply static values <ArrowRight size={15}/></button>
+            <p className="pm-ng-note">Live mode computes at the shared animation time without modifying base data. Disable Live to apply a static snapshot.</p>
           </section>
         </div>
       </aside>}
     </div>
-    <div className="pm-ng-statusbar"><span><span className={projection.error?"pm-ng-error-dot":"pm-ng-ok-dot"}/> PARAMYRA GRAPH ENGINE <span className="pm-ng-divider"/> LOCAL / NO EXECUTABLE CODE</span><span role="status" aria-live="polite" className="pm-ng-status-text">{notice}</span><span>{graph.nodes.length} NODES · {graph.edges.length} EDGES</span></div>
+    <div className="pm-ng-statusbar"><span><span className={sceneError?"pm-ng-error-dot":"pm-ng-ok-dot"}/> PARAMYRA GRAPH ENGINE <span className="pm-ng-divider"/> LOCAL / NO EXECUTABLE CODE</span><span role="status" aria-live="polite" className="pm-ng-status-text">{notice}</span><span>{graph.nodes.length} NODES · {graph.edges.length} EDGES</span></div>
   </div>;
 }
