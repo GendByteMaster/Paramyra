@@ -1,9 +1,9 @@
-import { GRAPH_KEY, LEGACY_GRAPH_KEY, initialGraph, parseGraph, type NodeGraph } from "./model";
+import { GRAPH_KEY, PREVIOUS_GRAPH_KEY, LEGACY_GRAPH_KEY, initialGraph, parseGraph, type NodeGraph } from "./model";
 
 /** Browser-only input boundary, shared by Graph Workspace and Studio. */
 export function readStoredGraph(): NodeGraph {
   if(typeof window==="undefined")return initialGraph();
-  for(const key of [GRAPH_KEY,LEGACY_GRAPH_KEY]){
+  for(const key of [GRAPH_KEY,PREVIOUS_GRAPH_KEY,LEGACY_GRAPH_KEY]){
     try{
       const raw=localStorage.getItem(key);
       if(raw){
