@@ -5,8 +5,12 @@ import Link from "next/link";
 import {
   ArrowLeft, ArrowRight, Braces, Check, CircleDot, Download,
   GitBranch, Grid2X2, Layers3, Link2, Play, Plus, Redo2, Search, SlidersHorizontal, Trash2, Undo2, Upload, X,
+  Copy, ClipboardPaste, Group, Ungroup, Maximize2, Minimize2, FileArchive, ListTree, CheckSquare,
 } from "lucide-react";
 import { SceneCanvas } from "./scene-canvas";
+import { makeProjectBundle,parseProjectBundle,restoreProjectBundle } from "@/core/graph/project-bundle";
+import { copyGraphSelection,pasteGraphSelection,deleteGraphSelection,
+  moveGraphSelection,groupGraphNodes,ungroupGraphNodes,type GraphSelection } from "@/core/graph/workspace";
 import { GraphReactFlowCanvas } from "./graph-react-flow";
 import { compileGraph, resolveLiveScene } from "@/core/graph/live";
 import { persistGraph, readStoredGraph } from "@/core/graph/storage";
@@ -61,6 +65,9 @@ function GraphWorkspace() {
   const graph = history.present;
   const [documentModel, setDocumentModel] = useState(readDocument);
   const [selectedId, setSelectedId] = useState("product");
+  const [selectedIds,setSelectedIds]=useState<string[]>(["product"]);
+  const [selectedGroupId,setSelectedGroupId]=useState<string|null>(null);
+  const [fullscreen,setFullscreen]=useState(false);
   const [layerId, setLayerId] = useState(() => readStoredGraph().binding.layerId ?? readDocument().layers[0].id);
   const [time, setTime] = useState(0);
   const [query, setQuery] = useState("");
@@ -69,7 +76,11 @@ function GraphWorkspace() {
   const [edgeId, setEdgeId] = useState<string | null>(null);
   const [libraryOpen, setLibraryOpen] = useState(true);
   const [inspectorOpen, setInspectorOpen] = useState(true);
-   const importRef = useRef<HTMLInputElement|null>(null);
+  const importRef = useRef<HTMLInputElement|null>(null);
+  const projectImportRef=useRef<HTMLInputElement|null>(null);
+  const clipboard=useRef<GraphSelection|null>(null);
+  const pasteCount=useRef(0);
+  const rootRef=useRef<HTMLDivElement|null>(null);
   const selected = graph.nodes.find(node => node.id === selectedId) ?? null;
   const effectiveLayer = documentModel.layers.some(layer => layer.id === layerId) ? layerId : documentModel.layers[0].id;
   const projection = useMemo(() => projectGraph(documentModel, graph, effectiveLayer, time),
@@ -91,25 +102,96 @@ function GraphWorkspace() {
     window.addEventListener("storage", listener);
     return () => window.removeEventListener("storage", listener);
   }, []);
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement|null;
-      if (target?.closest("input,textarea,select,[contenteditable=true]")) return;
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+  const commit = (update:(current:NodeGraph)=>NodeGraph) => setHistory(h => commitGraph(h, update(h.present)));
+  const copySelected=()=>{
+    const content=copyGraphSelection(graph,selectedIds);
+    if(!content)return setNotice("Select one or more nodes to copy.");
+    clipboard.current=content;
+    pasteCount.current=0;
+    if(navigator.clipboard?.writeText)void navigator.clipboard.writeText(JSON.stringify(content)).catch(()=>{});
+    setNotice("Copied "+content.nodes.length+" nodes and "+content.edges.length+" internal links.");
+  };
+  const pasteSelected=async()=>{
+    let content=clipboard.current;
+    if(!content&&navigator.clipboard?.readText){
+      try{
+        const text=await navigator.clipboard.readText();
+        const parsed=JSON.parse(text) as unknown;
+        // parse and validate in the domain layer, not in the renderer.
+        content=parseGraphSelection(parsed);
+      }catch{/* clipboard may be private or unavailable */}
+    }
+    if(!content)return setNotice("Graph clipboard is empty. Select and copy nodes first.");
+    const result=pasteGraphSelection(graph,content,()=>crypto.randomUUID(),56+pasteCount.current*40);
+    if(result.error)return setNotice(result.error);
+    pasteCount.current+=1;
+    commit(()=>result.graph);
+    setSelectedIds(result.nodeIds);setSelectedId(result.nodeIds[0]??"");
+    setSelectedGroupId(null);
+    setNotice("Pasted "+result.nodeIds.length+" nodes as one Undo operation.");
+  };
+  const deleteSelected=()=>{
+    if(selectedGroupId){
+      commit(old=>ungroupGraphNodes(old,selectedGroupId));setSelectedGroupId(null);
+      setNotice("Group removed; nodes preserved.");return;
+    }
+    const ids=selectedIds.length?selectedIds:selectedId?[selectedId]:[];
+    const next=deleteGraphSelection(graph,ids);
+    if(next===graph)return setNotice("Cannot delete all nodes. Keep at least one graph node.");
+    commit(()=>next);setSelectedIds([]);setSelectedId("");
+    setNotice("Deleted selected nodes and their connected links.");
+  };
+  const groupSelected=()=>{
+    const next=groupGraphNodes(graph,selectedIds,crypto.randomUUID(),"Group "+(graph.groups.length+1));
+    if(next===graph)return setNotice("Select at least two ungrouped nodes to create a group.");
+    commit(()=>next);setSelectedGroupId(next.groups[next.groups.length-1].id);
+    setSelectedIds([]);setSelectedId("");
+    setNotice("Group created. Drag its header to move members together.");
+  };
+  const ungroupSelected=()=>{
+    const target=selectedGroupId??graph.groups.find(g=>selectedIds.some(id=>g.nodeIds.includes(id)))?.id;
+    if(!target)return setNotice("Select a group or one of its members.");
+    commit(old=>ungroupGraphNodes(old,target));setSelectedGroupId(null);
+    setNotice("Ungrouped nodes remain in the graph.");
+  };
+  const moveSelected=(ids:readonly string[],dx:number,dy:number)=>{
+    const next=moveGraphSelection(graph,ids,dx,dy);
+    if(next===graph){setNotice("Group movement rejected: a node would exceed canvas bounds.");return;}
+    commit(()=>next);
+  };
+  const fullscreenToggle=async()=>{
+    try{
+      if(document.fullscreenElement===rootRef.current)await document.exitFullscreen();
+      else if(!document.fullscreenElement)await rootRef.current?.requestFullscreen();
+    }catch{setNotice("Fullscreen is unavailable in this browser.");}
+  };
+  useEffect(()=>{
+    const update=()=>setFullscreen(document.fullscreenElement===rootRef.current);
+    document.addEventListener("fullscreenchange",update);
+    return()=>document.removeEventListener("fullscreenchange",update);
+  },[]);
+  useEffect(()=>{
+    const onKey=(event:KeyboardEvent)=>{
+      const target=event.target as HTMLElement|null;
+      if(target?.closest("input,textarea,select,[contenteditable=true]"))return;
+      const command=event.ctrlKey||event.metaKey;
+      const key=event.key.toLowerCase();
+      if(command&&key==="z"){event.preventDefault();setHistory(event.shiftKey?redoGraph:undoGraph);}
+      else if(command&&key==="a"){event.preventDefault();setSelectedIds(graph.nodes.map(n=>n.id));setSelectedId("");setSelectedGroupId(null);}
+      else if(command&&key==="c"){event.preventDefault();copySelected();}
+      else if(command&&key==="v"){event.preventDefault();void pasteSelected();}
+      else if(command&&key==="g"){
+        event.preventDefault();if(event.shiftKey)ungroupSelected();else groupSelected();
+      }else if(key==="escape"){setActiveSource(null);setEdgeId(null);setSelectedGroupId(null);}
+      else if(key==="delete"||key==="backspace"){
         event.preventDefault();
-        setHistory(event.shiftKey ? redoGraph : undoGraph);
-      } else if (event.key === "Escape") {
-        setActiveSource(null);
-        setEdgeId(null);
-      } else if (event.key === "Delete" || event.key === "Backspace") {
-        if (edgeId) { event.preventDefault(); setHistory(h => commitGraph(h, disconnectGraph(h.present, edgeId))); setEdgeId(null); }
-        else if (selectedId) { event.preventDefault(); setHistory(h => commitGraph(h, removeGraphNode(h.present, selectedId))); setSelectedId(""); }
+        if(edgeId){commit(old=>disconnectGraph(old,edgeId));setEdgeId(null);}
+        else deleteSelected();
       }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [edgeId, selectedId]);
-  const commit = (update:(current:NodeGraph)=>NodeGraph) => setHistory(h => commitGraph(h, update(h.present)));
+    window.addEventListener("keydown",onKey);
+    return()=>window.removeEventListener("keydown",onKey);
+  });
   const toggleLive = () => {
     const enabled=!graph.binding.enabled;
     const next=updateGraphBinding(graph,{enabled,layerId:enabled?effectiveLayer:graph.binding.layerId,priority:"keyframes-win"});
@@ -158,6 +240,30 @@ function GraphWorkspace() {
       setNotice("Applied static graph outputs to the Studio document. Open Studio to see the saved result.");
     } catch { setNotice("Local storage is unavailable; no Studio changes were saved."); }
   };
+  const exportProject=()=>{
+    const bundle=makeProjectBundle(readDocument(),graph);
+    if(!bundle)return setNotice("Project is invalid: check the graph binding and scene layers.");
+    const url=URL.createObjectURL(new Blob([JSON.stringify(bundle,null,2)],{type:"application/json"}));
+    const a=document.createElement("a");a.href=url;a.download="paramyra-project.json";a.click();
+    window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+    setNotice("Exported one portable project file containing the scene and node graph.");
+  };
+  const importProject=async(event:ChangeEvent<HTMLInputElement>)=>{
+    const file=event.target.files?.[0];event.target.value="";
+    if(!file)return;
+    if(file.size>524288)return setNotice("Project file is larger than 512 KB.");
+    try{
+      const bundle=parseProjectBundle(JSON.parse(await file.text()));
+      if(!bundle)return setNotice("Project rejected: invalid scene, graph, or live target.");
+      if(!restoreProjectBundle(bundle,localStorage))
+        return setNotice("Unable to save the project. Previous scene was preserved where storage permits.");
+      setDocumentModel(bundle.scene);
+      setHistory(initializeGraphHistory(bundle.graph));
+      setLayerId(bundle.graph.binding.layerId??bundle.scene.layers[0].id);
+      setSelectedIds([]);setSelectedId("");setSelectedGroupId(null);setEdgeId(null);
+      setNotice("Project imported: scene and graph restored. Undo history reset.");
+    }catch{setNotice("Unable to import the project file.");}
+  };
   const exportGraph=()=>{
     const url=URL.createObjectURL(new Blob([JSON.stringify(graph,null,2)],{type:"application/json"}));
     const a=document.createElement("a");
@@ -173,7 +279,7 @@ function GraphWorkspace() {
       const parsed=parseGraph(JSON.parse(await file.text()));
       if (!parsed) return setNotice("Invalid graph: schema, inputs, IDs or cycle validation failed.");
       commit(()=>parsed);
-      setSelectedId("");
+      setSelectedId("");setSelectedIds([]);setSelectedGroupId(null);
       setEdgeId(null);
       setActiveSource(null);
       setLayerId(parsed.binding.layerId??effectiveLayer);
@@ -183,12 +289,12 @@ function GraphWorkspace() {
   const selectedEdge = graph.edges.find(edge=>edge.id===edgeId);
   const connectedOutput = graph.nodes.filter(node=>node.kind==="output").length;
 
-  return <div className="pm-ng-root" aria-label="Node Graph Workspace">
+  return <div className={"pm-ng-root"+(fullscreen?" pm-ng-fullscreen":"")} ref={rootRef} aria-label="Node Graph Workspace">
     <header className="pm-ng-projectbar">
       <div className="pm-ng-identity">
         <Link href="/studio" aria-label="Back to Studio" className="pm-ng-icon"><ArrowLeft size={17}/></Link>
         <span className="pm-ng-app-icon"><GitBranch size={21}/></span>
-        <div className="pm-ng-title"><span>PARAMYRA / WORKSPACES</span><h1>Node Graph <small>v1.0 · M3.2</small></h1></div>
+        <div className="pm-ng-title"><span>PARAMYRA / WORKSPACES</span><h1>Node Graph <small>v1.0 · M3.3</small></h1></div>
       </div>
       <nav className="pm-ng-modes" aria-label="Workspace modes">
         <Link href="/studio"><Layers3 size={15}/> Studio</Link>
@@ -199,12 +305,27 @@ function GraphWorkspace() {
         <button type="button" className="pm-ng-icon" title="Redo" aria-label="Redo graph edit" disabled={!history.future.length} onClick={()=>setHistory(redoGraph)}><Redo2 size={17}/></button>
         <button type="button" className="pm-ng-icon" title="Toggle library" aria-label="Toggle graph library" aria-pressed={libraryOpen} onClick={()=>setLibraryOpen(open=>!open)}><Grid2X2 size={17}/></button>
         <button type="button" className="pm-ng-icon" title="Toggle inspector" aria-label="Toggle graph inspector" aria-pressed={inspectorOpen} onClick={()=>setInspectorOpen(open=>!open)}><SlidersHorizontal size={17}/></button>
+        <button type="button" className="pm-ng-icon" title="Fullscreen workspace" aria-label={fullscreen?"Exit graph fullscreen":"Enter graph fullscreen"} aria-pressed={fullscreen} onClick={()=>{void fullscreenToggle();}}>{fullscreen?<Minimize2 size={17}/>:<Maximize2 size={17}/>}</button>
         <input ref={importRef} type="file" accept=".json,application/json" className="sr-only" aria-label="Import graph JSON" onChange={importGraph}/>
         <button className="pm-ng-button" type="button" onClick={()=>importRef.current?.click()}><Upload size={15}/> Import</button>
         <button className="pm-ng-button" type="button" onClick={exportGraph}><Download size={15}/> Export</button>
         <button className="pm-ng-button pm-ng-primary" type="button" onClick={apply} disabled={!!projection.error||!connectedOutput||graph.binding.enabled}><Play size={15}/> Apply to Studio</button>
       </div>
     </header>
+    <div className="pm-ng-commandbar" role="toolbar" aria-label="Graph editing commands">
+      <span className="pm-ng-command-label"><ListTree size={15}/> GRAPH WORKSPACE</span>
+      <button type="button" aria-label="Select all nodes" onClick={()=>{setSelectedIds(graph.nodes.map(n=>n.id));setSelectedId("");setSelectedGroupId(null);}}><CheckSquare size={15}/> Select all</button>
+      <button type="button" aria-label="Copy selected nodes" disabled={!selectedIds.length} onClick={copySelected}><Copy size={15}/> Copy</button>
+      <button type="button" aria-label="Paste nodes" onClick={()=>{void pasteSelected();}}><ClipboardPaste size={15}/> Paste</button>
+      <button type="button" aria-label="Group selected nodes" disabled={selectedIds.length<2} onClick={groupSelected}><Group size={15}/> Group</button>
+      <button type="button" aria-label="Ungroup selected nodes" disabled={!selectedGroupId&&!graph.groups.some(g=>selectedIds.some(id=>g.nodeIds.includes(id)))} onClick={ungroupSelected}><Ungroup size={15}/> Ungroup</button>
+      <button type="button" aria-label="Delete selected nodes" disabled={!selectedIds.length&&!selectedGroupId} onClick={deleteSelected}><Trash2 size={15}/> Delete</button>
+      <span className="pm-ng-command-separator"/>
+      <input ref={projectImportRef} className="sr-only" type="file" accept=".json,application/json" aria-label="Import full project JSON" onChange={importProject}/>
+      <button type="button" aria-label="Import full project" onClick={()=>projectImportRef.current?.click()}><Upload size={15}/> Import Project</button>
+      <button type="button" aria-label="Export full project" onClick={exportProject}><FileArchive size={15}/> Export Project</button>
+      <span className="pm-ng-selection-summary" aria-label="Selected node count">{selectedIds.length} selected · {graph.groups.length} groups</span>
+    </div>
     <div className={"pm-ng-layout"+(!libraryOpen?" no-library":"")+(!inspectorOpen?" no-inspector":"")}>
       {libraryOpen&&<aside className="pm-ng-library" aria-label="Node library">
         <div className="pm-ng-pane-header"><span className="pm-ng-eyebrow">NODE LIBRARY</span><h2>Building blocks</h2><p>Compose mathematics with typed numeric ports.</p></div>
@@ -227,15 +348,18 @@ function GraphWorkspace() {
         </div>
         <div className="pm-ng-board" aria-label="Interactive node canvas">
           <GraphReactFlowCanvas graph={graph} selectedNodeId={selectedId}
+            selectedNodeIds={selectedIds} selectedGroupId={selectedGroupId}
             selectedEdgeId={edgeId} values={values} activeSource={activeSource}
-            onSelectNode={setSelectedId} onSelectEdge={setEdgeId}
+            onSelectNode={setSelectedId} onSelectNodes={setSelectedIds}
+            onSelectGroup={setSelectedGroupId} onMoveBatch={moveSelected}
+            onSelectEdge={setEdgeId}
             onSource={chooseSource} onTarget={chooseTarget} onCancel={()=>setActiveSource(null)}
             onConnect={connect} onMove={move}
             onDisconnect={id=>{commit(old=>disconnectGraph(old,id));setEdgeId(null);
               setNotice("Connection removed.");}}/>
         </div>
         <div className="pm-ng-footer">
-          <div className="pm-ng-footer-left"><Link2 size={15}/> Drag output → input to connect · Space + drag pans · select edges to edit · Ctrl/⌘ Z to undo</div>
+          <div className="pm-ng-footer-left"><Link2 size={15}/> Drag to multi-select · Shift/Ctrl-click to extend · Space+drag pans · Ctrl/⌘ C,V,G,Z</div>
           <span>REACT FLOW <span className="pm-ng-divider"/> TYPED DAG</span>
         </div>
       </section>
