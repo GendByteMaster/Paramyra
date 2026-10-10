@@ -59,19 +59,17 @@ export function sampleProperty(layer:MathLayer,property:AnimatableProperty,time:
 }
 export function resolveAnimatedLayer(layer:MathLayer,time:number):MathLayer{
   if(!layer.keyframes?.length)return layer;
-  const resolved={...layer,
-    opacity:sampleProperty(layer,"opacity",time),
-    offset:{x:sampleProperty(layer,"offset.x",time),y:sampleProperty(layer,"offset.y",time)},
-    params:{...layer.params,strokeWidth:sampleProperty(layer,"params.strokeWidth",time)},
-  };
-  if(layer.kind==="formula")return {...resolved,
+  const opacity=sampleProperty(layer,"opacity",time);
+  const offset={x:sampleProperty(layer,"offset.x",time),y:sampleProperty(layer,"offset.y",time)};
+  const params={...layer.params,strokeWidth:sampleProperty(layer,"params.strokeWidth",time)};
+  if(layer.kind==="formula")return {...layer,opacity,offset,params,
     formula:{...layer.formula,
       a:sampleProperty(layer,"formula.a",time),
       b:sampleProperty(layer,"formula.b",time),
       c:sampleProperty(layer,"formula.c",time),
     },
   };
-  return resolved;
+  return {...layer,opacity,offset,params};
 }
 export function resolveAnimatedDocument(doc:MathDocument,time:number):MathDocument{
   if(!doc.layers.some(layer=>layer.keyframes?.length))return doc;
