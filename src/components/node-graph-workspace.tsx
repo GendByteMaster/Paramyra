@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent } from "react";
 import Link from "next/link";
 import {
-  ArrowLeft, ArrowRight, Braces, Check, ChevronRight, CircleDot, Download,
+  ArrowLeft, ArrowRight, Braces, Check, CircleDot, Download,
   GitBranch, Grid2X2, Layers3, Link2, Play, Plus, Redo2, Search, SlidersHorizontal, Trash2, Undo2, Upload, X,
 } from "lucide-react";
 import { SceneCanvas } from "./scene-canvas";
@@ -19,7 +19,6 @@ import { addGraphNode, connectGraph, createGraphNode,
   type GraphKind, type GraphPort, type GraphNode, type NodeGraph } from "@/core/graph/model";
 
 const DOC_KEY = "paramyra.document.v3";
-const WIDTH = 226;
 const sync = () => () => {};
 const client = () => true;
 const server = () => false;
@@ -52,7 +51,6 @@ function readDocument(): MathDocument {
   }
   return documentFromScene(presetFor("lissajous"));
 }
-const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 export function NodeGraphClient() {
   const hydrated = useSyncExternalStore(sync, client, server);
   if (!hydrated) return <div className="shell section" role="status">Opening Node Graph Workspace…</div>;
