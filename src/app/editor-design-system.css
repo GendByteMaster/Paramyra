@@ -13,7 +13,7 @@
   --editor-outer-pad: 8px;
   --editor-header-height: 62px;
   --editor-panel-header-height: 80px;
-  --editor-viewport-header-height: 52px;
+  --editor-viewport-header-height: 56px;
   --editor-bg: #070c14;
   --editor-panel-bg: linear-gradient(155deg, #111a28, #0b121d 50%, #0c1522);
   --editor-heading-bg: #111b2a;
@@ -68,6 +68,7 @@
 .pm-editor-shell .pm-editor-viewport-heading {
   flex: 0 0 auto;
   min-height: var(--editor-viewport-header-height);
+  height: var(--editor-viewport-header-height);
   padding: 8px 14px;
   border-bottom: 1px solid var(--editor-stroke);
   background: var(--editor-heading-bg);
