@@ -80,13 +80,21 @@ export function AnimationTimeline({layer,time,duration,onSeek,onEdit}:Props){
       </label>}
       <small>{time.toFixed(2)}s / {duration.toFixed(2)}s</small>
     </div>
+    <div className="pm-animation-layout">
+      <section className="pm-animation-track-column" aria-label="Timeline tracks">
+        <div className="pm-animation-section-title"><span>PROPERTY TRACKS</span><small>{available.length} channels · {layer.keyframes?.length??0} keys</small></div>
     <div className="pm-multitrack" aria-label="Animation property tracks">
       {available.map(p=>{
         const trackFrames=getFrames(p);
         return <div className={"pm-multitrack-row"+(p===active?" is-active":"")} key={p}>
           <button type="button" className="pm-multitrack-label" aria-pressed={p===active}
             onClick={()=>setProperty(p)} title={names[p]}>{names[p]}</button>
-          <div className="pm-animation-track" aria-label={"Keyframe track for "+names[p]}>
+          <div className="pm-animation-track" aria-label={"Keyframe track for "+names[p]}
+            onClick={e=>{
+              if((e.target as HTMLElement).closest("button"))return;
+              const bounds=e.currentTarget.getBoundingClientRect();
+              if(bounds.width>0){setProperty(p);onSeek(clamp((e.clientX-bounds.left)/bounds.width*duration,0,duration));}
+            }}>
             <div className="pm-animation-track-fill" style={{width:playhead+"%"}}/>
             <div className="pm-animation-playhead" style={{left:playhead+"%"}}/>
             {trackFrames.map((frame,index)=><button key={frame.time+":"+index} type="button"
@@ -126,6 +134,8 @@ export function AnimationTimeline({layer,time,duration,onSeek,onEdit}:Props){
       })}
     </div>
     <div className="pm-animation-ruler"><span>0s</span><span>{(duration/2).toFixed(1)}s</span><span>{duration.toFixed(1)}s</span></div>
+      </section>
+      <section className="pm-animation-graph-column" aria-label="Graph inspector">
     <div className="pm-animation-graph-label"><span>GRAPH EDITOR</span><small>Value over time · {names[active]}</small></div>
     <svg className="pm-animation-graph" role="img" aria-label={"Interpolation graph for "+names[active]}
       viewBox="0 0 640 128" preserveAspectRatio="none">
@@ -135,6 +145,8 @@ export function AnimationTimeline({layer,time,duration,onSeek,onEdit}:Props){
         cy={8+(1-(frame.value-bounds.min)/(bounds.max-bounds.min))*110} r="5.5" fill="#bce9ff" stroke="#376e97" strokeWidth="2"/>)}
       <path d={"M"+(playhead/100*640)+" 0V128"} stroke="#d2e5ff9c" strokeWidth="1" strokeDasharray="5 4"/>
     </svg>
+      </section>
+    </div>
     <p className="pm-animation-help">Select a track and seek to add a keyframe. Drag diamonds or use arrow keys to move them; edit exact time numerically. Formula tracks appear only on formula layers. All changes support Undo/Redo and JSON export.</p>
   </div>;
 }
