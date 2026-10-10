@@ -48,11 +48,14 @@ function readGraph(): NodeGraph {
   return initialGraph();
 }
 function readDocument(): MathDocument {
-  try {
-    const raw = localStorage.getItem(DOC_KEY);
-    const parsed = raw ? parseDocument(JSON.parse(raw)) : null;
-    if (parsed) return parsed;
-  } catch { /* unavailable */ }
+  // Match Studio's migration preference before ever writing its authoritative v3 key.
+  for (const key of [DOC_KEY, "paramyra.document.v2", "paramyra.scene.v1"]) {
+    try {
+      const raw = localStorage.getItem(key);
+      const parsed = raw ? parseDocument(JSON.parse(raw)) : null;
+      if (parsed) return parsed;
+    } catch { /* unavailable, malformed or unsupported: check next version */ }
+  }
   return documentFromScene(presetFor("lissajous"));
 }
 const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
@@ -275,7 +278,7 @@ function GraphWorkspace() {
         </div>
         <div className="pm-ng-library-footer"><div className="pm-ng-info-mark"><Check size={14}/> Deterministic DAG</div><p>Only local numeric operations. No arbitrary JavaScript or network execution.</p></div>
       </aside>}
-      <main className="pm-ng-center">
+      <section className="pm-ng-center" aria-label="Graph editor">
         <div className="pm-ng-canvasbar">
           <div><span className="pm-ng-eyebrow">GRAPH CANVAS · LOCAL</span><h2>{graph.title}</h2></div>
           <div className="pm-ng-canvas-meta"><span>{graph.nodes.length} NODES</span><span>{graph.edges.length} LINKS</span><span className={projection.error?"pm-ng-error-dot":"pm-ng-ok-dot"}>{projection.error?"INVALID OUTPUT":"READY"}</span></div>
@@ -332,7 +335,7 @@ function GraphWorkspace() {
           <div className="pm-ng-footer-left"><MousePointer2 size={15}/> Drag nodes to arrange · click output, then input to connect · click an edge in Inspector to remove</div>
           <span>ZOOM {Math.round(viewport.zoom*100)}% <span className="pm-ng-divider"/> NUMERIC / ACYCLIC</span>
         </div>
-      </main>
+      </section>
       {inspectorOpen&&<aside className="pm-ng-inspector" aria-label="Graph inspector">
         <div className="pm-ng-pane-header"><span className="pm-ng-eyebrow">INSPECTOR</span><h2>Properties</h2><p>Configuration and deterministic output.</p></div>
         <div className="pm-ng-inspector-scroll">
