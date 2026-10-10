@@ -4,8 +4,29 @@ import type { MathDocument, MathLayer } from "../document/schema";
 export type AnimatableProperty =
   "offset.x" | "offset.y" | "opacity" | "params.strokeWidth" |
   "formula.a" | "formula.b" | "formula.c";
-export type KeyframeEase = "linear" | "ease-in" | "ease-out" | "ease-in-out" | "hold";
-export type LayerKeyframe = Readonly<{property:AnimatableProperty;time:number;value:number;ease:KeyframeEase}>;
+export type KeyframeEase = "linear" | "ease-in" | "ease-out" | "ease-in-out" | "hold" | "bezier";
+export type BezierHandles = Readonly<{x1:number;y1:number;x2:number;y2:number}>;
+export type KeyframeRef = Readonly<{property:AnimatableProperty;time:number}>;
+export type LayerKeyframe = Readonly<{property:AnimatableProperty;time:number;value:number;ease:KeyframeEase;bezier?:BezierHandles}>;
+export const DEFAULT_BEZIER:BezierHandles={x1:0.42,y1:0,x2:0.58,y2:1};
+const ALL_EASES:readonly KeyframeEase[]=["linear","ease-in","ease-out","ease-in-out","hold","bezier"];
+export function validBezier(v:BezierHandles):boolean{
+  return [v.x1,v.y1,v.x2,v.y2].every(n=>Number.isFinite(n)&&n>=0&&n<=1);
+}
+const curve=(u:number,a:number,b:number)=>3*(1-u)*(1-u)*u*a+3*(1-u)*u*u*b+u*u*u;
+/** Inverse x(t) by bounded bisection: handles constrained to [0,1] make x monotone. */
+export function cubicBezierFraction(progress:number,handles:BezierHandles):number{
+  if(!Number.isFinite(progress)||!validBezier(handles))return 0;
+  const target=Math.max(0,Math.min(1,progress));
+  if(target===0||target===1)return target;
+  let lo=0,hi=1;
+  for(let i=0;i<28;i++){
+    const mid=(lo+hi)/2;
+    if(curve(mid,handles.x1,handles.x2)<target)lo=mid;
+    else hi=mid;
+  }
+  return curve((lo+hi)/2,handles.y1,handles.y2);
+}
 export const ANIMATABLE_PROPERTIES:readonly AnimatableProperty[] =
   ["offset.x","offset.y","opacity","params.strokeWidth","formula.a","formula.b","formula.c"];
 export const KEYFRAME_LIMIT = 72;
@@ -31,12 +52,13 @@ export function getLayerProperty(layer:MathLayer,property:AnimatableProperty):nu
     case "formula.c":return layer.kind==="formula"?layer.formula.c:0;
   }
 }
-function easeFraction(value:number,ease:KeyframeEase):number{
+function easeFraction(value:number,frame:LayerKeyframe):number{
   const t=Math.max(0,Math.min(1,value));
-  if(ease==="hold")return 0;
-  if(ease==="ease-in")return t*t;
-  if(ease==="ease-out")return 1-(1-t)*(1-t);
-  if(ease==="ease-in-out")return t*t*(3-2*t);
+  if(frame.ease==="bezier")return cubicBezierFraction(t,frame.bezier??DEFAULT_BEZIER);
+  if(frame.ease==="hold")return 0;
+  if(frame.ease==="ease-in")return t*t;
+  if(frame.ease==="ease-out")return 1-(1-t)*(1-t);
+  if(frame.ease==="ease-in-out")return t*t*(3-2*t);
   return t;
 }
 /** Pure deterministic interpolation. Easing belongs to the starting keyframe. */
@@ -52,7 +74,7 @@ export function sampleProperty(layer:MathLayer,property:AnimatableProperty,time:
   for(let index=1;index<frames.length;index++){
     const right=frames[index],left=frames[index-1];
     if(time>right.time)continue;
-    const t=easeFraction((time-left.time)/(right.time-left.time),left.ease);
+    const t=easeFraction((time-left.time)/(right.time-left.time),left);
     return left.value+(right.value-left.value)*t;
   }
   return end.value;
@@ -76,7 +98,8 @@ export function resolveAnimatedDocument(doc:MathDocument,time:number):MathDocume
   return {...doc,layers:doc.layers.map(layer=>resolveAnimatedLayer(layer,time))};
 }
 export function upsertKeyframe(layer:MathLayer,frame:LayerKeyframe):MathLayer{
-  if(!supportsProperty(layer,frame.property))return layer;
+  if(!supportsProperty(layer,frame.property)||!ALL_EASES.includes(frame.ease)
+    ||(frame.ease==="bezier"?!frame.bezier||!validBezier(frame.bezier):frame.bezier!==undefined))return layer;
   const bounds=propertyBounds(frame.property);
   if(!Number.isFinite(frame.time)||frame.time<0||frame.time>60||!Number.isFinite(frame.value)
     ||frame.value<bounds.min||frame.value>bounds.max)return layer;
@@ -88,18 +111,37 @@ export function upsertKeyframe(layer:MathLayer,frame:LayerKeyframe):MathLayer{
   const next=index<0?[...frames,updated]:frames.map((item,i)=>i===index?updated:item);
   return {...layer,keyframes:next.sort((a,b)=>a.time-b.time||a.property.localeCompare(b.property))};
 }
-/** Move, rather than overwrite, a keyframe. Collisions and out-of-range times are rejected. */
-export function moveKeyframe(layer:MathLayer,property:AnimatableProperty,from:number,to:number,duration:number):MathLayer{
-  if(!supportsProperty(layer,property)||!Number.isFinite(to)||!Number.isFinite(duration)
-    ||duration<0||to<0||to>duration||to>60)return layer;
+/** Atomic group translation: rejects collisions, partial edits, missing refs and time overflow. */
+export function moveKeyframes(layer:MathLayer,selected:readonly KeyframeRef[],delta:number,duration:number):MathLayer{
+  if(!selected.length||selected.length>KEYFRAME_LIMIT||!Number.isFinite(delta)
+    ||!Number.isFinite(duration)||duration<0||duration>60)return layer;
   const frames=layer.keyframes??[];
-  const index=frames.findIndex(frame=>frame.property===property&&Math.abs(frame.time-from)<0.005);
-  if(index<0)return layer;
-  const time=Math.round(to*100)/100;
-  if(time===frames[index].time)return layer;
-  if(frames.some((frame,i)=>i!==index&&frame.property===property&&Math.abs(frame.time-time)<0.005))return layer;
-  const next=frames.map((frame,i)=>i===index?{...frame,time}:frame);
+  const refs=new Set(selected.map(f=>f.property+":"+f.time.toFixed(2)));
+  if(refs.size!==selected.length||refs.size>frames.length)return layer;
+  const found=new Set<string>();
+  const next=frames.map(frame=>{
+    const key=frame.property+":"+frame.time.toFixed(2);
+    if(!refs.has(key))return frame;
+    found.add(key);
+    const time=Math.round((frame.time+delta)*100)/100;
+    return {...frame,time};
+  });
+  if(found.size!==refs.size || next.some(frame=>frame.time<0||frame.time>duration||frame.time>60))return layer;
+  const nextKeys=new Set(next.map(f=>f.property+":"+f.time.toFixed(2)));
+  if(nextKeys.size!==next.length)return layer;
+  if(next.every((frame,index)=>frame.time===frames[index].time))return layer;
   return {...layer,keyframes:next.sort((a,b)=>a.time-b.time||a.property.localeCompare(b.property))};
+}
+export function moveKeyframe(layer:MathLayer,property:AnimatableProperty,from:number,to:number,duration:number):MathLayer{
+  if(!Number.isFinite(from)||!Number.isFinite(to)||!supportsProperty(layer,property))return layer;
+  return moveKeyframes(layer,[{property,time:from}],to-from,duration);
+}
+export function deleteKeyframes(layer:MathLayer,selected:readonly KeyframeRef[]):MathLayer{
+  if(!selected.length)return layer;
+  const refs=new Set(selected.map(f=>f.property+":"+f.time.toFixed(2)));
+  const frames=layer.keyframes??[];
+  const next=frames.filter(frame=>!refs.has(frame.property+":"+frame.time.toFixed(2)));
+  return next.length===frames.length?layer:{...layer,keyframes:next};
 }
 export function deleteKeyframe(layer:MathLayer,property:AnimatableProperty,time:number):MathLayer{
   const frames=layer.keyframes??[];
