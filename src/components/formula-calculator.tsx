@@ -39,6 +39,8 @@ export function FormulaCalculator({formula,onPlot}:Props){
   const plotAllowed=!plotError&&!degTrig;
   const commit=()=>{
     if(!result.ok)return;
+    // Sample a timestamp only from the user-triggered Equals / Enter action.
+    // eslint-disable-next-line react-hooks/purity
     const row:CalculatorHistoryItem={expression,display:result.display,value:result.value,unit,at:Date.now()};
     const next=addCalculatorHistory(history,row);
     setHistory(next);
