@@ -120,7 +120,7 @@ function StudioWorkspace({ initialKind, mode = "studio" }: StudioProps) {
           <div className="pm-project-mark"><CircleDot size={19}/></div>
           <div className="pm-project-name">
             <span className="pm-label">PARAMYRA / {mode === "studio" ? "STUDIO" : "PLAYGROUND"}</span>
-            <strong>{scene.title} <span className="pm-project-suffix">— Untitled experiment</span></strong>
+            <h1>{mode === "studio" ? "Your mathematical studio" : "The mathematics playground"}</h1><strong>{scene.title} <span className="pm-project-suffix">— Untitled experiment</span></strong>
           </div>
           <span className="pm-local-label"><span className="live-indicator" /> LOCAL</span>
         </div>

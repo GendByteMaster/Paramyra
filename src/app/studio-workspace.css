@@ -190,3 +190,7 @@
 @media(prefers-reduced-motion:reduce) {
   .pm-action,.pm-library-item,.pm-icon-btn {transition:none;}
 }
+
+.pm-project-name h1 {font-size:14px;font-weight:710;letter-spacing:-.015em;margin:0;line-height:1.15;}
+.pm-project-name strong {font-size:10px;color:#93a7c5;font-weight:530;}
+@media(max-width:959px) {.pm-grid.pm-no-inspector {grid-template-columns:minmax(0,1fr);}}
