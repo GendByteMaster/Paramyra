@@ -8,7 +8,7 @@
 
 - **Zoom / pan / fit** (1×, 2×, 4×, 8×) with viewport centered around the current playhead. Visible ruler, seek targets and keyframe markers use the same transformed timeline window. Controls cannot pan beyond the document duration.
 - **Grid snapping**: Off, 0.1s, 0.25s, 0.5s or 1s; active only when explicitly selected. Nearby unselected keyframes within 9px take priority over grid targets. New keyframes, keyframe moves and grouped shifts use snapping; conflict/overrun is still rejected atomically.
-- **Box selection** across property tracks in the active layer by dragging empty track space. Works in either horizontal/vertical drag direction and uses time-domain and row-domain hit testing; Shift/Ctrl expands existing selection.
+- **Box selection** across property tracks in the active layer by dragging empty track space or turning on the explicit Box Select tool when working around densely packed markers. Works in either horizontal/vertical drag direction and uses time-domain and row-domain hit testing; Shift/Ctrl expands existing selection. Box Select disables marker hit targets and enables touch-safe marquee gestures while active.
 - **All Layers overview** shows every MathDocument layer, its animated properties and keyframes. Clicking a marker chooses that layer and seeks to the marker's timestamp. Editing remains scoped to the active layer: no cross-layer transaction is claimed.
 - **Responsive UI** with viewport controls, selection rectangle, grouped property tracks and screen-reader labels.
 
