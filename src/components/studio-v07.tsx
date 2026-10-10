@@ -100,6 +100,8 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
   },[doc]);
 
   const commit=(fn:(d:MathDocument)=>MathDocument,key="")=>{
+    // Timestamp is sampled only in user-triggered edit handlers, never during render.
+    // eslint-disable-next-line react-hooks/purity
     const now=Date.now();
     const coalesce=!!key&&last.current.key===key&&now-last.current.at<500;
     setHistory(h=>commitDocument(h,fn(h.present),coalesce));
@@ -183,8 +185,6 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
     }catch{setNotice("Browser blocked fullscreen.");}
   };
   const reset=()=>{replace(documentFromScene(presetFor(layer.kind)));setView(defaultView);setPlaying(true);};
-  const seek=(t:number)=>{setTime(t);setSeekVersion(n=>n+1);};
-  const formula=layer.kind==="lissajous"?"x = A sin(at + δ), y = B sin(bt)":layer.kind==="polar-rose"?"r = A cos(kθ)":"y = f(x, t)";
   const guide=layer.kind==="lissajous"?"Two perpendicular waves create a closed curve. Their frequency ratio controls symmetry.":layer.kind==="polar-rose"?"The symmetry parameter controls the petals of the rose curve.":"Two sine components combine into a harmonic waveform.";
   const shownFields=fields.filter(f=>layer.kind!=="polar-rose"||f.key!=="frequencyY");
   const filtered=presets.filter(p=>p.title.toLowerCase().includes(filter.toLowerCase().trim()));

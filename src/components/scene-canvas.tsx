@@ -29,6 +29,8 @@ export function SceneCanvas(props: Props) {
   useEffect(() => {
     timeRef.current = props.time ?? 0;
     // Explicit scrubbing only. Ordinary time labels must not restart the animation clock.
+  // Props are synchronized through seekVersion, not on each time label tick.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.seekVersion]);
 
   useEffect(() => {
