@@ -29,6 +29,17 @@ type MathNodeData={
   onTarget:(target:string,port:GraphPort)=>void;
 };
 type MathFlowNode=Node<MathNodeData,"math">;
+type GroupData={id:string;title:string;count:number};
+type GroupFlowNode=Node<GroupData,"group">;
+type CanvasNode=MathFlowNode|GroupFlowNode;
+
+const GroupNode=memo(function GroupNode({data}:NodeProps<GroupFlowNode>){
+  return <div className="pm-ng-rf-group">
+    <header className="pm-ng-rf-group-header">
+      <GitBranch size={14}/><strong>{data.title}</strong><small>{data.count} nodes</small>
+    </header>
+  </div>;
+});
 
 /** React Flow owns pointer gestures and viewport. Data still comes only from NodeGraph v2. */
 const MathNode=memo(function MathNode({data}:NodeProps<MathFlowNode>){
@@ -61,7 +72,7 @@ const MathNode=memo(function MathNode({data}:NodeProps<MathFlowNode>){
     </div>:<div className="pm-ng-rf-destination"><ArrowRight size={14}/>{TARGETS[node.property??""]??"Output"}</div>}
   </article>;
 });
-const nodeTypes={math:MathNode};
+const nodeTypes={math:MathNode,group:GroupNode};
 
 /** Screen and domain coordinates are intentionally identical, with bounded commits. */
 const bounded=(p:XYPosition)=>({x:Math.max(0,Math.min(2200,Math.round(p.x))),
@@ -70,10 +81,15 @@ const bounded=(p:XYPosition)=>({x:Math.max(0,Math.min(2200,Math.round(p.x))),
 type Props={
   graph:NodeGraph;
   selectedNodeId:string;
+  selectedNodeIds:readonly string[];
+  selectedGroupId:string|null;
   selectedEdgeId:string|null;
   values:Readonly<Record<string,number>>;
   activeSource:string|null;
   onSelectNode:(id:string)=>void;
+  onSelectNodes:(ids:string[])=>void;
+  onSelectGroup:(id:string|null)=>void;
+  onMoveBatch:(ids:readonly string[],dx:number,dy:number)=>void;
   onSelectEdge:(id:string|null)=>void;
   onSource:(id:string)=>void;
   onTarget:(id:string,port:GraphPort)=>void;
@@ -84,24 +100,52 @@ type Props={
 };
 
 function CanvasContent(props:Props){
-  const {graph,selectedNodeId,selectedEdgeId,values,activeSource,onSelectNode,onSelectEdge,onSource,onTarget,onConnect,onMove,onDisconnect,onCancel}=props;
-  const rf=useReactFlow<MathFlowNode,Edge>();
+  const {graph,selectedNodeId,selectedNodeIds,selectedGroupId,selectedEdgeId,values,
+    activeSource,onSelectNode,onSelectNodes,onSelectGroup,onMoveBatch,onSelectEdge,
+    onSource,onTarget,onConnect,onMove,onDisconnect,onCancel}=props;
+  const rf=useReactFlow<CanvasNode,Edge>();
   const [moving,setMoving]=useState<Readonly<Record<string,XYPosition>>>({});
   const [zoom,setZoom]=useState(1);
-  const onNodeChanges=useCallback((changes:NodeChange<MathFlowNode>[])=>{
+  const onNodeChanges=useCallback((changes:NodeChange<CanvasNode>[])=>{
+    const next=new Set(selectedNodeIds);
+    let changed=false;
     for(const change of changes){
-      if(change.type==="position"&&change.position&&change.dragging){
+      if(change.type==="position"&&change.position&&change.dragging)
         setMoving(old=>({...old,[change.id]:bounded(change.position!)}));
+      if(change.type==="select"){
+        if(graph.nodes.some(n=>n.id===change.id)){
+          if(change.selected!==next.has(change.id)){
+            changed=true;
+            if(change.selected)next.add(change.id);else next.delete(change.id);
+          }
+        }else if(change.selected&&graph.groups.some(g=>g.id===change.id)){
+          onSelectGroup(change.id);
+        }
       }
     }
-  },[]);
-  const nodes=useMemo<MathFlowNode[]>(()=>graph.nodes.map(node=>({
-    id:node.id,type:"math",position:moving[node.id]??{x:node.x,y:node.y},
-    selected:node.id===selectedNodeId,draggable:true,
-    data:{node,value:values[node.id],awaitingConnection:activeSource!==null,
-      connectedPorts:new Set(graph.edges.filter(edge=>edge.target===node.id).map(edge=>edge.port)),
-      onSource,onTarget},
-  })),[graph.nodes,graph.edges,moving,selectedNodeId,values,activeSource,onSource,onTarget]);
+    if(changed)onSelectNodes([...next]);
+  },[selectedNodeIds,graph.nodes,graph.groups,onSelectNodes,onSelectGroup]);
+  const nodes=useMemo<CanvasNode[]>(()=>{
+    const grouped:GroupFlowNode[]=graph.groups.map(group=>{
+      const members=graph.nodes.filter(n=>group.nodeIds.includes(n.id));
+      const left=Math.min(...members.map(n=>n.x))-34;
+      const top=Math.min(...members.map(n=>n.y))-74;
+      const width=Math.max(...members.map(n=>n.x+252))-left+34;
+      const height=Math.max(...members.map(n=>n.y+205))-top+38;
+      return {id:group.id,type:"group",position:moving[group.id]??{x:left,y:top},
+        style:{width,height,zIndex:-10},selected:selectedGroupId===group.id,
+        draggable:true,dragHandle:".pm-ng-rf-group-header",
+        data:{id:group.id,title:group.title,count:group.nodeIds.length}};
+    });
+    const math:MathFlowNode[]=graph.nodes.map(node=>({
+      id:node.id,type:"math",position:moving[node.id]??{x:node.x,y:node.y},
+      selected:selectedNodeIds.includes(node.id)||node.id===selectedNodeId,draggable:true,
+      data:{node,value:values[node.id],awaitingConnection:activeSource!==null,
+        connectedPorts:new Set(graph.edges.filter(edge=>edge.target===node.id).map(edge=>edge.port)),
+        onSource,onTarget},
+    }));
+    return [...grouped,...math];
+  },[graph.nodes,graph.groups,graph.edges,moving,selectedNodeId,selectedNodeIds,selectedGroupId,values,activeSource,onSource,onTarget]);
   const edges=useMemo<Edge[]>(()=>graph.edges.map(edge=>({
     id:edge.id,source:edge.source,target:edge.target,
     sourceHandle:"out",targetHandle:edge.port,
@@ -121,26 +165,45 @@ function CanvasContent(props:Props){
     if(connection.source&&connection.target&&connection.targetHandle)
       onConnect(connection.source,connection.target,connection.targetHandle as GraphPort);
   },[onConnect]);
-  const stop=useCallback((_:unknown,node:MathFlowNode)=>{
-    const pos=bounded(node.position);
-    setMoving(old=>{
-      const next={...old};delete next[node.id];return next;
-    });
-    onMove(node.id,pos);
-  },[onMove]);
+  const stop=useCallback((_:unknown,node:CanvasNode)=>{
+    setMoving(old=>{const next={...old};delete next[node.id];return next;});
+    if(node.type==="group"){
+      const group=graph.groups.find(g=>g.id===node.id);
+      if(!group)return;
+      const members=graph.nodes.filter(n=>group.nodeIds.includes(n.id));
+      const left=Math.min(...members.map(n=>n.x))-34;
+      const top=Math.min(...members.map(n=>n.y))-74;
+      const dx=Math.round(node.position.x-left),dy=Math.round(node.position.y-top);
+      if(dx||dy)onMoveBatch(group.nodeIds,dx,dy);
+      return;
+    }
+    const anchor=graph.nodes.find(n=>n.id===node.id);
+    if(!anchor)return;
+    const position=bounded(node.position);
+    const selected=selectedNodeIds.includes(node.id)&&selectedNodeIds.length>1?selectedNodeIds:[node.id];
+    if(selected.length>1)onMoveBatch(selected,position.x-anchor.x,position.y-anchor.y);
+    else onMove(node.id,position);
+  },[graph,selectedNodeIds,onMoveBatch,onMove]);
   const fit=useCallback(()=>{void rf.fitView({padding:.23,duration:260,maxZoom:1.2});},[rf]);
   return <div className="pm-ng-reactflow-shell" aria-label="Interactive node canvas" tabIndex={-1}>
-    <ReactFlow<MathFlowNode,Edge> nodes={nodes} edges={edges}
+    <ReactFlow<CanvasNode,Edge> nodes={nodes} edges={edges}
       nodeTypes={nodeTypes} onNodesChange={onNodeChanges}
-      onNodeClick={(_,node)=>{onSelectNode(node.id);onSelectEdge(null);}}
+      onNodeClick={(event,node)=>{
+        if(node.type==="group"){onSelectGroup(node.id);onSelectEdge(null);return;}
+        if(!event.shiftKey&&!event.ctrlKey&&!event.metaKey){
+          onSelectNode(node.id);onSelectNodes([node.id]);
+        }
+        onSelectGroup(null);onSelectEdge(null);
+      }}
       onEdgeClick={(_,edge)=>{onSelectEdge(edge.id);onSelectNode("");}}
       onEdgeDoubleClick={(_,edge)=>onDisconnect(edge.id)}
-      onPaneClick={()=>{onSelectEdge(null);onCancel();}}
+      onPaneClick={()=>{onSelectNodes([]);onSelectNode("");onSelectGroup(null);onSelectEdge(null);onCancel();}}
       onNodeDragStop={stop}
       onConnect={accept} isValidConnection={canConnect}
       connectionMode={ConnectionMode.Strict}
       nodesConnectable edgesFocusable nodesFocusable elementsSelectable
-      nodesDraggable panOnDrag selectionOnDrag={false}
+      nodesDraggable panOnDrag={[1,2]} selectionOnDrag
+      multiSelectionKeyCode={["Shift","Meta","Control"]} panActivationKeyCode="Space"
       zoomOnScroll zoomOnPinch zoomOnDoubleClick={false}
       minZoom={.25} maxZoom={1.8}
       fitView fitViewOptions={{padding:.23,maxZoom:1.2}}
@@ -150,7 +213,7 @@ function CanvasContent(props:Props){
       className="pm-ng-reactflow">
       <Background variant={BackgroundVariant.Dots} color="#29415e" gap={24} size={1.3}/>
       <MiniMap pannable zoomable className="pm-ng-rf-minimap"
-        nodeColor={node=>node.id===selectedNodeId?"#91bdff":node.id.startsWith("target")?"#ad99e6":"#5c8ea9"}
+        nodeColor={node=>node.type==="group"?"#38627e":selectedNodeIds.includes(node.id)?"#91bdff":node.id.startsWith("target")?"#ad99e6":"#5c8ea9"}
         maskColor="#0a1528bd" ariaLabel="Node minimap"/>
       <Controls showInteractive={false} className="pm-ng-rf-controls"/>
       <Panel position="top-right" className="pm-ng-rf-top-tools">
