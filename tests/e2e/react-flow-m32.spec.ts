@@ -24,7 +24,7 @@ test("M3.2 renders React Flow with real handle connections and a navigable inspe
   await expect(target).toBeVisible();
   await source.dragTo(target);
   await expect.poll(()=>page.evaluate(()=>{
-    const stored=localStorage.getItem("paramyra.nodegraph.v2");
+    const stored=localStorage.getItem("paramyra.nodegraph.v3");
     if(!stored)return null;
     const graph=JSON.parse(stored);
     return graph.edges.find((edge:{target:string;port:string})=>edge.target==="product"&&edge.port==="a")?.source;
