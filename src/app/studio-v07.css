@@ -679,14 +679,18 @@
   min-height:37px;font-size:12px;
 }
 .pm-center.pm-animation-workspace .pm-multitrack {
-  max-height:clamp(170px,29dvh,325px);
+  /* All seven ordinary property tracks fit together; nested scrolling only
+     activates on unusually long/custom lists, not during box selection. */
+  max-height:clamp(340px,42dvh,460px);
   overflow-y:auto;overflow-x:hidden;
   overscroll-behavior:contain;
   scrollbar-width:thin;scrollbar-color:#668da8 #112338;
   padding:3px 6px 6px 2px;
 }
 .pm-center.pm-animation-workspace .pm-overview {
-  max-height:clamp(170px,29dvh,325px);
+  /* All seven ordinary property tracks fit together; nested scrolling only
+     activates on unusually long/custom lists, not during box selection. */
+  max-height:clamp(340px,42dvh,460px);
   overflow-y:auto;overflow-x:hidden;
   overscroll-behavior:contain;
   scrollbar-width:thin;scrollbar-color:#668da8 #112338;
