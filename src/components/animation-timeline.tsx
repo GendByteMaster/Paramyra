@@ -103,9 +103,11 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
     onEdit(l=>upsertKeyframe(l,next));
   };
   const add=()=>{
-    const frame:LayerKeyframe={property:active,time:Math.round(time*100)/100,
+    const at=snapTo(time,[],400);
+    const frame:LayerKeyframe={property:active,time:at,
       value:Number(currentValue.toFixed(4)),ease:"ease-in-out"};
     onEdit(l=>upsertKeyframe(l,frame));
+    if(at!==time)onSeek(at);
   };
   const setValue=(raw:number)=>{
     if(!Number.isFinite(raw)||raw<bounds.min||raw>bounds.max)return;
