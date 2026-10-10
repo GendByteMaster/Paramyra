@@ -772,19 +772,6 @@
   .pm-center.pm-animation-workspace .pm-timeline-toolbar {backdrop-filter:none;}
 }
 
-/* Prioritise the editing surface above verbose fields; JS component order and
-   keyboard tab order stay consistent for existing hotkeys/E2E. */
-@media(min-width:960px) {
-  .pm-center.pm-animation-workspace .pm-animation-editor {
-    display:flex;flex-direction:column;align-items:stretch;
-  }
-  .pm-center.pm-animation-workspace .pm-animation-heading {order:0;}
-  .pm-center.pm-animation-workspace .pm-timeline-toolbar {order:1;}
-  .pm-center.pm-animation-workspace .pm-animation-layout {order:2;}
-  .pm-center.pm-animation-workspace .pm-animation-control-row {order:3;}
-  .pm-center.pm-animation-workspace .pm-animation-controls {order:4;}
-  .pm-center.pm-animation-workspace .pm-animation-batch {order:5;}
-  .pm-center.pm-animation-workspace .pm-animation-help {order:6;}
-  .pm-center.pm-animation-workspace .pm-animation-track-column {min-height:0;}
-  .pm-center.pm-animation-workspace .pm-animation-graph-column {min-height:0;}
-}
+/* Timeline JSX order now matches visual reading and keyboard navigation order. */
+.pm-center.pm-animation-workspace .pm-animation-track-column,
+.pm-center.pm-animation-workspace .pm-animation-graph-column {min-height:0;}
