@@ -40,7 +40,7 @@ export default function Home() {
               </div>
             </div>
             <div className="floating-note note-top" aria-hidden="true"><span className="note-icon"><Atom size={17}/></span><div><strong>100% interactive</strong><small>Change every variable</small></div></div>
-            <div className="floating-note note-bottom" aria-hidden="true"><span className="pulse-small"/> <span>Rendering live</span><span className="note-meter">60 FPS*</span></div>
+            <div className="floating-note note-bottom" aria-hidden="true"><span className="pulse-small"/> <span>Rendering live</span><span className="note-meter">RAF</span></div>
           </div>
         </div>
         <div className="hero-divider"><span>01 / DISCOVER</span><span>SCROLL TO EXPLORE <ArrowRight size={14}/></span></div>
