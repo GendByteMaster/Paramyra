@@ -83,6 +83,10 @@ test("M2.3 optional snapping rounds inserts while Snap Off retains hundredths",a
 });
 
 test("M2.3 marquee selects keys across tracks without mutating document",async({page})=>{
+  // Test the split-view marquee at the actual intended desktop workspace size.
+  // The compact 1280x720 shell has an intentionally narrow timeline viewport;
+  // separate M2.4 E2E coverage verifies that it does not clip controls.
+  if(test.info().project.name==="chromium")await page.setViewportSize({width:1640,height:930});
   await page.goto("/studio");
   await page.getByRole("button",{name:"Pause animation"}).click();
   await page.getByRole("button",{name:"Open animation workspace"}).click();
