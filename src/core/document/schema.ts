@@ -6,7 +6,7 @@ import { KEYFRAME_LIMIT, propertyBounds } from "../animation/keyframes";
 const keyframeSchema=z.object({
   property:z.enum(["offset.x","offset.y","opacity","params.strokeWidth","formula.a","formula.b","formula.c"]),
   time:z.number().finite().min(0).max(60),
-  value:z.number().finite().min(-2).max(2),
+  value:z.number().finite().min(-10).max(10),
   ease:z.enum(["linear","ease-in","ease-out","ease-in-out","hold"]),
 }).strict().superRefine((frame,ctx)=>{
   const range=propertyBounds(frame.property);
