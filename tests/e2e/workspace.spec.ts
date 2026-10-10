@@ -105,3 +105,63 @@ test("scene search filters only real registered presets", async ({ page }) => {
   await page.getByRole("searchbox", { name: "Search mathematical scenes" }).fill("missing scene");
   await expect(library.getByText("No scenes match your search.")).toBeVisible();
 });
+
+
+test("desktop studio uses viewport height without header overlap or page scrolling", async ({ page }) => {
+  await page.setViewportSize({ width: 1365, height: 768 });
+  await page.goto("/studio");
+  await expect(page.locator(".pm-projectbar")).toBeVisible();
+  await expect(page.locator(".pm-viewport-panel")).toBeVisible();
+  await expect(page.locator(".pm-inspector")).toBeVisible();
+
+  const metrics = await page.evaluate(() => {
+    const bar = document.querySelector(".pm-projectbar")!.getBoundingClientRect();
+    const viewport = document.querySelector(".pm-canvas-area")!.getBoundingClientRect();
+    const inspector = document.querySelector(".pm-inspector")!.getBoundingClientRect();
+    const canvas = document.querySelector<HTMLCanvasElement>(".pm-canvas-area canvas")!.getBoundingClientRect();
+    return {
+      pageHeight: document.documentElement.scrollHeight,
+      innerHeight: window.innerHeight,
+      headerVisible: getComputedStyle(document.querySelector(".topbar")!).display !== "none",
+      footerVisible: getComputedStyle(document.querySelector("footer")!).display !== "none",
+      projectBarTop: bar.top,
+      viewportHeight: viewport.height,
+      inspectorBottom: inspector.bottom,
+      canvasWidth: canvas.width,
+      canvasHeight: canvas.height,
+    };
+  });
+  expect(metrics.headerVisible).toBe(false);
+  expect(metrics.footerVisible).toBe(false);
+  expect(metrics.pageHeight).toBeLessThanOrEqual(metrics.innerHeight + 2);
+  expect(metrics.projectBarTop).toBeGreaterThanOrEqual(0);
+  expect(metrics.viewportHeight).toBeGreaterThan(200);
+  expect(metrics.canvasWidth).toBeGreaterThan(200);
+  expect(metrics.canvasHeight).toBeGreaterThan(200);
+  expect(metrics.inspectorBottom).toBeLessThanOrEqual(metrics.innerHeight + 2);
+});
+
+test("mobile library opens as dismissible drawer and does not occlude the canvas when closed", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/studio");
+  const toggle = page.getByRole("button", { name: "Toggle scene library" });
+  const library = page.getByRole("complementary", { name: "Scene library" });
+  await expect(library).toHaveCount(0);
+  await toggle.click();
+  await expect(library).toBeVisible();
+  await expect(page.getByRole("button", { name: "Close scene library" })).toBeVisible();
+  await page.getByRole("button", { name: "Close scene library" }).click({ position: { x: 350, y: 300 } });
+  await expect(library).toHaveCount(0);
+  await expect(page.getByRole("img", { name: /Visualization of/ })).toBeVisible();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(1);
+});
+
+test("paused viewport never claims that animation is live", async ({ page }) => {
+  await page.goto("/studio");
+  await expect(page.locator(".pm-live")).toContainText("LIVE");
+  await page.getByRole("button", { name: "Pause animation" }).click();
+  await expect(page.locator(".pm-live")).toContainText("PAUSED");
+  await page.getByRole("button", { name: "Play animation" }).click();
+  await expect(page.locator(".pm-live")).toContainText("LIVE");
+});

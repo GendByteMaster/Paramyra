@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowUpRight, Orbit } from "lucide-react";
 import "./globals.css";
 import "./studio-workspace.css";
+import "./studio-shell.css";
 
 export const metadata: Metadata = {
   title: { default: "Paramyra — Mathematics Comes Alive", template: "%s | Paramyra" },

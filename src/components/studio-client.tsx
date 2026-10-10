@@ -134,6 +134,7 @@ function StudioWorkspace({ initialKind, mode = "studio" }: StudioProps) {
       </div>
 
       <div className={"pm-grid" + (!libraryOpen ? " pm-no-library" : "") + (!inspectorOpen ? " pm-no-inspector" : "")}>
+        {libraryOpen && <button type="button" className="pm-library-backdrop" aria-label="Close scene library" onClick={() => setLibraryOpen(false)} />}
         {libraryOpen && <aside className="pm-sidebar" aria-label="Scene library">
           <header className="pm-sidebar-heading">
             <div className="pm-sidebar-mark"><BookOpen size={17}/></div>
@@ -161,7 +162,7 @@ function StudioWorkspace({ initialKind, mode = "studio" }: StudioProps) {
             <div className="pm-viewport-toolbar">
               <div className="pm-viewport-heading"><span className="pm-blue-dot"/><div><strong>{scene.title}</strong><small>Canvas 2D <span>·</span> Realtime mathematical model</small></div></div>
               <div className="pm-viewport-tools">
-                <span className="pm-live"><span className="live-indicator"/> LIVE</span>
+                <span className="pm-live" data-state={playing ? "playing" : "paused"}><span className="live-indicator"/> {playing ? "LIVE" : "PAUSED"}</span>
                 <span className="pm-fps-label">SCENE 01 / 01</span>
                 <button type="button" className="pm-icon-btn" onClick={() => setDetailsOpen((v)=>!v)} aria-label="Toggle scene details" aria-pressed={detailsOpen} title="Toggle scene details"><Info size={16}/></button>
               </div>
