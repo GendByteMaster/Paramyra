@@ -36,7 +36,7 @@ test("play, pause and safe JSON validation", async ({ page }) => {
     mimeType: "application/json",
     buffer: Buffer.from('{"schemaVersion":1,"id":"wrong","title":"Invalid","kind":"lissajous","params":{"frequencyX":999}}'),
   });
-  await expect(page.getByRole("status")).toContainText("Invalid or unsupported scene document.");
+  await expect(page.locator("p.status[role=status]")).toContainText("Invalid or unsupported scene document.");
 });
 
 test("reduced motion and narrow viewport keep the core UI usable", async ({ page }) => {
