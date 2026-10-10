@@ -14,7 +14,7 @@ import { commitGraph, initializeGraphHistory, redoGraph, undoGraph } from "@/cor
 import { documentFromScene, parseDocument, type MathDocument } from "@/core/document/schema";
 import { presetFor } from "@/core/scenes/presets";
 import { addGraphNode, connectGraph, createGraphNode,
-  disconnectGraph, evaluateGraph, initialGraph, inputPorts, parseGraph, projectGraph,
+  disconnectGraph, evaluateGraph, inputPorts, parseGraph, projectGraph,
   removeGraphNode, TARGET_PROPERTIES, updateGraphBinding, updateGraphNode,
   type GraphKind, type GraphPort, type GraphNode, type NodeGraph } from "@/core/graph/model";
 
@@ -85,7 +85,7 @@ function GraphWorkspace() {
   const graph = history.present;
   const [documentModel, setDocumentModel] = useState(readDocument);
   const [selectedId, setSelectedId] = useState("product");
-  const [layerId, setLayerId] = useState(() => readDocument().layers[0].id);
+  const [layerId, setLayerId] = useState(() => readStoredGraph().binding.layerId ?? readDocument().layers[0].id);
   const [time, setTime] = useState(0);
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("Graph edits are local. Apply an output to commit a static value to Studio.");
