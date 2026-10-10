@@ -1,4 +1,4 @@
-import { harmonicWave, lissajous, polarRose } from "../math/curves";
+import { gridStep, layerWorldPoint, pixelScale, screenToWorld, worldToScreen, type Size } from "./geometry";
 import type { SceneDocument } from "../scenes/schema";
 import { documentFromScene, type MathDocument, type MathLayer } from "../document/schema";
 
@@ -8,6 +8,7 @@ export type CanvasView = {
   grid: boolean;
   axes: boolean;
   style: "glow" | "clean";
+  selectedLayerId?: string;
 };
 
 export const defaultView: CanvasView = {
@@ -33,70 +34,80 @@ export function drawDocument(
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, width, height);
 
-  // Grid remains axis-aligned, displaced by the user's pan in CSS pixels.
-  const step = 36;
+
+  const size: Size = { width, height };
+  drawGrid(ctx, size, view);
+  for (const layer of doc.layers) {
+    if (!layer.visible || layer.opacity === 0) continue;
+    drawLayer(ctx, size, layer, time, view);
+  }
+}
+
+function drawGrid(ctx: CanvasRenderingContext2D, size: Size, view: CanvasView): void {
+  if (!view.grid && !view.axes) return;
+  const { width, height } = size;
+  const scale = pixelScale(size, view.zoom);
+  const origin = worldToScreen({ x: 0, y: 0 }, size, view);
   if (view.grid) {
-    const ox = ((width / 2 + view.pan.x) % step + step) % step;
-    const oy = ((height / 2 + view.pan.y) % step + step) % step;
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = "rgba(146,174,213,.047)";
+    const step = gridStep(size, view.zoom);
+    const left = screenToWorld({ x: 0, y: height }, size, view).x;
+    const right = screenToWorld({ x: width, y: 0 }, size, view).x;
+    const bottom = screenToWorld({ x: 0, y: height }, size, view).y;
+    const top = screenToWorld({ x: width, y: 0 }, size, view).y;
     ctx.beginPath();
-    for (let x = ox; x < width; x += step) {
-      ctx.moveTo(Math.round(x) + .5, 0); ctx.lineTo(Math.round(x) + .5, height);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(146,174,213,.10)";
+    for (let x = Math.ceil(left / step); x <= Math.floor(right / step); x++) {
+      const px = Math.round(origin.x + x * step * scale) + .5;
+      ctx.moveTo(px, 0); ctx.lineTo(px, height);
     }
-    for (let y = oy; y < height; y += step) {
-      ctx.moveTo(0, Math.round(y) + .5); ctx.lineTo(width, Math.round(y) + .5);
+    for (let y = Math.ceil(bottom / step); y <= Math.floor(top / step); y++) {
+      const py = Math.round(origin.y - y * step * scale) + .5;
+      ctx.moveTo(0, py); ctx.lineTo(width, py);
     }
     ctx.stroke();
+    ctx.font = "10px ui-monospace, monospace";
+    ctx.fillStyle = "rgba(156,185,226,.67)";
+    const axisY = Math.min(height - 8, Math.max(13, origin.y + 14));
+    const axisX = Math.min(width - 38, Math.max(6, origin.x + 7));
+    for (let x = Math.ceil(left / step); x <= Math.floor(right / step); x++) {
+      if (!x) continue;
+      const px = origin.x + x * step * scale;
+      if (px >= 4 && px < width - 34) ctx.fillText(Number((x * step).toPrecision(5)).toString(), px + 3, axisY);
+    }
+    for (let y = Math.ceil(bottom / step); y <= Math.floor(top / step); y++) {
+      if (!y) continue;
+      const py = origin.y - y * step * scale;
+      if (py >= 12 && py < height - 3) ctx.fillText(Number((y * step).toPrecision(5)).toString(), axisX, py - 3);
+    }
   }
-  const cx = width / 2 + view.pan.x;
-  const cy = height / 2 + view.pan.y;
   if (view.axes) {
     ctx.beginPath();
     ctx.lineWidth = 1;
-    ctx.strokeStyle = "rgba(159,185,224,.25)";
-    ctx.moveTo(Math.round(cx) + .5, 0); ctx.lineTo(Math.round(cx) + .5, height);
-    ctx.moveTo(0, Math.round(cy) + .5); ctx.lineTo(width, Math.round(cy) + .5);
+    ctx.strokeStyle = "rgba(159,185,224,.4)";
+    ctx.moveTo(Math.round(origin.x) + .5, 0);
+    ctx.lineTo(Math.round(origin.x) + .5, height);
+    ctx.moveTo(0, Math.round(origin.y) + .5);
+    ctx.lineTo(width, Math.round(origin.y) + .5);
     ctx.stroke();
-  }
-  const r = Math.min(width, height) * .45 * view.zoom;
-  for (const layer of doc.layers) {
-    if (!layer.visible || layer.opacity === 0) continue;
-    drawLayer(ctx, width, r, cx, cy, layer, time, view.style, view.zoom);
   }
 }
 
 function drawLayer(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  radius: number,
-  cx: number,
-  cy: number,
-  layer: MathLayer,
-  time: number,
-  style: CanvasView["style"],
-  zoom: number,
+  ctx: CanvasRenderingContext2D, size: Size, layer: MathLayer, time: number, view: CanvasView,
 ): void {
-  const n = Math.max(768, Math.min(2200, Math.ceil(radius * 3)));
+  const n = Math.max(768, Math.min(2200, Math.ceil(pixelScale(size, view.zoom) * 3)));
   ctx.save();
-  ctx.translate(cx + layer.offset.x * radius, cy - layer.offset.y * radius);
   ctx.beginPath();
   for (let i = 0; i <= n; i++) {
-    const t = i / n;
-    const p = layer.kind === "lissajous"
-      ? lissajous(t * Math.PI * 2, layer.params, time)
-      : layer.kind === "polar-rose"
-        ? polarRose(t * Math.PI * 2, layer.params, time)
-        : { x: 2*t-1, y: harmonicWave(2*t-1, layer.params, time) };
-    const x = layer.kind === "wave" ? (2*t-1) * width * .46 * zoom : p.x * radius;
-    const y = -p.y * radius;
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+    const screen = worldToScreen(layerWorldPoint(layer, i / n, time, size), size, view);
+    if (i === 0) ctx.moveTo(screen.x, screen.y);
+    else ctx.lineTo(screen.x, screen.y);
   }
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
   ctx.strokeStyle = layer.color;
-  if (style === "glow") {
+  if (view.style === "glow") {
     ctx.save();
     ctx.globalAlpha = layer.opacity * .28;
     ctx.shadowColor = layer.color;
@@ -108,6 +119,12 @@ function drawLayer(
   ctx.globalAlpha = layer.opacity;
   ctx.lineWidth = Math.max(1, layer.params.strokeWidth);
   ctx.stroke();
+  if (view.selectedLayerId === layer.id) {
+    ctx.globalAlpha = 0.22 * layer.opacity;
+    ctx.lineWidth = Math.max(3, layer.params.strokeWidth + 5);
+    ctx.strokeStyle = "#ffffff";
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
