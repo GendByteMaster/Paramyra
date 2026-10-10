@@ -10,7 +10,7 @@ import {
 import { SceneCanvas } from "./scene-canvas";
 import { makeProjectBundle,parseProjectBundle,restoreProjectBundle } from "@/core/graph/project-bundle";
 import { copyGraphSelection,parseGraphSelection,pasteGraphSelection,deleteGraphSelection,
-  moveGraphSelection,groupGraphNodes,ungroupGraphNodes,type GraphSelection } from "@/core/graph/workspace";
+  moveGraphSelection,groupGraphNodes,ungroupGraphNodes,renameGraphGroup,type GraphSelection } from "@/core/graph/workspace";
 import { GraphReactFlowCanvas } from "./graph-react-flow";
 import { compileGraph, resolveLiveScene } from "@/core/graph/live";
 import { persistGraph, readStoredGraph } from "@/core/graph/storage";
@@ -82,6 +82,7 @@ function GraphWorkspace() {
   const pasteCount=useRef(0);
   const rootRef=useRef<HTMLDivElement|null>(null);
   const selected = graph.nodes.find(node => node.id === selectedId) ?? null;
+  const selectedGroup = graph.groups.find(group=>group.id===selectedGroupId)??null;
   const effectiveLayer = documentModel.layers.some(layer => layer.id === layerId) ? layerId : documentModel.layers[0].id;
   const projection = useMemo(() => projectGraph(documentModel, graph, effectiveLayer, time),
     [documentModel, graph, effectiveLayer, time]);
@@ -366,6 +367,17 @@ function GraphWorkspace() {
       {inspectorOpen&&<aside className="pm-ng-inspector" aria-label="Graph inspector">
         <div className="pm-ng-pane-header"><span className="pm-ng-eyebrow">INSPECTOR</span><h2>Properties</h2><p>Configuration and deterministic output.</p></div>
         <div className="pm-ng-inspector-scroll">
+          {selectedGroup&&<section className="pm-ng-inspector-section" aria-label="Selected graph group">
+            <h3><span>01 / GROUP</span><Group size={15}/></h3>
+            <label className="pm-ng-field">Group name
+              <input aria-label="Group name" maxLength={64} value={selectedGroup.title}
+                onChange={event=>commit(old=>renameGraphGroup(old,selectedGroup.id,event.target.value))}/>
+            </label>
+            <div className="pm-ng-values"><span>Members</span><strong>{selectedGroup.nodeIds.length} nodes</strong></div>
+            <div className="pm-ng-group-members">{selectedGroup.nodeIds.map(id=>
+              <span key={id}>{graph.nodes.find(node=>node.id===id)?.title??id}</span>)}</div>
+            <button type="button" className="pm-ng-danger" onClick={ungroupSelected}><Ungroup size={15}/> Ungroup</button>
+          </section>}
           {selected?<section className="pm-ng-inspector-section">
             <h3><span>01 / SELECTED NODE</span><CircleDot size={15}/></h3>
             <div className="pm-ng-inspector-highlight"><span className={"pm-ng-library-icon kind-"+selected.kind}><Braces size={19}/></span><div><strong>{kindNames[selected.kind]}</strong><small>{selected.kind} · numeric</small></div></div>
@@ -381,7 +393,7 @@ function GraphWorkspace() {
             }}>{TARGET_PROPERTIES.map(prop=><option key={prop} value={prop}>{names[prop]}</option>)}</select></label>}
             <div className="pm-ng-values"><span>Evaluated value</span><output aria-label="Selected node value">{values[selected.id]===undefined?"—":values[selected.id].toFixed(4)}</output></div>
             <button className="pm-ng-danger" disabled={graph.nodes.length===1} type="button" onClick={()=>{commit(old=>removeGraphNode(old,selected.id));setSelectedId("");}}><Trash2 size={15}/> Delete node</button>
-          </section>:<section className="pm-ng-inspector-section pm-ng-empty"><Braces size={24}/><h3>Select a node</h3><p>Click a node header to edit its parameters.</p></section>}
+          </section>:!selectedGroup&&<section className="pm-ng-inspector-section pm-ng-empty"><Braces size={24}/><h3>Select a node or group</h3><p>Click a node header or group title to edit its properties.</p></section>}
           <section className="pm-ng-inspector-section">
             <h3><span>02 / CONNECTIONS</span><Link2 size={15}/></h3>
             <label className="pm-ng-field">Select a link<select aria-label="Selected graph connection" value={edgeId??""} onChange={e=>setEdgeId(e.target.value||null)}>
