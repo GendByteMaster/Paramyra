@@ -1,5 +1,5 @@
 "use client";
-import {useRef,useState} from "react";
+import {useRef,useState,type PointerEvent} from "react";
 import {KeyRound,Plus,Trash2} from "lucide-react";
 import {BezierCurveEditor} from "./bezier-curve-editor";
 import {TimelineLayerOverview} from "./timeline-layer-overview";
@@ -118,7 +118,7 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
     const value=sampleProperty(layer,active,at);
     return (index/80*640).toFixed(1)+","+(8+(1-(value-bounds.min)/(bounds.max-bounds.min))*110).toFixed(1);
   }).join(" ");
-  const finishBox=(event:React.PointerEvent<HTMLDivElement>)=>{
+  const finishBox=(event:PointerEvent<HTMLDivElement>)=>{
     const dragState=boxDrag.current;
     if(!dragState||dragState.pointerId!==event.pointerId)return;
     boxDrag.current=null;setBoxVisual(null);
@@ -215,10 +215,31 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
             onClick={()=>setProperty(p)} title={names[p]}>{names[p]}</button>
           <div className="pm-animation-track" aria-label={"Keyframe track for "+names[p]}
             onClick={e=>{
+              if(suppressTrackClick.current){suppressTrackClick.current=false;return;}
               if((e.target as HTMLElement).closest("button"))return;
               const bounds=e.currentTarget.getBoundingClientRect();
-              if(bounds.width>0){setProperty(p);onSeek(clamp((e.clientX-bounds.left)/bounds.width*duration,0,duration));}
-            }}>
+              if(bounds.width>0){setProperty(p);onSeek(timeAtPointer(e.clientX,bounds.left,bounds.width,window));}
+            }}
+            onPointerDown={e=>{
+              if(e.button!==0||(e.target as HTMLElement).closest("button"))return;
+              boxDrag.current={pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,
+                rect:e.currentTarget.getBoundingClientRect(),extend:e.shiftKey||e.ctrlKey||e.metaKey};
+              e.currentTarget.setPointerCapture(e.pointerId);
+            }}
+            onPointerMove={e=>{
+              const state=boxDrag.current;
+              if(!state||state.pointerId!==e.pointerId||!trackList.current)return;
+              if(Math.hypot(e.clientX-state.startX,e.clientY-state.startY)<5)return;
+              const rect=trackList.current.getBoundingClientRect();
+              const x1=clamp(state.startX-state.rect.left,0,state.rect.width)+state.rect.left-rect.left;
+              const x2=clamp(e.clientX-state.rect.left,0,state.rect.width)+state.rect.left-rect.left;
+              const y1=state.startY-rect.top+trackList.current.scrollTop;
+              const y2=e.clientY-rect.top+trackList.current.scrollTop;
+              setBoxVisual({left:Math.min(x1,x2),top:Math.min(y1,y2),
+                width:Math.abs(x2-x1),height:Math.abs(y2-y1)});
+            }}
+            onPointerUp={finishBox}
+            onPointerCancel={()=>{boxDrag.current=null;setBoxVisual(null);}}> 
             {playheadVisible&&<div className="pm-animation-track-fill" style={{width:playhead+"%"}}/>}
             {playheadVisible&&<div className="pm-animation-playhead" style={{left:playhead+"%"}}/>}
             {trackFrames.filter(frame=>timelineFraction(frame.time,window)>=0&&timelineFraction(frame.time,window)<=1).map((frame,index)=><button key={frame.time+":"+index} type="button"
@@ -242,7 +263,7 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
                 drag.current=null;
                 if(Math.abs(e.clientX-current.startX)<4)return;
                 suppressClick.current=true;
-                const to=clamp((e.clientX-current.left)/current.width*duration,0,duration);
+                const to=timeAtPointer(e.clientX,current.left,current.width,window);
                 if(current.refs.length>1)applyDelta(current.refs,Math.round((to-current.from)*100)/100);
                 else move(current.property,current.from,to);
               }}
@@ -261,7 +282,8 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
           </div>
         </div>;
       })}
-    </div>
+      {boxVisual&&<div className="pm-timeline-selection-box" aria-hidden="true" style={boxVisual}/>}
+    </div>}
     <div className="pm-animation-ruler"><span>{window.start.toFixed(2)}s</span><span>{((window.start+window.end)/2).toFixed(2)}s</span><span>{window.end.toFixed(2)}s</span></div>
       </section>
       <section className="pm-animation-graph-column" aria-label="Graph inspector">
