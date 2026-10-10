@@ -86,6 +86,11 @@ test("M2.3 marquee selects keys across tracks without mutating document",async({
   await page.goto("/studio");
   await page.getByRole("button",{name:"Pause animation"}).click();
   await page.getByRole("button",{name:"Open animation workspace"}).click();
+  // A 720px desktop shell has an intentionally compact default split.
+  // Expand the dock with its real keyboard interaction before dragging
+  // between non-adjacent tracks so both rows are visible simultaneously.
+  const split=page.getByRole("separator",{name:"Resize animation workspace"});
+  if(await split.isVisible()){await split.focus();await split.press("End");}
   const editor=page.getByLabel("Keyframe Animation Editor");
   const opacity=editor.getByLabel("Keyframe track for Opacity");
   const position=editor.getByLabel("Keyframe track for Position X");
