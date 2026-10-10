@@ -19,18 +19,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: npm install --no-audit --no-fund
-      - name: Temporary lockfile capture for reproducible CI
-        run: |
-          node - <<'NODE'
-          const fs = require("node:fs");
-          const b64 = fs.readFileSync("package-lock.json").toString("base64");
-          console.log("PARAMYRA_LOCK_BEGIN");
-          for (let i = 0; i < b64.length; i += 3500) {
-            console.log("PARAMYRA_LOCK_CHUNK:" + b64.slice(i, i + 3500));
-          }
-          console.log("PARAMYRA_LOCK_END");
-          NODE
+      - run: npm ci --no-audit --no-fund
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
