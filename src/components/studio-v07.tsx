@@ -156,8 +156,19 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
       if(event.key===GRAPH_KEY||event.key===LEGACY_GRAPH_KEY||event.key===null)
         setNodeGraph(readStoredGraph());
     };
+    const onDocumentStorage=(event:StorageEvent)=>{
+      if(event.key!==DOCUMENT_KEY||!event.newValue)return;
+      try{
+        const incoming=parseDocument(JSON.parse(event.newValue));
+        if(incoming)setHistory(initializeHistory(incoming));
+      }catch{/* Reject corrupt cross-tab edits; keep the current valid Studio history. */}
+    };
     window.addEventListener("storage",onGraphStorage);
-    return()=>window.removeEventListener("storage",onGraphStorage);
+    window.addEventListener("storage",onDocumentStorage);
+    return()=>{
+      window.removeEventListener("storage",onGraphStorage);
+      window.removeEventListener("storage",onDocumentStorage);
+    };
   },[]);
   useEffect(()=>{
     try{localStorage.setItem(DOCUMENT_KEY,JSON.stringify(doc));}
