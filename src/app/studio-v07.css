@@ -516,3 +516,43 @@
 @media(max-width:760px) {
   .pm-animation-track-column,.pm-animation-graph-column {padding:9px;}
 }
+
+/* v1.0 M2.2 — Bezier easing and accessible multi-keyframe tools */
+.pm-animation-batch {display:flex;align-items:center;flex-wrap:wrap;gap:7px;
+  padding:9px 10px;border:1px solid #4d82976b;border-radius:10px;background:#102c3b;}
+.pm-animation-batch span {color:#b9f2e4;font-size:10px;font-weight:760;margin-right:6px;}
+.pm-animation-batch button,.pm-bezier-reset {min-height:32px;padding:6px 10px;border:1px solid #8abaf060;
+  border-radius:8px;background:#1c3d58;color:#dfedff;font-size:11px;cursor:pointer;}
+.pm-animation-batch button:disabled {opacity:.4;cursor:not-allowed;}
+.pm-animation-batch label {display:flex;align-items:center;gap:5px;color:#a9c7db;font-size:10px;}
+.pm-animation-batch input,.pm-bezier-fields input {min-width:0;width:70px;height:32px;
+  background:#152b41;border:1px solid #91b9e84c;border-radius:7px;padding:5px 7px;
+  color:#e1f4ff;font:11px ui-monospace,monospace;}
+.pm-animation-editor .pm-keyframe-marker.selected {background:#c4f2ac;border-color:#f4ffe9;
+  box-shadow:0 0 0 4px #80d8b333,0 0 12px #74ecab55;}
+.pm-bezier-editor {display:grid;gap:10px;margin-bottom:13px;padding:10px;
+  background:#10283a;border:1px solid #5d9aaa6c;border-radius:11px;}
+.pm-bezier-plane {height:150px;width:100%;border-radius:8px;background:
+  linear-gradient(0deg,transparent 49.5%,#648ab220 50%,transparent 50.5%),
+  linear-gradient(90deg,transparent 49.5%,#648ab220 50%,transparent 50.5%),#0b1b2b;
+  overflow:visible;}
+.pm-bezier-axes {stroke:#99aecb70;fill:none;stroke-width:1.5;}
+.pm-bezier-diagonal {stroke:#759db544;stroke-dasharray:4 4;fill:none;}
+.pm-bezier-guide {stroke:#8caee099;stroke-width:1.4;fill:none;stroke-dasharray:4 3;}
+.pm-bezier-line {stroke:#6ee9d2;stroke-width:3;fill:none;}
+.pm-bezier-endpoint {fill:#e0f8f2;}
+.pm-bezier-handle {fill:#b4ddff;stroke:#294e73;stroke-width:2.5;cursor:grab;touch-action:none;}
+.pm-bezier-handle-2 {fill:#b1f6d2;}
+.pm-bezier-handle:active {cursor:grabbing;}
+.pm-bezier-handle:focus-visible {stroke:#fff;stroke-width:4;outline:none;}
+.pm-bezier-fields {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;}
+.pm-bezier-fields label {display:grid;gap:5px;color:#a9c7e2;font-size:10px;font-weight:700;}
+.pm-bezier-fields input {width:100%;min-height:34px;}
+.pm-bezier-reset {justify-self:start;}
+.pm-bezier-editor button:focus-visible,.pm-animation-batch button:focus-visible,
+.pm-animation-batch input:focus-visible,.pm-bezier-fields input:focus-visible {outline:2px solid #a8eddf;outline-offset:2px;}
+@media(max-width:760px) {
+ .pm-animation-batch {padding:8px;gap:6px;}
+ .pm-bezier-plane {height:170px;}
+ .pm-bezier-editor {padding:9px;}
+}
