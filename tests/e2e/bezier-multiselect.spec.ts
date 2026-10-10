@@ -31,6 +31,37 @@ test("M2.2 cubic Bezier easing persists and Undo/Redo covers handle edits",async
   await expect(reloaded.getByRole("group",{name:"Cubic Bezier curve editor"})).toBeVisible();
 });
 
+test("M2.2 Bezier handle supports real pointer dragging and keyboard nudging",async({page})=>{
+  await page.goto("/studio");
+  await page.getByRole("button",{name:"Pause animation"}).click();
+  await page.getByRole("button",{name:"Open animation workspace"}).click();
+  const editor=page.getByLabel("Keyframe Animation Editor");
+  const seek=page.getByRole("slider",{name:"Timeline position"});
+  await seek.focus();await seek.press("Home");
+  await editor.getByRole("button",{name:"Add keyframe at playhead"}).click();
+  await seek.focus();await seek.press("End");
+  await editor.getByRole("button",{name:"Add keyframe at playhead"}).click();
+  await seek.focus();await seek.press("Home");
+  await editor.getByRole("combobox",{name:"Keyframe easing"}).selectOption("bezier");
+  const handle=editor.getByRole("button",{name:"Bezier control handle 1"});
+  await handle.scrollIntoViewIfNeeded();
+  const box=await handle.boundingBox();
+  expect(box).not.toBeNull();
+  const cx=box!.x+box!.width/2,cy=box!.y+box!.height/2;
+  await page.mouse.move(cx,cy);
+  await page.mouse.down();
+  await page.mouse.move(cx+25,cy-28,{steps:5});
+  await page.mouse.up();
+  const x1=await expect.poll(()=>page.evaluate(()=>
+    JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers[0].keyframes[0].bezier.x1
+  )).toBeGreaterThan(.42);
+  void x1;
+  await handle.focus();await handle.press("ArrowUp");
+  await expect.poll(()=>page.evaluate(()=>
+    JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers[0].keyframes[0].bezier.y1
+  )).toBeGreaterThan(0);
+});
+
 test("M2.2 multi-select translates keys atomically and supports Delete/Undo",async({page})=>{
   await page.goto("/studio");
   await page.getByRole("button",{name:"Pause animation"}).click();
