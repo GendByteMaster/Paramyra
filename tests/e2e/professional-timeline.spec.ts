@@ -100,6 +100,11 @@ test("M2.3 marquee selects keys across tracks without mutating document",async({
   const before=await page.evaluate(()=>localStorage.getItem("paramyra.document.v3"));
   await editor.getByRole("button",{name:"Toggle box selection tool"}).click();
   await expect(editor.getByRole("button",{name:"Toggle box selection tool"})).toHaveAttribute("aria-pressed","true");
+  // Raw Playwright mouse coordinates never auto-scroll; both rows must be visible first.
+  await opacity.scrollIntoViewIfNeeded();
+  await position.scrollIntoViewIfNeeded();
+  await expect(opacity).toBeInViewport();
+  await expect(position).toBeInViewport();
   const first=await opacity.boundingBox(),second=await position.boundingBox();
   expect(first).not.toBeNull();expect(second).not.toBeNull();
   await page.mouse.move(first!.x+first!.width*.17,first!.y+first!.height/2);
