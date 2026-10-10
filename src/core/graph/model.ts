@@ -2,7 +2,8 @@ import { z } from "zod";
 import { propertyBounds, supportsProperty, type AnimatableProperty } from "../animation/keyframes";
 import type { MathDocument, MathLayer } from "../document/schema";
 
-export const GRAPH_KEY = "paramyra.nodegraph.v1";
+export const GRAPH_KEY = "paramyra.nodegraph.v2";
+export const LEGACY_GRAPH_KEY = "paramyra.nodegraph.v1";
 export const GRAPH_NODE_LIMIT = 32;
 export const GRAPH_EDGE_LIMIT = 64;
 export const GRAPH_KINDS = ["constant", "time", "add", "multiply", "sine", "output"] as const;
@@ -26,8 +27,26 @@ const edgeSchema = z.object({
   target: z.string().min(1).max(64),
   port: z.enum(["a", "b", "in"]),
 }).strict();
+const liveBindingSchema = z.object({
+  enabled: z.boolean(),
+  layerId: z.string().min(1).max(64).nullable(),
+  priority: z.literal("keyframes-win"),
+}).strict().superRefine((binding, ctx) => {
+  if (binding.enabled && !binding.layerId)
+    ctx.addIssue({code:"custom",message:"Live bindings require an explicit target layer"});
+});
+export type LiveBinding = z.infer<typeof liveBindingSchema>;
+export const DISABLED_BINDING: LiveBinding = {enabled:false,layerId:null,priority:"keyframes-win"};
+const legacyGraphSchema = z.object({
+  schemaVersion:z.literal(1),
+  id:z.string().min(1).max(64),
+  title:z.string().min(1).max(120),
+  nodes:z.array(nodeSchema).min(1).max(GRAPH_NODE_LIMIT),
+  edges:z.array(edgeSchema).max(GRAPH_EDGE_LIMIT),
+}).strict();
 export const graphSchema = z.object({
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
+  binding:liveBindingSchema,
   id: z.string().min(1).max(64),
   title: z.string().min(1).max(120),
   nodes: z.array(nodeSchema).min(1).max(GRAPH_NODE_LIMIT),
@@ -98,11 +117,19 @@ export function inputPorts(kind: GraphKind): readonly GraphPort[] {
 }
 export function parseGraph(value: unknown): NodeGraph | null {
   const result = graphSchema.safeParse(value);
-  return result.success ? result.data : null;
+  if(result.success)return result.data;
+  const old=legacyGraphSchema.safeParse(value);
+  if(!old.success)return null;
+  // Migration always passes through the strict v2 graph validator.
+  const migrated=graphSchema.safeParse({...old.data,schemaVersion:2,binding:DISABLED_BINDING});
+  return migrated.success?migrated.data:null;
+}
+export function updateGraphBinding(graph:NodeGraph,binding:LiveBinding):NodeGraph {
+  return parseGraph({...graph,binding})??graph;
 }
 export function initialGraph(): NodeGraph {
   return {
-    schemaVersion: 1, id: "graph-1", title: "Sine motion",
+    schemaVersion: 2, binding:DISABLED_BINDING, id: "graph-1", title: "Sine motion",
     nodes: [
       { id: "time", kind: "time", title: "Timeline Time", x: 90, y: 340 },
       { id: "amp", kind: "constant", title: "Amplitude", x: 90, y: 95, value: 1 },
