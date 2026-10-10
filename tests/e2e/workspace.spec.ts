@@ -223,8 +223,9 @@ test("Studio occupies the full browser width while keeping the viewport and side
   expect(layout.detailsHeight).toBeLessThan(225);
 });
 
-test("fullscreen button enters and exits real browser fullscreen when supported", async ({ page, browserName }) => {
+test("fullscreen button enters and exits real browser fullscreen when supported", async ({ page, browserName }, testInfo) => {
   test.skip(browserName !== "chromium", "Chromium-only fullscreen contract");
+  test.skip(testInfo.project.name==="mobile-chromium", "Mobile emulation advertises fullscreen but headless requests may never resolve");
   await page.goto("/studio");
   const enter = page.getByRole("button", { name: "Enter fullscreen" });
   await expect(enter).toBeVisible();

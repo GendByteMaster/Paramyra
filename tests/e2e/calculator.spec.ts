@@ -97,13 +97,16 @@ test("Calculator is an independent desktop window with dragging, maximize and Es
   await expect(page.getByRole("textbox",{name:"Calculator expression"})).toHaveValue("15/3");
 });
 
-test("Calculator opens from Formula Editor and works inside fullscreen",async({page})=>{
+test("Calculator opens from Formula Editor and works inside fullscreen",async({page},testInfo)=>{
   await page.goto("/studio");
   await expect(page.locator(".pm-workspace")).toBeVisible();
   await page.getByRole("combobox",{name:"Mathematical form"}).selectOption("formula");
   await page.getByRole("button",{name:"Open calculator from Formula Editor"}).click();
   await expect(page.getByRole("dialog",{name:"Scientific calculator window"})).toBeVisible();
   await page.getByRole("button",{name:"Close calculator window"}).click();
+  // Mobile Chromium emulation exposes requestFullscreen without reliably completing it.
+  // The mobile modal window is covered independently above; desktop owns the Fullscreen API test.
+  if(testInfo.project.name==="mobile-chromium")return;
   const supported=await page.evaluate(()=>typeof document.documentElement.requestFullscreen==="function");
   if(supported){
     await page.getByRole("button",{name:"Enter fullscreen"}).click();
