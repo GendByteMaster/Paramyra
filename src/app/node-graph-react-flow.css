@@ -133,3 +133,43 @@
 @media(prefers-reduced-motion:reduce){
  .pm-ng-reactflow-shell * {transition:none!important;animation:none!important}
 }
+
+
+/* M3.3: dedicated full Graph Workspace, not a compressed Studio widget. */
+.pm-ng-root.pm-ng-fullscreen {position:fixed;inset:0;width:100vw;height:100dvh;min-height:0;z-index:1000;background:#091422}
+.pm-ng-commandbar {display:flex;align-items:center;gap:7px;flex:none;min-width:0;min-height:51px;
+  padding:7px 16px;border-bottom:1px solid #7596c24d;background:linear-gradient(95deg,#15253b,#101c2e);
+  overflow-x:auto;scrollbar-width:thin}
+.pm-ng-commandbar button {display:inline-flex;align-items:center;justify-content:center;gap:7px;flex:none;
+  min-height:35px;padding:7px 11px;border-radius:9px;border:1px solid #81a4d043;
+  background:#1b304b;color:#c9daf2;font-size:11px;font-weight:690;white-space:nowrap}
+.pm-ng-commandbar button:hover:not(:disabled) {background:#2b4b71;border-color:#80c8ec9e}
+.pm-ng-commandbar button:disabled {opacity:.38}
+.pm-ng-command-label {display:inline-flex;align-items:center;gap:6px;padding-right:6px;
+  color:#a3c0e9;font-size:10px;font-weight:800;letter-spacing:.1em;white-space:nowrap}
+.pm-ng-command-separator {height:23px;border-left:1px solid #90aed759;margin:0 3px}
+.pm-ng-commandbar button[aria-label="Export full project"] {border-color:#80debe93;background:#244f4b;color:#b1f2df}
+.pm-ng-selection-summary {margin-left:auto;color:#97b9d9;font-size:11px;font-weight:700;white-space:nowrap}
+.pm-ng-reactflow .react-flow__node-group {z-index:-10!important;pointer-events:none}
+.pm-ng-rf-group {width:100%;height:100%;border:1.5px dashed #63b0e6aa;border-radius:17px;
+ background:linear-gradient(135deg,#35558232,#20415820);box-shadow:inset 0 0 24px #5295bf15;
+ pointer-events:none}
+.pm-ng-rf-group-header {position:absolute;display:flex;align-items:center;gap:9px;top:0;left:0;right:0;height:36px;
+ padding:0 14px;background:#234261ed;border-radius:15px 15px 0 0;border-bottom:1px solid #8dbce955;
+ color:#c5e9ff;cursor:grab;pointer-events:auto;touch-action:none}
+.pm-ng-rf-group-header strong {font-size:12px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pm-ng-rf-group-header small {font-size:10px;margin-left:auto;color:#8dcae6;white-space:nowrap}
+.pm-ng-reactflow .react-flow__node-group.selected .pm-ng-rf-group {border-color:#a0e7e1;box-shadow:inset 0 0 26px #63b9b92e,0 0 0 1px #78d9dc8a}
+.pm-ng-reactflow .react-flow__selection {border:1px dashed #a0dfff;background:#68bbdf24}
+.pm-ng-reactflow .react-flow__node.selected .pm-ng-rf-node {border-color:#9ecafa}
+@media(max-width:1050px) {
+ .pm-ng-commandbar {padding:7px 12px;min-height:47px}
+ .pm-ng-command-label {display:none}
+ .pm-ng-commandbar button {font-size:11px;min-height:35px}
+ .pm-ng-root.pm-ng-fullscreen .pm-ng-board {height:70dvh}
+}
+@media(max-width:600px) {
+ .pm-ng-commandbar {gap:5px;padding:6px 8px}
+ .pm-ng-selection-summary {margin-left:0}
+ .pm-ng-commandbar button {padding:7px 9px}
+}
