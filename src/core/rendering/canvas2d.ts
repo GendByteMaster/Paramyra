@@ -1,7 +1,7 @@
 import { gridStep, layerWorldPoint, pixelScale, screenToWorld, worldToScreen, type Size } from "./geometry";
 import type { SceneDocument } from "../scenes/schema";
 import { documentFromScene, type MathDocument, type MathLayer } from "../document/schema";
-import { resolveAnimatedDocument } from "../animation/keyframes";
+import { resolveLiveScene, type CompiledGraph } from "../graph/live";
 
 export type CanvasView = {
   zoom: number;
@@ -25,6 +25,7 @@ export function drawDocument(
   time: number,
   view: CanvasView = defaultView,
   transparent = false,
+  liveGraph: CompiledGraph | null = null,
 ): void {
   if (width <= 0 || height <= 0 || !Number.isFinite(width * height * time)) return;
 
@@ -38,7 +39,7 @@ export function drawDocument(
   ctx.fillRect(0, 0, width, height);
   }
 
-  const renderedDoc = resolveAnimatedDocument(doc,time);
+  const renderedDoc = resolveLiveScene(doc,time,liveGraph).document;
   const size: Size = { width, height };
   const visibleCount = renderedDoc.layers.filter(layer => layer.visible && layer.opacity > 0).length;
   const sampleBudget = Math.max(320, Math.floor(10_000 / Math.max(1, visibleCount)));
