@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { drawScene } from "@/core/rendering/canvas2d";
 import type { SceneDocument } from "@/core/scenes/schema";
 
-export function SceneCanvas({ scene, playing = true }: { scene: SceneDocument; playing?: boolean }) {
+export function SceneCanvas({ scene, playing = true, zoom = 1 }: { scene: SceneDocument; playing?: boolean; zoom?: number }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const time = useRef(0);
 
@@ -25,7 +25,7 @@ export function SceneCanvas({ scene, playing = true }: { scene: SceneDocument; p
       last = now;
       const ratio = Math.min(window.devicePixelRatio || 1, 2);
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-      drawScene(ctx, width, height, scene, time.current);
+      drawScene(ctx, width, height, scene, time.current, zoom);
       if (playing && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
         raf = requestAnimationFrame(render);
       }
@@ -49,7 +49,7 @@ export function SceneCanvas({ scene, playing = true }: { scene: SceneDocument; p
       cancelAnimationFrame(raf);
       observer.disconnect();
     };
-  }, [scene, playing]);
+  }, [scene, playing, zoom]);
 
   return <div className="scene-frame"><canvas ref={ref} role="img" aria-label={"Visualization of " + scene.title} /></div>;
 }
