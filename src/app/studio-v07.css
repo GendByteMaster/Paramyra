@@ -409,3 +409,21 @@
   .pm-animation-graph {height:110px;}
   .pm-tabs {flex-wrap:wrap;gap:3px;}
 }
+
+/* v1.0 M2 — multi-property tracks and precise keyframe manipulation */
+.pm-multitrack {display:grid;gap:4px;max-height:228px;overflow-y:auto;overscroll-behavior:contain;padding:4px 0;scrollbar-width:thin;}
+.pm-multitrack-row {display:grid;grid-template-columns:minmax(90px,133px) minmax(0,1fr);align-items:center;gap:4px;min-width:0;padding:2px 4px;border-radius:8px;}
+.pm-multitrack-row.is-active {background:#38607a33;}
+.pm-multitrack-label {border:0;background:transparent;text-align:left;font-size:10px;color:#a7c4de;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:8px 6px;border-radius:6px;cursor:pointer;}
+.pm-multitrack-label[aria-pressed=true] {color:#abf3e2;font-weight:800;}
+.pm-multitrack-label:focus-visible {outline:2px solid #91e9f8;}
+.pm-multitrack .pm-animation-track {margin:0 9px;height:29px;min-width:0;}
+.pm-keyframe-marker {touch-action:none;user-select:none;}
+.pm-keyframe-time-label {display:flex;align-items:center;gap:7px;font-size:10px;color:#a7bbd5;}
+.pm-keyframe-time-label input {width:70px;min-height:32px;padding:5px 7px;border:1px solid #91b9e84c;border-radius:7px;background:#16283d;color:#e3f2ff;font-size:11px;}
+@media(max-width:760px) {
+  .pm-multitrack-row {grid-template-columns:minmax(84px,106px) minmax(0,1fr);}
+  .pm-multitrack-label {font-size:9px;padding:10px 4px;}
+  .pm-multitrack .pm-animation-track {margin:0 10px;}
+  .pm-keyframe-marker {width:19px;height:19px;}
+}
