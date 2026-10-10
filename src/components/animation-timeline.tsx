@@ -30,6 +30,7 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
   const [windowStart,setWindowStart]=useState(0);
   const [snap,setSnap]=useState<TimelineSnap>(0);
   const [trackMode,setTrackMode]=useState<"selected"|"all">("selected");
+  const [boxMode,setBoxMode]=useState(false);
   const span=duration/zoom;
   const start=clamp(windowStart,0,Math.max(0,duration-span));
   const window:TimelineWindow={start,end:start+span};
@@ -156,6 +157,8 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
         <button type="button" aria-label="Fit entire timeline" onClick={()=>{setZoom(1);setWindowStart(0);}}>Fit</button>
         <button type="button" aria-label="Pan timeline right" disabled={window.end>=duration} onClick={()=>pan(.5)}>→</button>
       </div>
+      <button type="button" className="pm-box-mode-button" aria-label="Toggle box selection tool"
+        aria-pressed={boxMode} onClick={()=>setBoxMode(v=>!v)}>Box select</button>
       <label className="pm-timeline-snap">Snap
         <select aria-label="Keyframe snapping" value={snap} onChange={e=>setSnap(Number(e.target.value) as TimelineSnap)}>
           <option value={0}>Off</option><option value={0.1}>0.1s</option>
@@ -209,7 +212,7 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
     {trackMode==="all"?
       <TimelineLayerOverview layers={layers} selectedLayerId={layer.id} window={window}
         onSelectLayer={onSelectLayer} onSeek={onSeek}/>:
-    <div className="pm-multitrack" aria-label="Animation property tracks" ref={trackList}>
+    <div className={"pm-multitrack"+(boxMode?" pm-box-mode":"")} aria-label="Animation property tracks" ref={trackList}>
       {available.map(p=>{
         const trackFrames=getFrames(p);
         return <div className={"pm-multitrack-row"+(p===active?" is-active":"")} key={p}>
@@ -223,7 +226,7 @@ export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLay
               if(bounds.width>0){setProperty(p);onSeek(timeAtPointer(e.clientX,bounds.left,bounds.width,window));}
             }}
             onPointerDown={e=>{
-              if(e.button!==0||(e.target as HTMLElement).closest("button"))return;
+              if(e.button!==0||(!boxMode&&(e.target as HTMLElement).closest("button")))return;
               boxDrag.current={pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,
                 rect:e.currentTarget.getBoundingClientRect(),extend:e.shiftKey||e.ctrlKey||e.metaKey};
               e.currentTarget.setPointerCapture(e.pointerId);
