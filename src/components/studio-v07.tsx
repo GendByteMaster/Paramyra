@@ -320,7 +320,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
       <button type="button" onClick={()=>{void exportFrame("svg");}}><Download size={14}/> Download SVG</button>
       <button type="button" className="pm-export-close" aria-label="Close image export" onClick={()=>setExportOpen(false)}>✕</button>
     </div>}
-    <div className={"pm-grid"+(!libraryOpen?" pm-no-library":"")+(!inspectorOpen?" pm-no-inspector":"")+(animationFocus?" pm-animation-focus":"")}>
+    <div className={"pm-grid"+(!libraryOpen?" pm-no-library":"")+(!inspectorOpen?" pm-no-inspector":"")+(animationFocus&&detailsOpen&&detailsTab==="animation"?" pm-animation-focus":"")}>
       {libraryOpen&&<button type="button" className="pm-library-backdrop" aria-label="Close scene library" onClick={()=>setLibraryOpen(false)}/>}
       {libraryOpen&&<aside className="pm-sidebar" aria-label="Scene library">
         <header className="pm-sidebar-heading"><span className="pm-sidebar-mark"><Layers3 size={18}/></span><div><span className="pm-label">LIBRARY</span><h2>Scene Library</h2><p>Models, layers and presets</p></div></header>
@@ -424,9 +424,9 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
             <output>{time.toFixed(1)} / {doc.duration}s</output><select aria-label="Playback speed" value={speed} onChange={e=>setSpeed(Number(e.target.value))}><option value=".25">0.25×</option><option value=".5">0.5×</option><option value="1">1×</option><option value="2">2×</option></select>
           </div>
           <div className="pm-tabs" role="tablist" aria-label="Scene detail tabs">
-            <button type="button" role="tab" aria-selected={detailsTab==="overview"} onClick={()=>setDetailsTab("overview")}><Info size={14}/> Overview</button>
+            <button type="button" role="tab" aria-selected={detailsTab==="overview"} onClick={()=>{setDetailsTab("overview");setAnimationFocus(false);}}><Info size={14}/> Overview</button>
             <button type="button" role="tab" aria-selected={detailsTab==="animation"} onClick={openAnimation}><Waves size={14}/> Animation</button>
-            <button type="button" role="tab" aria-selected={detailsTab==="json"} onClick={()=>setDetailsTab("json")}><FileJson2 size={14}/> Scene JSON</button>
+            <button type="button" role="tab" aria-selected={detailsTab==="json"} onClick={()=>{setDetailsTab("json");setAnimationFocus(false);}}><FileJson2 size={14}/> Scene JSON</button>
             <span className="pm-tabs-meta">VERSION {doc.schemaVersion} · LOCAL ONLY</span>
           </div>
           {detailsTab==="animation"?<div role="tabpanel" className="pm-animation-surface">
