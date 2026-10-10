@@ -23,11 +23,13 @@ export function SceneCanvas(props: Props) {
   const ref = useRef<HTMLCanvasElement>(null);
   const propsRef = useRef(props);
   const timeRef = useRef(props.time ?? 0);
+  const wakeRef = useRef<() => void>(() => {});
   const drag = useRef<{ startX: number; startY: number; panX: number; panY: number } | null>(null);
 
-  useEffect(() => { propsRef.current = props; });
+  useEffect(() => { propsRef.current = props; wakeRef.current(); }, [props.scene, props.playing, props.view, props.zoom, props.duration, props.speed]);
   useEffect(() => {
     timeRef.current = props.time ?? 0;
+    wakeRef.current();
     // Explicit scrubbing only. Ordinary time labels must not restart the animation clock.
   // Props are synchronized through seekVersion, not on each time label tick.
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -40,6 +42,7 @@ export function SceneCanvas(props: Props) {
     let width = 1, height = 1, raf = 0, last = 0, notified = 0, active = true;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
     const render = (now: number) => {
+      raf = 0;
       if (!active) return;
       const p = propsRef.current;
       if (p.playing && !reduced.matches && last > 0) {
@@ -55,20 +58,29 @@ export function SceneCanvas(props: Props) {
         notified = now;
         p.onTimeChange(timeRef.current);
       }
-      raf = requestAnimationFrame(render);
+      if (p.playing && !reduced.matches && !document.hidden) wake();
     };
+    const wake = () => { if (active && !raf) raf = requestAnimationFrame(render); };
+    wakeRef.current = wake;
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
       width = Math.max(1, rect.width); height = Math.max(1, rect.height);
       const ratio = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = Math.round(width * ratio);
       canvas.height = Math.round(height * ratio);
+      wake();
     };
     const observer = new ResizeObserver(resize);
     observer.observe(canvas);
     resize();
-    raf = requestAnimationFrame(render);
-    return () => { active = false; cancelAnimationFrame(raf); observer.disconnect(); };
+    document.addEventListener("visibilitychange", wake);
+    reduced.addEventListener("change", wake);
+    return () => {
+      active = false; wakeRef.current = () => {};
+      cancelAnimationFrame(raf); observer.disconnect();
+      document.removeEventListener("visibilitychange", wake);
+      reduced.removeEventListener("change", wake);
+    };
   }, []);
 
   const onPointerDown = (event: PointerEvent<HTMLCanvasElement>) => {
