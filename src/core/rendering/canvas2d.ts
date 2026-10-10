@@ -1,7 +1,7 @@
 import { harmonicWave, lissajous, polarRose } from "../math/curves";
 import type { SceneDocument } from "../scenes/schema";
 
-export function drawScene(ctx: CanvasRenderingContext2D, width: number, height: number, scene: SceneDocument, time: number) {
+export function drawScene(ctx: CanvasRenderingContext2D, width: number, height: number, scene: SceneDocument, time: number, zoom = 1) {
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = "#080e1a";
   ctx.fillRect(0, 0, width, height);
@@ -21,7 +21,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, width: number, height: 
   ctx.moveTo(0, -height / 2); ctx.lineTo(0, height / 2);
   ctx.stroke();
 
-  const radius = Math.min(width, height) * 0.43;
+  const radius = Math.min(width, height) * 0.43 * zoom;
   ctx.lineWidth = scene.params.strokeWidth;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
@@ -35,7 +35,7 @@ export function drawScene(ctx: CanvasRenderingContext2D, width: number, height: 
     for (let i = 0; i <= count; i++) {
       const x = i / count * 2 - 1;
       const y = harmonicWave(x, scene.params, time);
-      if (i === 0) ctx.moveTo(x * width * 0.46, -y * radius);
+      if (i === 0) ctx.moveTo(x * width * 0.46 * zoom, -y * radius);
       else ctx.lineTo(x * width * 0.46, -y * radius);
     }
   } else {

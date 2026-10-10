@@ -19,7 +19,7 @@ test("parameters remain saved after reload", async ({ page }) => {
   await expect(slider).toHaveValue("12");
   await page.reload();
   await expect(page.locator("#frequencyX")).toHaveValue("12");
-  await page.getByRole("button", { name: "Reset" }).click();
+  await page.getByRole("button", { name: "Reset", exact: true }).click();
   await expect(page.locator("#frequencyX")).toHaveValue("3");
 });
 
@@ -61,9 +61,47 @@ test("home presents a functional gallery and workspace entry", async ({ page }) 
 
 test("quick scene switch updates the inspector", async ({ page }) => {
   await page.goto("/studio");
-  await page.getByRole("button", { name: /Polar Rose/ }).click();
+  const library = page.getByRole("complementary", { name: "Scene library" });
+  const openLibrary = async () => {
+    if (!(await library.isVisible())) await page.getByRole("button", { name: "Toggle scene library" }).click();
+  };
+  await openLibrary();
+  await library.getByRole("button", { name: /Polar Rose/ }).click();
   await expect(page.locator("#scene-kind")).toHaveValue("polar-rose");
-  await expect(page.getByText("r = a cos(kθ)").first()).toBeVisible();
-  await page.getByRole("button", { name: /Harmonic Waves/ }).click();
+  await expect(page.getByText("r = A cos(kθ)").first()).toBeVisible();
+  await openLibrary();
+  await library.getByRole("button", { name: /Harmonic Waves/ }).click();
   await expect(page.locator("#scene-kind")).toHaveValue("wave");
+});
+
+test("workspace tools have real behavior", async ({ page }) => {
+  await page.goto("/studio");
+  await expect(page.getByRole("heading", { name: /mathematical studio/i })).toBeVisible();
+
+  await expect(page.getByLabel("Zoom level")).toHaveText("100%");
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  await expect(page.getByLabel("Zoom level")).toHaveText("125%");
+  await page.getByRole("button", { name: "Reset zoom" }).click();
+  await expect(page.getByLabel("Zoom level")).toHaveText("100%");
+
+  await page.getByRole("tab", { name: "Scene JSON" }).click();
+  await expect(page.getByRole("tabpanel")).toContainText('"schemaVersion": 1');
+  await page.getByRole("tab", { name: "Overview" }).click();
+  await expect(page.getByRole("tabpanel")).toContainText("Amplitude");
+
+  await page.getByRole("button", { name: "Toggle inspector" }).click();
+  await expect(page.getByRole("complementary", { name: "Scene inspector" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Toggle inspector" }).click();
+  await expect(page.getByRole("complementary", { name: "Scene inspector" })).toBeVisible();
+});
+
+test("scene search filters only real registered presets", async ({ page }) => {
+  await page.goto("/studio");
+  const library = page.getByRole("complementary", { name: "Scene library" });
+  if (!(await library.isVisible())) await page.getByRole("button", { name: "Toggle scene library" }).click();
+  await page.getByRole("searchbox", { name: "Search mathematical scenes" }).fill("rose");
+  await expect(library.getByRole("button", { name: /Polar Rose/ })).toBeVisible();
+  await expect(library.getByRole("button", { name: /Harmonic Waves/ })).toHaveCount(0);
+  await page.getByRole("searchbox", { name: "Search mathematical scenes" }).fill("missing scene");
+  await expect(library.getByText("No scenes match your search.")).toBeVisible();
 });
