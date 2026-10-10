@@ -115,21 +115,20 @@ test("Graph Workspace hides public navigation and footer, fills viewport, and ke
   await expect(page.locator("body > footer")).toHaveCount(1);
 });
 
-test("Graph Workspace on narrow screens scrolls inside the editor instead of scrolling the page", async ({page}) => {
+test("Graph Workspace on compact screens scrolls the document without nested page scroll traps", async ({page}) => {
   await page.setViewportSize({width:800,height:600});
   await page.goto("/studio/graph");
 
-  const dimensions = await page.evaluate(() => {
-    const pane = document.querySelector(".pm-ng-layout")!;
-    return {
-      viewport: window.innerHeight,
-      page: document.documentElement.scrollHeight,
-      paneScrollHeight: pane.scrollHeight,
-      paneClientHeight: pane.clientHeight,
-    };
-  });
-  expect(dimensions.page).toBeLessThanOrEqual(dimensions.viewport + 1);
-  expect(dimensions.paneScrollHeight).toBeGreaterThan(dimensions.paneClientHeight);
+  const dimensions = await page.evaluate(() => ({
+    viewport: window.innerHeight,
+    page: document.documentElement.scrollHeight,
+    overflowY: getComputedStyle(document.documentElement).overflowY,
+    layoutOverflow: getComputedStyle(document.querySelector(".pm-ng-layout")!).overflowY,
+  }));
+  expect(dimensions.page).toBeGreaterThan(dimensions.viewport);
+  expect(dimensions.overflowY).toBe("auto");
+  expect(dimensions.layoutOverflow).not.toBe("auto");
+  await expect(page.getByRole("complementary",{name:"Graph inspector"})).toBeVisible();
 });
 
 test("Graph editor playhead updates scene preview without page scrolling", async ({page}) => {
