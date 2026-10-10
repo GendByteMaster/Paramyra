@@ -6,6 +6,7 @@ import "./studio-workspace.css";
 import "./studio-shell.css";
 import "./studio-density.css";
 import "./studio-fullscreen.css";
+import "./studio-v07.css";
 
 export const metadata: Metadata = {
   title: { default: "Paramyra — Mathematics Comes Alive", template: "%s | Paramyra" },

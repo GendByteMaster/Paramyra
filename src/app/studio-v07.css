@@ -1,0 +1,39 @@
+/* Paramyra Studio v0.7: mathematical layers, timeline and camera tools */
+.pm-layers-panel { border-top:1px solid var(--pm-stroke); padding:12px; display:grid;gap:10px;min-height:0;max-height:36%; }
+.pm-layers-heading { display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;font-weight:700;color:#b6ceef; }
+.pm-layers-heading span {display:flex;gap:8px;align-items:center;}
+.pm-layers-heading button,.pm-layer-row >button:not(.pm-layer-select) { color:#b4c7e5;background:#1e2b40;border:1px solid #96b8ee30;border-radius:8px;display:grid;place-items:center;min-width:28px;min-height:28px; }
+.pm-layers-panel select,.pm-save-preset input,.pm-textfield {background:#121d2e;color:#e5edff;border:1px solid #9bbcea35;border-radius:9px;padding:8px 10px;min-width:0;width:100%;font-size:12px;}
+.pm-layer-list {min-height:0;overflow:auto;display:grid;gap:5px;align-content:start;}
+.pm-layer-row {display:flex;align-items:center;gap:5px;padding:5px;border:1px solid #98b9ed1c;border-radius:9px;}
+.pm-layer-row.selected {background:#1b3250;border-color:#7eb1fa72;}
+.pm-layer-select {flex:1;display:flex;align-items:center;gap:8px;min-width:0;color:#e3edff;text-align:left;font-size:11px;background:transparent;border:0;}
+.pm-layer-select span:last-child {overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.pm-sidebar-bottom {padding:12px;max-height:28%;overflow-y:auto;}
+.pm-save-preset {display:flex;gap:5px;margin-top:10px;}
+.pm-save-preset button,.pm-user-preset button {background:#223b60;color:#d9e8ff;border:1px solid #94bbf04d;border-radius:8px;padding:7px 8px;font-size:11px;}
+.pm-user-preset {display:flex;justify-content:space-between;gap:5px;align-items:center;margin:5px 0;}
+.pm-user-preset button:first-child {flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;}
+.pm-view-tools {position:absolute;top:16px;left:14px;display:flex;gap:4px;align-items:center;background:#0e1b30ed;border:1px solid #8baee244;padding:4px 6px;border-radius:10px;}
+.pm-view-tools button {background:transparent;border:0;border-radius:7px;color:#c1d7f9;display:grid;place-items:center;min-width:30px;min-height:30px;}
+.pm-view-tools button:hover,.pm-view-tools button[aria-pressed=true] {background:#284975;color:white;}
+.pm-view-tools span {font-size:10px;color:#90abc9;margin:0 6px;white-space:nowrap;}
+.pm-timeline {display:flex;align-items:center;gap:12px;min-height:36px;padding:6px 12px;border-bottom:1px solid var(--pm-stroke);}
+.pm-timeline label {font-size:11px;font-weight:700;color:#b8cceb;}
+.pm-timeline input {flex:1;min-width:40px;accent-color:#7db7ff;}
+.pm-timeline output {font:11px ui-monospace,monospace;color:#a9c2eb;min-width:74px;text-align:center;}
+.pm-timeline select {border:1px solid #adcdf746;background:#1a2b43;color:#d3e5ff;padding:5px 8px;border-radius:8px;font-size:11px;}
+.pm-layer-actions {display:flex;gap:5px;flex-wrap:wrap;}
+.pm-layer-actions button {display:flex;gap:5px;align-items:center;background:#192c45;color:#bed4f4;border:1px solid #91baf444;border-radius:8px;min-height:32px;padding:5px 9px;font-size:11px;}
+.pm-layer-actions button:disabled,.pm-icon-btn:disabled,.pm-layers-heading button:disabled {opacity:.35;cursor:not-allowed;}
+.pm-style-fields,.pm-offset-fields {display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.pm-style-fields label,.pm-offset-fields label {display:flex;align-items:center;gap:6px;justify-content:space-between;color:#afc2de;font-size:11px;}
+.pm-style-fields input[type=color] {width:38px;height:27px;border:1px solid #759ad333;border-radius:8px;background:transparent;}
+.pm-style-fields input[type=range] {width:80px;accent-color:#7faef5;}
+.pm-offset-fields .pm-numeric-input {width:68px;}
+.pm-inspector-scroll {overscroll-behavior:contain;}
+.pm-inspector-guide {margin-top:auto;}
+.pm-layer-list button:focus-visible,.pm-view-tools button:focus-visible {outline:2px solid #c2ddff;outline-offset:2px;}
+@media(min-width:960px) and (min-height:680px) {.pm-sidebar-bottom {max-height:30%;}.pm-center .pm-details {max-height:245px;}}
+@media(max-width:959px) {.pm-layers-panel {max-height:none;}.pm-sidebar-bottom {max-height:none;}}
+@media(max-width:560px) {.pm-timeline {gap:7px;}.pm-view-tools span{display:none;}.pm-style-fields,.pm-offset-fields{grid-template-columns:1fr;}}

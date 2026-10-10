@@ -1,96 +1,117 @@
 import { harmonicWave, lissajous, polarRose } from "../math/curves";
 import type { SceneDocument } from "../scenes/schema";
+import { documentFromScene, type MathDocument, type MathLayer } from "../document/schema";
 
-/**
- * Deterministic Canvas 2D renderer.
- * CSS pixels are the coordinate space; the host SceneCanvas supplies its DPR transform.
- * No React dependencies, independently testable and suitable for future render adapters.
- */
-export function drawScene(
+export type CanvasView = {
+  zoom: number;
+  pan: { x: number; y: number };
+  grid: boolean;
+  axes: boolean;
+  style: "glow" | "clean";
+};
+
+export const defaultView: CanvasView = {
+  zoom: 1, pan: { x: 0, y: 0 }, grid: true, axes: true, style: "glow",
+};
+
+/** The renderer accepts explicit time in seconds. There is no frame-dependent physics state. */
+export function drawDocument(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
-  scene: SceneDocument,
+  doc: MathDocument,
   time: number,
-  zoom = 1,
+  view: CanvasView = defaultView,
 ): void {
-  if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) return;
-  const shortest = Math.min(width, height);
-  const grid = 36;
+  if (width <= 0 || height <= 0 || !Number.isFinite(width * height * time)) return;
 
   ctx.clearRect(0, 0, width, height);
-  const backdrop = ctx.createLinearGradient(0, 0, width, height);
-  backdrop.addColorStop(0, "#091322");
-  backdrop.addColorStop(0.55, "#07111f");
-  backdrop.addColorStop(1, "#080d18");
-  ctx.fillStyle = backdrop;
+  const bg = ctx.createLinearGradient(0, 0, width, height);
+  bg.addColorStop(0, "#090e17");
+  bg.addColorStop(0.58, "#0b1321");
+  bg.addColorStop(1, "#080d16");
+  ctx.fillStyle = bg;
   ctx.fillRect(0, 0, width, height);
 
-  // Crisp grid at CSS-pixel boundaries, with stronger 5th intervals.
-  for (let x = width / 2 % grid, n = 0; x <= width; x += grid, n++) {
-    const major = n % 5 === 0;
-    ctx.beginPath();
-    ctx.strokeStyle = major ? "rgba(151, 184, 239, .085)" : "rgba(151, 184, 239, .039)";
+  // Grid remains axis-aligned, displaced by the user's pan in CSS pixels.
+  const step = 36;
+  if (view.grid) {
+    const ox = ((width / 2 + view.pan.x) % step + step) % step;
+    const oy = ((height / 2 + view.pan.y) % step + step) % step;
     ctx.lineWidth = 1;
-    ctx.moveTo(Math.round(x) + 0.5, 0);
-    ctx.lineTo(Math.round(x) + 0.5, height);
+    ctx.strokeStyle = "rgba(146,174,213,.047)";
+    ctx.beginPath();
+    for (let x = ox; x < width; x += step) {
+      ctx.moveTo(Math.round(x) + .5, 0); ctx.lineTo(Math.round(x) + .5, height);
+    }
+    for (let y = oy; y < height; y += step) {
+      ctx.moveTo(0, Math.round(y) + .5); ctx.lineTo(width, Math.round(y) + .5);
+    }
     ctx.stroke();
   }
-  for (let y = height / 2 % grid, n = 0; y <= height; y += grid, n++) {
-    const major = n % 5 === 0;
+  const cx = width / 2 + view.pan.x;
+  const cy = height / 2 + view.pan.y;
+  if (view.axes) {
     ctx.beginPath();
-    ctx.strokeStyle = major ? "rgba(151, 184, 239, .085)" : "rgba(151, 184, 239, .039)";
     ctx.lineWidth = 1;
-    ctx.moveTo(0, Math.round(y) + 0.5);
-    ctx.lineTo(width, Math.round(y) + 0.5);
+    ctx.strokeStyle = "rgba(159,185,224,.25)";
+    ctx.moveTo(Math.round(cx) + .5, 0); ctx.lineTo(Math.round(cx) + .5, height);
+    ctx.moveTo(0, Math.round(cy) + .5); ctx.lineTo(width, Math.round(cy) + .5);
     ctx.stroke();
   }
+  const r = Math.min(width, height) * .45 * view.zoom;
+  for (const layer of doc.layers) {
+    if (!layer.visible || layer.opacity === 0) continue;
+    drawLayer(ctx, width, r, cx, cy, layer, time, view.style, view.zoom);
+  }
+}
 
-  const centerX = Math.round(width / 2) + 0.5;
-  const centerY = Math.round(height / 2) + 0.5;
-  ctx.beginPath();
-  ctx.strokeStyle = "rgba(135, 172, 234, .25)";
-  ctx.lineWidth = 1;
-  ctx.moveTo(centerX, 0);
-  ctx.lineTo(centerX, height);
-  ctx.moveTo(0, centerY);
-  ctx.lineTo(width, centerY);
-  ctx.stroke();
-
-  // Keep geometry centered and leave space around the longest curve at 100% zoom.
-  const radius = shortest * 0.465 * zoom;
-  const count = Math.max(768, Math.min(2200, Math.ceil(shortest * 1.4)));
-  const point = scene.kind === "lissajous" ? lissajous : polarRose;
+function drawLayer(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  radius: number,
+  cx: number,
+  cy: number,
+  layer: MathLayer,
+  time: number,
+  style: CanvasView["style"],
+  zoom: number,
+): void {
+  const n = Math.max(768, Math.min(2200, Math.ceil(radius * 3)));
   ctx.save();
-  ctx.translate(width / 2, height / 2);
+  ctx.translate(cx + layer.offset.x * radius, cy - layer.offset.y * radius);
   ctx.beginPath();
-  for (let i = 0; i <= count; i++) {
-    const t = i / count;
-    const coordinate = scene.kind === "wave"
-      ? { x: (2 * t - 1) * width * 0.46 * zoom, y: -harmonicWave(2 * t - 1, scene.params, time) * radius }
-      : point(t * Math.PI * 2, scene.params, time);
-    const x = scene.kind === "wave" ? coordinate.x : coordinate.x * radius;
-    const y = scene.kind === "wave" ? coordinate.y : -coordinate.y * radius;
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    const p = layer.kind === "lissajous"
+      ? lissajous(t * Math.PI * 2, layer.params, time)
+      : layer.kind === "polar-rose"
+        ? polarRose(t * Math.PI * 2, layer.params, time)
+        : { x: 2*t-1, y: harmonicWave(2*t-1, layer.params, time) };
+    const x = layer.kind === "wave" ? (2*t-1) * width * .46 * zoom : p.x * radius;
+    const y = -p.y * radius;
     if (i === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   }
-
-  const color = scene.kind === "polar-rose" ? "#80e3db" : scene.kind === "wave" ? "#90c8ff" : "#a9b8ff";
-  ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  ctx.strokeStyle = color;
-
-  // Two restrained passes are clearer on high-DPI screens than a large one-pass glow.
-  ctx.save();
-  ctx.globalAlpha = 0.35;
-  ctx.lineWidth = scene.params.strokeWidth * 2.4;
-  ctx.shadowColor = color;
-  ctx.shadowBlur = 10;
+  ctx.lineCap = "round";
+  ctx.strokeStyle = layer.color;
+  if (style === "glow") {
+    ctx.save();
+    ctx.globalAlpha = layer.opacity * .28;
+    ctx.shadowColor = layer.color;
+    ctx.shadowBlur = 9;
+    ctx.lineWidth = layer.params.strokeWidth * 2.4;
+    ctx.stroke();
+    ctx.restore();
+  }
+  ctx.globalAlpha = layer.opacity;
+  ctx.lineWidth = Math.max(1, layer.params.strokeWidth);
   ctx.stroke();
   ctx.restore();
+}
 
-  ctx.globalAlpha = 0.98;
-  ctx.lineWidth = Math.max(1.05, scene.params.strokeWidth);
-  ctx.stroke();
-  ctx.restore();
+/** Compatibility wrapper for the public v1 scene gallery. */
+export function drawScene(ctx: CanvasRenderingContext2D, width: number, height: number, scene: SceneDocument, time: number, zoom = 1): void {
+  drawDocument(ctx, width, height, documentFromScene(scene), time, { ...defaultView, zoom });
 }
