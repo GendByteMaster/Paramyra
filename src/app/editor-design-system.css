@@ -28,7 +28,7 @@
 .pm-editor-shell, .pm-editor-shell * { box-sizing: border-box; }
 .pm-editor-shell.pm-workspace,
 .pm-editor-shell.pm-ng-root {
-  width: calc(100% - var(--editor-outer-pad) * 2);
+  width: calc(100% - 16px);
   max-width: none;
   margin: var(--editor-outer-pad) auto 0;
 }
