@@ -226,7 +226,8 @@ export function evaluateGraph(graph: NodeGraph, time: number): GraphResult {
     return { values: {}, outputs: {}, error: error instanceof Error ? error.message : "Evaluation failed." };
   }
 }
-function writeProperty(layer: MathLayer, property: AnimatableProperty, value: number): MathLayer {
+/** Shared whitelisted setter for static commits and ephemeral live projections. */
+export function writeGraphProperty(layer: MathLayer, property: AnimatableProperty, value: number): MathLayer {
   switch (property) {
     case "opacity": return { ...layer, opacity: value };
     case "offset.x": return { ...layer, offset: { ...layer.offset, x: value } };
@@ -253,7 +254,7 @@ export function projectGraph(doc: MathDocument, graph: NodeGraph, layerId: strin
       return { document: doc, error: property + " is outside " + bounds.min + "…" + bounds.max + ".", result };
     if (layer.keyframes?.some(frame => frame.property === property))
       return { document: doc, error: property + " has keyframes. Remove or disable that animation before applying a static graph value.", result };
-    updated = writeProperty(updated, property, value);
+    updated = writeGraphProperty(updated, property, value);
   }
   const next = updated === layer ? doc : { ...doc, layers: doc.layers.map(item => item.id === layerId ? updated : item) };
   return { document: next, error: null, result };
