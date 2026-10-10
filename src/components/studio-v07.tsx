@@ -99,6 +99,20 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
   const [detailsTab,setDetailsTab]=useState<"overview"|"animation"|"json">("overview");
   const [animationFocus,setAnimationFocus]=useState(false);
   const [animationPanelHeight,setAnimationPanelHeight]=useState(()=>Math.round(Math.max(350,window.innerHeight*.47)));
+  const [centerHeight,setCenterHeight]=useState(()=>window.innerHeight);
+  useEffect(()=>{
+    const element=centerRef.current;
+    if(!element)return;
+    const observer=new ResizeObserver(entries=>{
+      const height=Math.floor(entries[0]?.contentRect.height??0);
+      if(height<=0)return;
+      setCenterHeight(height);
+      const maximum=Math.max(320,height-210);
+      setAnimationPanelHeight(current=>Math.min(current,maximum));
+    });
+    observer.observe(element);
+    return ()=>observer.disconnect();
+  },[]);
   const animationResize=useRef<{pointerId:number;startY:number;height:number}|null>(null);
   const editorHeightMax=()=>Math.max(320,Math.floor((centerRef.current?.clientHeight??window.innerHeight)-210));
   const setEditorHeight=(value:number)=>setAnimationPanelHeight(Math.round(Math.max(300,Math.min(editorHeightMax(),value))));
@@ -400,7 +414,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
         {detailsOpen&&<section className="pm-details" aria-label="Scene details">
           {detailsTab==="animation"&&<div className="pm-animation-resizer" role="separator" tabIndex={0}
             aria-label="Resize animation workspace" aria-orientation="horizontal" aria-valuemin={300}
-            aria-valuemax={editorHeightMax()} aria-valuenow={animationPanelHeight}
+            aria-valuemax={Math.max(320,centerHeight-210)} aria-valuenow={animationPanelHeight}
             title="Drag to resize • arrow keys to adjust" onPointerDown={event=>{
               if(event.button!==0)return;
               animationResize.current={pointerId:event.pointerId,startY:event.clientY,height:animationPanelHeight};
