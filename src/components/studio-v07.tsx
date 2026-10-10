@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore, type ChangeEvent, type CSSProperties } from "react";
 import Link from "next/link";
-import { ArrowLeft, Calculator, Image as ImageIcon, Check, ChevronDown, ChevronUp, CircleDot, Copy, Download, Eye, EyeOff, FileJson2, Grid3X3, Info, Layers3, Maximize2, Minimize2, Minus, Move, MousePointer2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Pause, Play, Plus, Redo2, RotateCcw, Search, SlidersHorizontal, Trash2, Undo2, Upload, Waves } from "lucide-react";
+import { ArrowLeft, Calculator, Image as ImageIcon, Check, ChevronDown, ChevronUp, CircleDot, Copy, Download, Eye, EyeOff, FileJson2, GitBranch, Grid3X3, Info, Layers3, Maximize2, Minimize2, Minus, Move, MousePointer2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Pause, Play, Plus, Redo2, RotateCcw, Search, SlidersHorizontal, Trash2, Undo2, Upload, Waves } from "lucide-react";
 import { SceneCanvas } from "./scene-canvas";
 import { SceneGlyph } from "./scene-glyph";
 import { FormulaEditor } from "./formula-editor";
@@ -310,6 +310,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
         <span className="pm-local-label"><span className="live-indicator"/> LOCAL</span>
       </div>
       <div className="pm-project-actions">
+        <Link className="pm-action pm-action-quiet" href="/studio/graph" aria-label="Open Node Graph Workspace"><GitBranch size={15}/> Node Graph</Link>
         <button type="button" className="pm-icon-btn" aria-label="Undo" disabled={!history.past.length} onClick={undo}><Undo2 size={17}/></button>
         <button type="button" className="pm-icon-btn" aria-label="Redo" disabled={!history.future.length} onClick={redo}><Redo2 size={17}/></button>
         <span className="pm-toolbar-rule"/>
