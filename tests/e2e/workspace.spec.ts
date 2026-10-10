@@ -202,6 +202,9 @@ test("polar rose only exposes parameters that affect its curve", async ({ page }
 test("Studio occupies the full browser width while keeping the viewport and side tools usable", async ({ page }) => {
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto("/studio");
+  await expect(page.locator(".pm-workspace")).toBeVisible();
+  await expect(page.locator(".pm-sidebar")).toBeVisible();
+  await expect(page.locator(".pm-inspector")).toBeVisible();
   const layout = await page.evaluate(() => {
     const root = document.querySelector(".pm-workspace")!.getBoundingClientRect();
     const left = document.querySelector(".pm-sidebar")!.getBoundingClientRect();
