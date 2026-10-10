@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight, Orbit } from "lucide-react";
+import { SiteChrome } from "@/components/site-chrome";
 import "./globals.css";
 import "./studio-workspace.css";
 import "./studio-shell.css";
@@ -22,7 +23,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <a className="skip-link" href="#main-content">Skip to content</a>
         <div className="site-atmosphere" aria-hidden="true" />
-        <header className="topbar">
+        <SiteChrome>
+          <header className="topbar">
           <nav className="shell nav" aria-label="Main navigation">
             <Link href="/" className="brand" aria-label="Paramyra home">
               <span className="brand-icon" aria-hidden="true"><Orbit size={19}/></span>
@@ -37,9 +39,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             </div>
             <Link href="/studio" className="nav-cta">Launch Studio <ArrowUpRight size={14} aria-hidden="true"/></Link>
           </nav>
-        </header>
+          </header>
+        </SiteChrome>
         <main id="main-content">{children}</main>
-        <footer><div className="shell footer-content"><span className="brand-small">◇ PARAMYRA</span><span>Mathematics, in motion. Made to explore.</span><span>Explore · Simulate · Create</span></div></footer>
+        <SiteChrome>
+          <footer><div className="shell footer-content"><span className="brand-small">◇ PARAMYRA</span><span>Mathematics, in motion. Made to explore.</span><span>Explore · Simulate · Create</span></div></footer>
+        </SiteChrome>
       </body>
     </html>
   );
