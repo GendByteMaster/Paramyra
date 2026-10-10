@@ -62,7 +62,7 @@ export function drawDocument(
   const r = Math.min(width, height) * .45 * view.zoom;
   for (const layer of doc.layers) {
     if (!layer.visible || layer.opacity === 0) continue;
-    drawLayer(ctx, width, r, cx, cy, layer, time, view.style);
+    drawLayer(ctx, width, r, cx, cy, layer, time, view.style, view.zoom);
   }
 }
 
@@ -75,6 +75,7 @@ function drawLayer(
   layer: MathLayer,
   time: number,
   style: CanvasView["style"],
+  zoom: number,
 ): void {
   const n = Math.max(768, Math.min(2200, Math.ceil(radius * 3)));
   ctx.save();
@@ -87,7 +88,7 @@ function drawLayer(
       : layer.kind === "polar-rose"
         ? polarRose(t * Math.PI * 2, layer.params, time)
         : { x: 2*t-1, y: harmonicWave(2*t-1, layer.params, time) };
-    const x = layer.kind === "wave" ? (2*t-1) * width * .46 * radius / (Math.min(width, radius / .45)) : p.x * radius;
+    const x = layer.kind === "wave" ? (2*t-1) * width * .46 * zoom : p.x * radius;
     const y = -p.y * radius;
     if (i === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);

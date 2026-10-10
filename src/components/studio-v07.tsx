@@ -107,6 +107,19 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
   };
   const undo=()=>{setHistory(undoDocument);last.current.key="";};
   const redo=()=>{setHistory(redoDocument);last.current.key="";};
+  useEffect(()=>{
+    const onKey=(event:globalThis.KeyboardEvent)=>{
+      if(!(event.metaKey||event.ctrlKey)||event.key.toLowerCase()!=="z")return;
+      const target=event.target as HTMLElement | null;
+      if(target?.closest("input,textarea,select,[contenteditable=true]"))return;
+      event.preventDefault();
+      if(event.shiftKey){setHistory(redoDocument);}
+      else{setHistory(undoDocument);}
+      last.current.key="";
+    };
+    document.addEventListener("keydown",onKey);
+    return()=>document.removeEventListener("keydown",onKey);
+  },[]);
   const replace=(d:MathDocument)=>{
     commit(()=>d);
     setSelected(d.layers[0].id);setTime(0);setSeekVersion(n=>n+1);

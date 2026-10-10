@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { StudioClient } from "@/components/studio-client";
+import { StudioClient } from "@/components/studio-v07";
 import type { SceneKind } from "@/core/scenes/schema";
 
 export const metadata: Metadata = { title: "Studio" };

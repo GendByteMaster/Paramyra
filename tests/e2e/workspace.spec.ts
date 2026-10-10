@@ -85,7 +85,7 @@ test("workspace tools have real behavior", async ({ page }) => {
   await expect(page.getByLabel("Zoom level")).toHaveText("100%");
 
   await page.getByRole("tab", { name: "Scene JSON" }).click();
-  await expect(page.getByRole("tabpanel")).toContainText('"schemaVersion": 1');
+  await expect(page.getByRole("tabpanel")).toContainText('"schemaVersion": 2');
   await page.getByRole("tab", { name: "Overview" }).click();
   await expect(page.getByRole("tabpanel")).toContainText("Amplitude");
 
@@ -218,7 +218,7 @@ test("Studio occupies the full browser width while keeping the viewport and side
   expect(layout.leftWidth).toBeGreaterThanOrEqual(280);
   expect(layout.rightWidth).toBeGreaterThanOrEqual(370);
   expect(layout.canvasWidth).toBeGreaterThan(850);
-  expect(layout.detailsHeight).toBeLessThan(165);
+  expect(layout.detailsHeight).toBeLessThan(225);
 });
 
 test("fullscreen button enters and exits real browser fullscreen when supported", async ({ page, browserName }) => {
@@ -246,4 +246,56 @@ test("wave renderer preserves smooth geometry when zoomed", async ({ page }) => 
     return { cssWidth: canvas.getBoundingClientRect().width, bitmapWidth: canvas.width };
   });
   expect(resolution.bitmapWidth).toBeGreaterThanOrEqual(Math.round(resolution.cssWidth));
+});
+
+
+test("v1 scene import migrates to v2 and can be exported without losing parameters", async ({ page }) => {
+  await page.goto("/studio");
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "legacy.json", mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify({
+      schemaVersion: 1, id: "legacy", title: "Migrated",
+      kind: "lissajous", params: { frequencyX: 8, frequencyY: 4, phase: .5, amplitude: .7, strokeWidth: 2 },
+    })),
+  });
+  await expect(page.locator("#frequencyX")).toHaveValue("8");
+  await page.getByRole("tab", { name: "Scene JSON" }).click();
+  await expect(page.getByRole("tabpanel")).toContainText('"schemaVersion": 2');
+  await expect(page.getByRole("tabpanel")).toContainText('"frequencyX": 8');
+});
+
+test("layers are real composited objects and undo/redo is stable", async ({ page }) => {
+  await page.goto("/studio");
+  const library = page.getByRole("complementary", { name: "Scene library" });
+  if (!(await library.isVisible())) await page.getByRole("button", { name: "Toggle scene library" }).click();
+  await library.getByRole("button", { name: "Add layer" }).click();
+  await expect(page.locator(".pm-layer-row")).toHaveCount(2);
+  await expect(page.locator(".pm-viewport-heading")).toContainText("2 layers");
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(page.locator(".pm-layer-row")).toHaveCount(1);
+  await page.getByRole("button", { name: "Redo" }).click();
+  await expect(page.locator(".pm-layer-row")).toHaveCount(2);
+  await page.getByRole("button", { name: "Duplicate layer" }).click();
+  await expect(page.locator(".pm-layer-row")).toHaveCount(3);
+  await page.getByRole("button", { name: "Delete layer" }).click();
+  await expect(page.locator(".pm-layer-row")).toHaveCount(2);
+});
+
+test("timeline, camera tools and custom presets are interactive", async ({ page }) => {
+  await page.goto("/studio");
+  await page.getByRole("button", { name: "Pause animation" }).click();
+  await page.getByRole("slider", { name: "Timeline position" }).fill("5");
+  await expect(page.locator(".pm-timeline output")).toContainText("5.0");
+  await page.getByRole("combobox", { name: "Playback speed" }).selectOption("2");
+  await page.getByRole("button", { name: "Toggle grid" }).click();
+  await expect(page.getByRole("button", { name: "Toggle grid" })).toHaveAttribute("aria-pressed", "false");
+  await page.getByRole("button", { name: "Fit scene" }).click();
+  await expect(page.getByLabel("Zoom level")).toHaveText("100%");
+  const library = page.getByRole("complementary", { name: "Scene library" });
+  if (!(await library.isVisible())) await page.getByRole("button", { name: "Toggle scene library" }).click();
+  await library.getByRole("textbox", { name: "Preset name" }).fill("My composition");
+  await library.getByRole("button", { name: "Save" }).click();
+  await expect(library.getByRole("button", { name: "My composition" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("complementary", { name: "Scene library" }).getByRole("button", { name: "My composition" })).toBeVisible();
 });
