@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore, type ChangeEvent, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent, type CSSProperties } from "react";
 import Link from "next/link";
 import { ArrowLeft, Calculator, Image as ImageIcon, Check, ChevronDown, ChevronUp, CircleDot, Copy, Download, Eye, EyeOff, FileJson2, GitBranch, Grid3X3, Info, Layers3, Maximize2, Minimize2, Minus, Move, MousePointer2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Pause, Play, Plus, Redo2, RotateCcw, Search, SlidersHorizontal, Trash2, Undo2, Upload, Waves } from "lucide-react";
 import { SceneCanvas } from "./scene-canvas";
@@ -9,7 +9,9 @@ import { FormulaEditor } from "./formula-editor";
 import { CalculatorWindow } from "./calculator-window";
 import { AnimationTimeline } from "./animation-timeline";
 import { AnimationValueComparison } from "./animation-value-comparison";
-import { resolveAnimatedDocument } from "@/core/animation/keyframes";
+import { compileGraph, resolveLiveScene } from "@/core/graph/live";
+import { readStoredGraph } from "@/core/graph/storage";
+import { GRAPH_KEY, LEGACY_GRAPH_KEY } from "@/core/graph/model";
 import { savePng, saveSvg, type ExportBackground, type ExportSize } from "@/core/rendering/export";
 import { defaultFormula, validateFormula } from "@/core/math/formula";
 import { presets, presetFor } from "@/core/scenes/presets";
@@ -84,6 +86,8 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
   const dragGroup=useRef<string|null>(null);
   const [history,setHistory]=useState(()=>initializeHistory(loadDoc(initialKind)));
   const doc=history.present;
+  const [nodeGraph,setNodeGraph]=useState(readStoredGraph);
+  const compiledGraph=useMemo(()=>compileGraph(nodeGraph),[nodeGraph]);
   const [selected,setSelected]=useState(()=>loadDoc(initialKind).layers[0].id);
   // Selection may reference a layer removed by Undo/Redo or replaced by import.
   // Keep Inspector, Canvas highlighting and Layer list aligned with the same fallback.
@@ -125,6 +129,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
   const [time,setTime]=useState(0);
   const [speed,setSpeed]=useState(1);
   const [seekVersion,setSeekVersion]=useState(0);
+  const liveAtPlayhead=useMemo(()=>resolveLiveScene(doc,time,compiledGraph),[doc,time,compiledGraph]);
   const [fullscreen,setFullscreen]=useState(false);
   const [notice,setNotice]=useState("");
   const [exportOpen,setExportOpen]=useState(false);
@@ -145,6 +150,14 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
     const listener=()=>setFullscreen(document.fullscreenElement===root.current);
     document.addEventListener("fullscreenchange",listener);
     return()=>document.removeEventListener("fullscreenchange",listener);
+  },[]);
+  useEffect(()=>{
+    const onGraphStorage=(event:StorageEvent)=>{
+      if(event.key===GRAPH_KEY||event.key===LEGACY_GRAPH_KEY||event.key===null)
+        setNodeGraph(readStoredGraph());
+    };
+    window.addEventListener("storage",onGraphStorage);
+    return()=>window.removeEventListener("storage",onGraphStorage);
   },[]);
   useEffect(()=>{
     try{localStorage.setItem(DOCUMENT_KEY,JSON.stringify(doc));}
@@ -231,8 +244,8 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
     const [width,height]=exportSize.split("x").map(Number);
     const size:ExportSize={width,height};
     try{
-      if(type==="svg")saveSvg(doc,time,view,size,exportBackground);
-      else await savePng(doc,time,view,size,exportBackground);
+      if(type==="svg")saveSvg(doc,time,view,size,exportBackground,compiledGraph);
+      else await savePng(doc,time,view,size,exportBackground,compiledGraph);
       setNotice("Exported "+type.toUpperCase()+" frame at "+time.toFixed(2)+"s.");
       setExportOpen(false);
     }catch{setNotice("Unable to export image. Please try again.");}
@@ -281,10 +294,15 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
       commit(d=>updateLayer(d,layer.id,l=>({...l,params:{...defaults.params},offset:{x:0,y:0}})));
     }
   };
-  const fit=()=>setView(v=>({...v,...fitCamera(resolveAnimatedDocument(doc,time),time,canvasSize,v)}));
+  const fit=()=>setView(v=>({...v,...fitCamera(liveAtPlayhead.document,time,canvasSize,v)}));
   const moveLayerOffset=(id:string,x:number,y:number)=>{
     const current=doc.layers.find(l=>l.id===id);
     if(!current||current.offset.x===x&&current.offset.y===y)return;
+    if(compiledGraph?.graph.binding.enabled&&compiledGraph.graph.binding.layerId===id
+      &&compiledGraph.outputs.some(node=>node.property==="offset.x"||node.property==="offset.y")){
+      setNotice("Position is controlled by Live Graph. Disable its binding to drag this layer.");
+      return;
+    }
     if(current.keyframes?.some(frame=>frame.property==="offset.x"||frame.property==="offset.y")){
       setNotice("Position is animated. Edit its keyframes in Animation Timeline.");
       return;
@@ -310,7 +328,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
         <span className="pm-local-label"><span className="live-indicator"/> LOCAL</span>
       </div>
       <div className="pm-project-actions">
-        <Link className="pm-action pm-action-quiet" href="/studio/graph" aria-label="Open Node Graph Workspace"><GitBranch size={15}/> Node Graph</Link>
+        <Link className="pm-action pm-action-quiet" href="/studio/graph" aria-label="Open Node Graph Workspace"><GitBranch size={15}/> Node Graph{nodeGraph.binding.enabled?" · LIVE":""}</Link>
         <button type="button" className="pm-icon-btn" aria-label="Undo" disabled={!history.past.length} onClick={undo}><Undo2 size={17}/></button>
         <button type="button" className="pm-icon-btn" aria-label="Redo" disabled={!history.future.length} onClick={redo}><Redo2 size={17}/></button>
         <span className="pm-toolbar-rule"/>
@@ -377,12 +395,16 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
       <div ref={centerRef} className={"pm-center"+(detailsOpen&&detailsTab==="animation"?" pm-animation-workspace":"")} style={detailsOpen&&detailsTab==="animation"?({"--pm-editor-height":animationPanelHeight+"px"} as CSSProperties):undefined}>
         <section className="pm-viewport-panel" aria-label="Visualization preview">
           <div className="pm-viewport-toolbar"><div className="pm-viewport-heading"><span className="pm-blue-dot"/><div><strong>{doc.title}</strong><small>Canvas 2D · {doc.layers.length} layers</small></div></div>
-            <div className="pm-viewport-tools"><span className="pm-live" data-state={playing?"playing":"paused"}><span className="live-indicator"/>{playing?"LIVE":"PAUSED"}</span><span className="pm-fps-label">SCENE {doc.layers.length} LAYERS</span>
+            <div className="pm-viewport-tools"><span className="pm-live" data-state={playing?"playing":"paused"}><span className="live-indicator"/>{playing?"LIVE":"PAUSED"}</span>
+            {nodeGraph.binding.enabled&&<span className={liveAtPlayhead.error?"pm-graph-live-badge is-error":"pm-graph-live-badge"} role="status">
+              <GitBranch size={13}/>{liveAtPlayhead.error?"GRAPH ERROR":"GRAPH LINKED"}
+            </span>}
+            <span className="pm-fps-label">SCENE {doc.layers.length} LAYERS</span>
               <button type="button" className="pm-icon-btn pm-animation-open" aria-label="Open animation workspace" title="Open Animation Workspace" aria-pressed={detailsOpen&&detailsTab==="animation"} onClick={openAnimation}><Waves size={16}/></button>
               <button type="button" className="pm-icon-btn" aria-label="Toggle scene details" aria-pressed={detailsOpen} onClick={()=>setDetailsOpen(v=>!v)}><Info size={16}/></button>
             </div></div>
           <div className="pm-canvas-area">
-            <div className="pm-canvas-surface"><SceneCanvas scene={doc} playing={playing} view={view} tool={tool} selectedLayerId={effectiveSelected}
+            <div className="pm-canvas-surface"><SceneCanvas scene={doc} liveGraph={compiledGraph} playing={playing} view={view} tool={tool} selectedLayerId={effectiveSelected}
               onSelectLayer={setSelected} onLayerOffsetChange={moveLayerOffset} onSizeChange={setCanvasSize}
               onLayerMoveStart={id=>{dragGroup.current="drag:"+id;last.current.key="";}}
               onLayerMoveEnd={id=>{if(dragGroup.current==="drag:"+id){dragGroup.current=null;last.current.key="";}}}
@@ -484,7 +506,15 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
               <label>Opacity<input type="range" aria-label="Layer opacity" min="0" max="1" step=".05" value={layer.opacity} onChange={e=>commit(d=>updateLayer(d,layer.id,l=>({...l,opacity:e.target.valueAsNumber})),"opacity:"+layer.id)}/></label>
             </div>
           </section>
-          <AnimationValueComparison layer={layer} time={Math.min(time,doc.duration)} onOpenAnimation={openAnimation}/>
+          <AnimationValueComparison layer={layer} time={Math.min(time,doc.duration)} onOpenAnimation={openAnimation}
+            liveLayer={liveAtPlayhead.document.layers.find(l=>l.id===layer.id)}
+            graphDriven={nodeGraph.binding.enabled&&nodeGraph.binding.layerId===layer.id?liveAtPlayhead.driven:[]}/>
+          {nodeGraph.binding.enabled&&<section className="pm-live-inspector-status" aria-label="Live Graph status">
+            <strong><GitBranch size={15}/> Live Node Graph</strong>
+            <p>{liveAtPlayhead.error??("Target: "+(doc.layers.find(l=>l.id===nodeGraph.binding.layerId)?.title??"Unknown layer")+
+              " · Keyframes win on the same property.")}</p>
+            <Link href="/studio/graph">Edit live binding →</Link>
+          </section>}
           {layer.kind==="formula"&&<FormulaEditor layerId={layer.id} formula={layer.formula} onOpenCalculator={openCalculator} onChange={formula=>commit(d=>updateLayer(d,layer.id,l=>l.kind==="formula"?{...l,formula}:l),"formula:"+layer.id)}/>}
           <section className="pm-inspector-section"><div className="pm-inspector-sectionhead"><span>{layer.kind==="formula"?"03 / STROKE & POSITION":"02 / PARAMETERS"}</span><Waves size={16}/></div>
             {shownFields.map(({key,label,min,max,step})=>{
