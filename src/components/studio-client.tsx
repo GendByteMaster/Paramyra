@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useSyncExternalStore, type ChangeEvent } from "react";
-import { Download, Pause, Play, RotateCcw, Upload } from "lucide-react";
+import { ArrowDownToLine, ArrowLeft, ArrowUpRight, Check, CircleDot, Download, Layers3, Pause, Play, RotateCcw, SlidersHorizontal, Sparkles, Upload } from "lucide-react";
+import Link from "next/link";
 import { SceneCanvas } from "./scene-canvas";
 import { presetFor, presets } from "@/core/scenes/presets";
 import { sceneSchema, type SceneDocument, type SceneKind, type SceneParams } from "@/core/scenes/schema";
@@ -83,36 +84,67 @@ function StudioWorkspace({ initialKind, mode = "studio" }: StudioProps) {
     } catch { setNotice("Unable to read scene JSON."); }
   };
 
+  const equation = scene.kind === "lissajous" ? "x = A sin(at + δ), y = B sin(bt)" : scene.kind === "polar-rose" ? "r = a cos(kθ)" : "y = f(x, t)";
   return (
-    <div className="shell">
+    <div className="shell studio-shell">
+      <div className="studio-breadcrumb"><Link href="/explore"><ArrowLeft size={14} aria-hidden="true" /> Explore</Link><span>/</span><span>{mode === "studio" ? "Studio" : "Playground"}</span></div>
       <div className="work-heading">
-        <div><span className="eyebrow">{mode === "studio" ? "Creative workspace" : "Experiment freely"}</span><h1>{mode === "studio" ? "Studio" : "Playground"}</h1></div>
-        <div className="controls">
-          <label className="btn"><Upload size={16} aria-hidden="true" /> Import JSON<input aria-label="Import scene JSON" type="file" accept=".json,application/json" className="sr-only" onChange={importJSON} /></label>
-          <button type="button" className="btn" onClick={exportJSON}><Download size={16} aria-hidden="true" /> Export JSON</button>
+        <div className="work-heading-main">
+          <span className="eyebrow">PARAMYRA / {mode === "studio" ? "CREATIVE WORKSPACE" : "INTERACTIVE LAB"}</span>
+          <h1>{mode === "studio" ? "Your mathematical studio" : "The mathematics playground"}<span className="brand-period">.</span></h1>
+          <p className="work-subtitle">{mode === "studio" ? "A place for discovery, designed for experimentation." : "Explore how a single parameter can transform the whole equation."}</p>
+        </div>
+        <div className="studio-actions">
+          <span className="saved-indicator"><span className="live-indicator"/> Browser project</span>
+          <label className="btn secondary import-button"><Upload size={16} aria-hidden="true" /> Import JSON<input aria-label="Import scene JSON" type="file" accept=".json,application/json" className="sr-only" onChange={importJSON}/></label>
+          <button type="button" className="btn primary" onClick={exportJSON}><Download size={16} aria-hidden="true" /> Export JSON</button>
         </div>
       </div>
       <div className="workspace">
-        <section className="panel workspace-visual" aria-label="Visualization preview">
-          <SceneCanvas scene={scene} playing={playing} />
-          <div className="workspace-caption"><span>{scene.title} · interactive scene</span><div className="controls">
-            <button type="button" className="btn" onClick={() => setPlaying((old) => !old)} aria-label={playing ? "Pause animation" : "Play animation"}>{playing ? <Pause size={16} /> : <Play size={16} />}{playing ? "Pause" : "Play"}</button>
-            <button type="button" className="btn" onClick={() => { setScene(presetFor(scene.kind)); setNotice(""); }}><RotateCcw size={16} aria-hidden="true" /> Reset</button>
-          </div></div>
-        </section>
+        <div className="workspace-main">
+          <section className="panel workspace-visual" aria-label="Visualization preview">
+            <div className="workspace-topline"><div className="workspace-title"><span className="workspace-icon"><CircleDot size={17}/></span><div><strong>{scene.title}</strong><span>Mathematical canvas · realtime preview</span></div></div><div className="workspace-badges"><span className="badge-live"><span className="live-indicator"/> LIVE</span><span className="badge-2d">2D</span></div></div>
+            <div className="workspace-canvas"><SceneCanvas scene={scene} playing={playing}/><span className="canvas-watermark" aria-hidden="true">PARAMYRA / CANVAS 01</span></div>
+            <div className="workspace-transport">
+              <div className="transport-equation"><span>ACTIVE EQUATION</span><code>{equation}</code></div>
+              <div className="controls">
+                <button type="button" className="btn transport-play" onClick={() => setPlaying((old) => !old)} aria-label={playing ? "Pause animation" : "Play animation"}>{playing ? <Pause size={15} /> : <Play size={15} />}{playing ? "Pause" : "Play"}</button>
+                <button type="button" className="btn transport-reset" onClick={() => { setScene(presetFor(scene.kind)); setNotice(""); }}><RotateCcw size={15} aria-hidden="true" /> Reset</button>
+              </div>
+            </div>
+          </section>
+          <section className="scene-presets" aria-label="Scene presets">
+            <div className="presets-heading"><div><span className="eyebrow">QUICK SWITCH</span><h2>Explore another form</h2></div><span>03 SCENES</span></div>
+            <div className="presets-grid">{presets.map((item, idx) => <button key={item.kind} type="button" aria-pressed={scene.kind === item.kind} className={"preset-button" + (scene.kind === item.kind ? " selected" : "")} onClick={() => changeKind(item.kind)}>
+              <span className="preset-number">0{idx+1}</span><strong>{item.title}</strong>{scene.kind === item.kind ? <Check size={15} aria-label="Selected"/> : <ArrowUpRight size={15} aria-hidden="true"/>}
+            </button>)}</div>
+          </section>
+        </div>
         <aside className="panel inspector" aria-label="Scene inspector">
-          <div><span className="eyebrow">Inspector</span><h2>Scene properties</h2></div>
-          <div className="field"><label htmlFor="scene-kind">Scene type</label><select id="scene-kind" value={scene.kind} onChange={(e) => changeKind(e.target.value as SceneKind)}>
-            {presets.map((item) => <option key={item.kind} value={item.kind}>{item.title}</option>)}
-          </select></div>
-          {controls.map(({ key, label, min, max, step }) => <div key={key} className="field">
-            <label htmlFor={key}><span>{label}</span><output>{scene.params[key].toFixed(key.startsWith("frequency") ? 0 : 2)}</output></label>
-            <input type="range" id={key} min={min} max={max} step={step} value={scene.params[key]} onChange={(e) => changeParam(key, e.target.valueAsNumber)} />
-          </div>)}
-          <p className="status" role="status">{notice || (mode === "studio" ? "Changes are saved locally in this browser. Export a JSON backup anytime." : "Parameters update the same rendering engine used by Studio.")}</p>
+          <div className="inspector-head"><span className="inspector-icon"><SlidersHorizontal size={21}/></span><div><span className="eyebrow">PROPERTIES</span><h2>Inspector</h2><p>Fine-tune your mathematical world.</p></div></div>
+          <div className="inspector-group">
+            <div className="inspector-section-title"><Layers3 size={16} aria-hidden="true"/><span>Scene</span><span className="section-index">01</span></div>
+            <div className="field"><label htmlFor="scene-kind">Mathematical form</label><select id="scene-kind" value={scene.kind} onChange={(e) => changeKind(e.target.value as SceneKind)}>
+              {presets.map((item) => <option key={item.kind} value={item.kind}>{item.title}</option>)}
+            </select></div>
+            <div className="inspector-code"><span>EXPRESSION</span><code>{equation}</code></div>
+          </div>
+          <div className="inspector-group">
+            <div className="inspector-section-title"><Sparkles size={16} aria-hidden="true"/><span>Parameters</span><span className="section-index">02</span></div>
+            {controls.map(({ key, label, min, max, step }) => <div key={key} className="field slider-field">
+              <label htmlFor={key}><span>{label}</span><output>{scene.params[key].toFixed(key.startsWith("frequency") ? 0 : 2)}</output></label>
+              <input type="range" id={key} min={min} max={max} step={step} value={scene.params[key]} onChange={(e) => changeParam(key, e.target.valueAsNumber)}/>
+              <div className="slider-limits" aria-hidden="true"><span>{min}</span><span>{max}</span></div>
+            </div>)}
+          </div>
+          <div className="inspector-group inspector-bottom">
+            <div className="inspector-section-title"><ArrowDownToLine size={16} aria-hidden="true"/><span>Project</span><span className="section-index">03</span></div>
+            <p className="status" role="status">{notice || (mode === "studio" ? "Changes are kept in your browser. Export a JSON file to keep a backup." : "You are editing the same scene format used by Studio.")}</p>
+            <button type="button" className="inspector-export" onClick={exportJSON}>Export current scene <ArrowUpRight size={15} aria-hidden="true"/></button>
+          </div>
         </aside>
       </div>
-      <div className="section"><p className="muted">Scene document v1 · Canvas 2D · live mathematical evaluation · no executable user code</p></div>
+      <div className="studio-bottom-info"><span><span className="live-indicator"/> PARAMYRA ENGINE</span><span>Scene document v1</span><span>CANVAS 2D / LOCAL PROJECT</span></div>
     </div>
   );
 }
