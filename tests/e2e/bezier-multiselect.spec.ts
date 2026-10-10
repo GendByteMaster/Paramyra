@@ -14,7 +14,7 @@ test("M2.2 cubic Bezier easing persists and Undo/Redo covers handle edits",async
   await editor.getByRole("combobox",{name:"Keyframe easing"}).selectOption("bezier");
   const curve=editor.getByRole("group",{name:"Cubic Bezier curve editor"});
   await expect(curve).toBeVisible();
-  await expect(curve.getByRole("img",{name:"Cubic Bezier easing curve"})).toBeVisible();
+  await expect(curve.getByRole("group",{name:"Cubic Bezier control handles"})).toBeVisible();
   await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers[0].keyframes[0].bezier.x1)).toBe(.42);
   await curve.getByRole("spinbutton",{name:"Bezier x1"}).fill("0.19");
   await curve.getByRole("spinbutton",{name:"Bezier x1"}).press("Tab");
