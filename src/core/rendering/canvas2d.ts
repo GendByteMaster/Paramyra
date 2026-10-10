@@ -36,10 +36,12 @@ export function drawDocument(
 
 
   const size: Size = { width, height };
+  const visibleCount = doc.layers.filter(layer => layer.visible && layer.opacity > 0).length;
+  const sampleBudget = Math.max(320, Math.floor(10_000 / Math.max(1, visibleCount)));
   drawGrid(ctx, size, view);
   for (const layer of doc.layers) {
     if (!layer.visible || layer.opacity === 0) continue;
-    drawLayer(ctx, size, layer, time, view);
+    drawLayer(ctx, size, layer, time, view, sampleBudget);
   }
 }
 
@@ -94,9 +96,9 @@ function drawGrid(ctx: CanvasRenderingContext2D, size: Size, view: CanvasView): 
 }
 
 function drawLayer(
-  ctx: CanvasRenderingContext2D, size: Size, layer: MathLayer, time: number, view: CanvasView,
+  ctx: CanvasRenderingContext2D, size: Size, layer: MathLayer, time: number, view: CanvasView, budget: number,
 ): void {
-  const n = Math.max(768, Math.min(2200, Math.ceil(pixelScale(size, view.zoom) * 3)));
+  const n = Math.max(320, Math.min(budget, 2000, Math.ceil(pixelScale(size, view.zoom) * 2.5)));
   ctx.save();
   ctx.beginPath();
   let previous: { x: number; y: number } | null = null;

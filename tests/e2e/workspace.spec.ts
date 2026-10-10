@@ -372,15 +372,16 @@ test("custom formula can be added, edited and persisted", async ({ page }) => {
   }
   const formula=page.getByRole("textbox",{name:"Formula Y expression"});
   await formula.fill("a*cos(b*x+t)");
-  await expect(page.getByRole("status")).toContainText("Valid expression");
-  await page.getByRole("slider",{name:"Formula parameter a"}).fill("2");
+  await expect(page.locator(".pm-formula-feedback")).toContainText("Valid expression");
+  await page.getByRole("slider",{name:"Formula parameter a"}).focus();
+  await page.getByRole("slider",{name:"Formula parameter a"}).press("ArrowRight");
   await expect.poll(()=>page.evaluate(()=>{
     const value=JSON.parse(localStorage.getItem("paramyra.document.v3")!);
     return value.layers[1].formula.exprY;
   })).toBe("a*cos(b*x+t)");
   await page.reload();
   await expect(page.getByRole("textbox",{name:"Formula Y expression"})).toHaveValue("a*cos(b*x+t)");
-  await expect(page.getByRole("slider",{name:"Formula parameter a"})).toHaveValue("2");
+  await expect(page.getByRole("slider",{name:"Formula parameter a"})).toHaveValue("1.1");
 });
 
 test("unsafe expression stays in draft; committed document remains valid", async ({page}) => {

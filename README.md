@@ -5,6 +5,20 @@
 [![CI](https://github.com/GendByteMaster/Paramyra/actions/workflows/ci.yml/badge.svg)](https://github.com/GendByteMaster/Paramyra/actions/workflows/ci.yml)
 
 
+## Studio v0.9 — Formula Editor (Draft)
+
+Studio v0.9 extends v0.8 with user-authored mathematical expressions:
+- Explicit graphs `y=f(x,t)`, parametric curves `x=f(u,t), y=g(u,t)`, and polar curves `r=f(theta,t)`.
+- Live Inspector formula editor with editable domain and parameter sliders `a`, `b`, `c`.
+- Bounded AST parser. Approved math functions and operators only; **no JavaScript eval/new Function**, no imports or arbitrary code.
+- Strict `MathDocument v3` with validated formula layers and migration of v1/v2 documents.
+- World-space renderer and hit testing handle invalid domains by introducing curve gaps; animations remain deterministic at explicit time.
+- Total curve sampling is budgeted across visible layers.
+
+Formula changes only reach the scene when they pass validation. Invalid drafts remain visible in the editor with errors while the last valid formula continues rendering. Browser storage remains local and non-durable.
+
+See [Studio v0.9 design, security and review gates](docs/STUDIO_V09.md). This change is stacked on v0.8 and must remain Draft until v0.8 visual acceptance and dependency merges.
+
 ## Studio v0.8 — Professional Canvas (draft preview)
 
 Building on Studio v0.7, the canvas now provides:
