@@ -108,6 +108,15 @@ export function upsertKeyframe(layer:MathLayer,frame:LayerKeyframe):MathLayer{
   const index=frames.findIndex(item=>item.property===frame.property&&Math.abs(item.time-time)<0.005);
   if(index<0&&frames.length>=KEYFRAME_LIMIT)return layer;
   const updated={...frame,time};
+  if(index>=0){
+    const old=frames[index];
+    if(old.value===updated.value&&old.ease===updated.ease&&
+      (old.bezier===updated.bezier||(
+        old.bezier!==undefined&&updated.bezier!==undefined&&
+        old.bezier.x1===updated.bezier.x1&&old.bezier.y1===updated.bezier.y1&&
+        old.bezier.x2===updated.bezier.x2&&old.bezier.y2===updated.bezier.y2
+      )))return layer;
+  }
   const next=index<0?[...frames,updated]:frames.map((item,i)=>i===index?updated:item);
   return {...layer,keyframes:next.sort((a,b)=>a.time-b.time||a.property.localeCompare(b.property))};
 }
