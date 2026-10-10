@@ -284,8 +284,10 @@ test("layers are real composited objects and undo/redo is stable", async ({ page
 test("timeline, camera tools and custom presets are interactive", async ({ page }) => {
   await page.goto("/studio");
   await page.getByRole("button", { name: "Pause animation" }).click();
-  await page.getByRole("slider", { name: "Timeline position" }).fill("5");
-  await expect(page.locator(".pm-timeline output")).toContainText("5.0");
+  const timeline = page.getByRole("slider", { name: "Timeline position" });
+  await timeline.focus();
+  await timeline.press("End");
+  await expect(page.locator(".pm-timeline output")).toContainText("12.0");
   await page.getByRole("combobox", { name: "Playback speed" }).selectOption("2");
   await page.getByRole("button", { name: "Toggle grid" }).click();
   await expect(page.getByRole("button", { name: "Toggle grid" })).toHaveAttribute("aria-pressed", "false");
