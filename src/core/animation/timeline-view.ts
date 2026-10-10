@@ -36,11 +36,11 @@ export function snapTimelineTime(time:number,duration:number,grid:TimelineSnap,n
   window:TimelineWindow,width:number,px=9):number{
   if(!Number.isFinite(time)||!Number.isFinite(duration)||duration<=0)return 0;
   const bounded=clamp(time,0,duration);
+  if(grid===0)return hundredth(bounded);
   const threshold=(window.end-window.start)*px/Math.max(1,width);
   const close=neighbours.filter(t=>Number.isFinite(t)&&t>=0&&t<=duration&&Math.abs(t-bounded)<=threshold)
     .sort((a,b)=>Math.abs(a-bounded)-Math.abs(b-bounded));
   if(close.length)return hundredth(close[0]);
-  if(grid===0)return hundredth(bounded);
   return hundredth(clamp(Math.round(bounded/grid)*grid,0,duration));
 }
 export type BoxRow=Readonly<{property:AnimatableProperty;top:number;bottom:number}>;
