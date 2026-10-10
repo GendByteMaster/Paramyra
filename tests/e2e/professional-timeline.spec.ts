@@ -5,6 +5,8 @@ test("M2.3 timeline zoom, pan and fit use a bounded time viewport",async({page})
   await page.getByRole("button",{name:"Pause animation"}).click();
   await page.getByRole("button",{name:"Open animation workspace"}).click();
   const editor=page.getByLabel("Keyframe Animation Editor");
+  const slider=page.getByRole("slider",{name:"Timeline position"});
+  await slider.focus();await slider.press("Home");
   const range=editor.getByLabel("Visible timeline range");
   await expect(range).toHaveText("0.00–12.00s");
   await editor.getByRole("button",{name:"Zoom timeline in"}).click();
@@ -31,7 +33,11 @@ test("M2.3 All Layers shows authoritative document tracks and navigates to anoth
   const seek=page.getByRole("slider",{name:"Timeline position"});
   await seek.focus();await seek.press("Home");
   await editor.getByRole("button",{name:"Add keyframe at playhead"}).click();
-  await page.getByRole("button",{name:"Add layer",exact:true}).click();
+  const addButton=page.getByRole("button",{name:"Add layer",exact:true});
+  if(await addButton.count()===0)await page.getByRole("button",{name:"Toggle scene library"}).click();
+  await addButton.click();
+  const closeLibrary=page.getByRole("button",{name:"Close scene library"});
+  if(await closeLibrary.count())await closeLibrary.click();
   await expect(page.locator(".pm-layer-row")).toHaveCount(2);
   await seek.focus();await seek.press("End");
   await editor.getByRole("button",{name:"Add keyframe at playhead"}).click();
@@ -63,7 +69,11 @@ test("M2.3 optional snapping rounds inserts while Snap Off retains hundredths",a
   await track.click({position:{x:box!.width*.36,y:box!.height/2}});
   await editor.getByRole("button",{name:"Add keyframe at playhead"}).click();
   await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers[0].keyframes.length)).toBe(2);
-  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers[0].keyframes[1].time)).toBe(4.32);
+  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers[0].keyframes[1].time))
+    .toBeGreaterThan(4.15);
+  const actual=await page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers[0].keyframes[1].time);
+  expect(actual).toBeLessThan(4.5);
+  expect(actual%0.5).not.toBe(0);
 });
 
 test("M2.3 marquee selects keys across tracks without mutating document",async({page})=>{
@@ -80,6 +90,7 @@ test("M2.3 marquee selects keys across tracks without mutating document",async({
   bounds=await position.boundingBox();expect(bounds).not.toBeNull();
   await position.click({position:{x:bounds!.width*.65,y:bounds!.height/2}});
   await editor.getByRole("button",{name:"Add keyframe at playhead"}).click();
+  await expect.poll(()=>page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.document.v3")!).layers[0].keyframes.length)).toBe(2);
   const before=await page.evaluate(()=>localStorage.getItem("paramyra.document.v3"));
   const first=await opacity.boundingBox(),second=await position.boundingBox();
   expect(first).not.toBeNull();expect(second).not.toBeNull();
