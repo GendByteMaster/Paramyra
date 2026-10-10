@@ -9,9 +9,10 @@ import type { ReactNode } from "react";
  */
 export function SiteChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const graphWorkspace =
-    pathname === "/studio/graph" || pathname.startsWith("/studio/graph/");
+  const editorWorkspace =
+    pathname === "/studio" || pathname.startsWith("/studio/") ||
+    pathname === "/playground" || pathname.startsWith("/playground/");
 
-  if (graphWorkspace) return null;
+  if (editorWorkspace) return null;
   return <>{children}</>;
 }
