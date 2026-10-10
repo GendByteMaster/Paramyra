@@ -1,0 +1,141 @@
+/*
+ * Paramyra v0.6 — full-bleed math workstation.
+ * Avoid scaling via CSS transforms: Canvas should receive real ResizeObserver bounds.
+ */
+body:has(.pm-workspace) {
+  background: #070c14;
+}
+
+/* Fill viewport, not a narrow marketing-site max-width. */
+.pm-workspace {
+  width: calc(100% - 16px);
+  max-width: none;
+  margin: 8px auto 0;
+  --pm-stroke: rgba(162, 191, 238, .16);
+}
+.pm-projectbar {
+  margin-bottom: 8px;
+  min-height: 62px;
+  padding: 8px 14px;
+  border-radius: 14px;
+}
+.pm-grid {
+  gap: 8px;
+}
+.pm-sidebar,.pm-inspector,.pm-viewport-panel,.pm-details {
+  border-radius: 13px;
+  background: linear-gradient(155deg, #111a28, #0b121d 50%, #0c1522);
+  border-color: rgba(165, 190, 230, .13);
+}
+.pm-project-identity {gap: 11px;}
+.pm-projectbar .pm-project-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+}
+.pm-project-actions {gap:7px;}
+.pm-action { min-height: 38px; padding-inline: 14px; }
+.pm-icon-btn { width: 37px; height: 37px; }
+.pm-inspector-top,.pm-sidebar-heading { padding: 16px 18px; }
+.pm-inspector-scroll { min-height: 0; }
+.pm-inspector .pm-inspector-section { padding: 17px 19px; }
+.pm-inspector-guide { padding: 17px 19px; }
+.pm-sidebar-heading p { line-height: 1.5; }
+.pm-sidebar .pm-library-item { min-height: 64px; padding-inline: 10px; }
+.pm-library-list { padding: 0 12px 10px; }
+.pm-library-search { margin-inline: 14px; }
+.pm-viewport-toolbar { min-height: 53px; padding: 8px 14px; }
+.pm-canvas-area { padding: 3px; }
+.pm-canvas-surface,.pm-canvas-surface .scene-frame {border-radius:9px;}
+.pm-canvas-corner { top: 18px; right: 19px; font-size:10px; }
+.pm-zoom { bottom: 14px; left: 15px; }
+.pm-transport { min-height: 52px; padding: 9px 15px; }
+.pm-details-header { min-height: 39px; height:39px; padding: 5px 12px; }
+.pm-details-title {gap:8px;}
+.pm-details-symbol {width:27px;height:27px;border-radius:8px;}
+.pm-details-title strong {font-size:12px;margin-top:1px;}
+.pm-details-title .pm-label {font-size:8px;}
+.pm-tabs {min-height:32px;padding:3px 11px;}
+.pm-tabs button {padding:5px 10px;}
+.pm-detail-content {min-height:49px; padding:7px 11px; gap:7px;}
+.pm-detail-metric {padding:6px 10px;gap:3px;}
+.pm-detail-metric span {font-size:10px;}
+.pm-detail-metric strong {font-size:12px;}
+.pm-json-view {padding:8px 13px;}
+.pm-json-view pre {max-height:95px;}
+.pm-statusbar {margin:0 1px 5px;min-height:20px;}
+.pm-viewport-tools {gap:7px;}
+.pm-fps-label {font-size:9px;}
+
+/* Three-pane layout: 290 / fluid canvas / 380 at large desktop widths. */
+@media (min-width: 1600px) {
+  .pm-grid {grid-template-columns:290px minmax(0,1fr) 380px;}
+  .pm-grid.pm-no-library {grid-template-columns:minmax(0,1fr) 380px;}
+  .pm-grid.pm-no-inspector {grid-template-columns:290px minmax(0,1fr);}
+  .pm-grid.pm-no-library.pm-no-inspector {grid-template-columns:minmax(0,1fr);}
+}
+@media (min-width: 1280px) and (max-width: 1599px) {
+  .pm-grid {grid-template-columns:260px minmax(0,1fr) 350px;}
+  .pm-grid.pm-no-library {grid-template-columns:minmax(0,1fr) 350px;}
+  .pm-grid.pm-no-inspector {grid-template-columns:260px minmax(0,1fr);}
+  .pm-grid.pm-no-library.pm-no-inspector {grid-template-columns:minmax(0,1fr);}
+}
+@media (min-width: 960px) and (max-width: 1279px) {
+  .pm-grid {grid-template-columns:210px minmax(0,1fr) 300px;}
+  .pm-grid.pm-no-library {grid-template-columns:minmax(0,1fr) 300px;}
+  .pm-grid.pm-no-inspector {grid-template-columns:210px minmax(0,1fr);}
+  .pm-grid.pm-no-library.pm-no-inspector {grid-template-columns:minmax(0,1fr);}
+}
+
+/* Compact full-bleed desktop shell with internal scrolling. */
+@media (min-width: 960px) and (min-height: 680px) {
+  .pm-workspace {
+    width:calc(100% - 16px);
+    max-width:none;
+    height:calc(100dvh - 12px);
+    margin-top:6px;
+  }
+  .pm-center {grid-template-rows:minmax(0,1fr) auto;}
+  .pm-canvas-area,.pm-canvas-surface,.pm-canvas-surface .scene-frame {min-height:0;}
+}
+
+/* True Fullscreen API mode. Browser Back/Escape remain available. */
+.pm-workspace:fullscreen {
+  background: #070c14;
+  width: 100%;
+  height: 100dvh;
+  max-width: none;
+  margin: 0;
+  padding: 6px 8px 4px;
+  border-radius: 0;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+}
+.pm-workspace:fullscreen .pm-grid {
+  height: auto;
+  min-height:0;
+  flex: 1 1 0;
+}
+.pm-workspace:fullscreen .pm-center,
+.pm-workspace:fullscreen .pm-viewport-panel {min-height:0;}
+.pm-workspace:fullscreen .pm-canvas-area,
+.pm-workspace:fullscreen .pm-canvas-surface,
+.pm-workspace:fullscreen .pm-canvas-surface .scene-frame {min-height:0;}
+.pm-fullscreen-button[aria-pressed="true"] {
+  background:#253e61;
+  border-color:#80b9fb6b;
+  color:#cfe7ff;
+}
+@media (max-width: 959px) {
+  .pm-workspace {width:calc(100% - 12px);margin-top:6px;}
+  .pm-workspace:fullscreen {overflow-y:auto;display:block;}
+  .pm-workspace:fullscreen .pm-grid {display:grid;height:auto;}
+}
+@media (max-width: 580px) {
+  .pm-project-actions .pm-fullscreen-button {order:-1;}
+  .pm-grid {gap:7px;}
+  .pm-viewport-toolbar {padding:8px 10px;}
+  .pm-canvas-corner {display:none;}
+  .pm-detail-content {grid-template-columns:repeat(2,minmax(0,1fr));}
+}

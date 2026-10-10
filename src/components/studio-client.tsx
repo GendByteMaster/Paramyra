@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore, type ChangeEvent, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ChangeEvent, type KeyboardEvent } from "react";
 import { SceneGlyph } from "./scene-glyph";
-import { ArrowLeft, ArrowUpRight, BookOpen, Check, ChevronDown, ChevronUp, CircleDot, Code2, Copy, Download, FileJson2, Info, ListFilter, Maximize2, Minus, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Pause, Play, Plus, RotateCcw, Search, SlidersHorizontal, Upload, Waves } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, BookOpen, Check, ChevronDown, ChevronUp, CircleDot, Code2, Copy, Download, FileJson2, Info, ListFilter, Maximize2, Minimize2, Minus, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Pause, Play, Plus, RotateCcw, Search, SlidersHorizontal, Upload, Waves } from "lucide-react";
 import Link from "next/link";
 import { SceneCanvas } from "./scene-canvas";
 import { presetFor, presets } from "@/core/scenes/presets";
@@ -82,6 +82,8 @@ export function StudioClient(props: StudioProps) {
 }
 
 function StudioWorkspace({ initialKind, mode = "studio" }: StudioProps) {
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [scene, setScene] = useState<SceneDocument>(() => {
     if (initialKind) return presetFor(initialKind);
     try {
@@ -102,6 +104,28 @@ function StudioWorkspace({ initialKind, mode = "studio" }: StudioProps) {
   const [libraryQuery, setLibraryQuery] = useState("");
   const [zoom, setZoom] = useState(1);
   const [canvasRevision, setCanvasRevision] = useState(0);
+
+  useEffect(() => {
+    const syncFullscreen = () => setIsFullscreen(document.fullscreenElement === workspaceRef.current);
+    document.addEventListener("fullscreenchange", syncFullscreen);
+    syncFullscreen();
+    return () => document.removeEventListener("fullscreenchange", syncFullscreen);
+  }, []);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement === workspaceRef.current) {
+        await document.exitFullscreen();
+      } else if (!document.fullscreenElement && workspaceRef.current?.requestFullscreen) {
+        await workspaceRef.current.requestFullscreen();
+      } else {
+        setNotice("Fullscreen is unavailable while another element is fullscreen.");
+      }
+    } catch {
+      setNotice("Fullscreen was blocked by the browser. Use its own fullscreen shortcut.");
+    }
+  };
+
 
   useEffect(() => {
     try { localStorage.setItem(KEY, JSON.stringify(scene)); }
@@ -170,7 +194,7 @@ function StudioWorkspace({ initialKind, mode = "studio" }: StudioProps) {
       : { label: "Harmonics", value: scene.params.frequencyX + " + " + scene.params.frequencyY };
 
   return (
-    <div className="pm-workspace" data-mode={mode}>
+    <div className="pm-workspace" data-mode={mode} ref={workspaceRef}>
       <div className="pm-projectbar" role="toolbar" aria-label="Workspace toolbar">
         <div className="pm-project-identity">
           <Link className="pm-icon-btn" href="/explore" aria-label="Back to Explore" title="Back to Explore"><ArrowLeft size={16}/></Link>
@@ -184,6 +208,7 @@ function StudioWorkspace({ initialKind, mode = "studio" }: StudioProps) {
         <div className="pm-project-actions">
           <button className="pm-icon-btn" type="button" onClick={() => setLibraryOpen((s) => !s)} title="Toggle scene library" aria-label="Toggle scene library" aria-pressed={libraryOpen}>{libraryOpen ? <PanelLeftClose size={17}/> : <PanelLeftOpen size={17}/>}</button>
           <button className="pm-icon-btn" type="button" onClick={() => setInspectorOpen((s) => !s)} title="Toggle inspector" aria-label="Toggle inspector" aria-pressed={inspectorOpen}>{inspectorOpen ? <PanelRightClose size={17}/> : <PanelRightOpen size={17}/>}</button>
+          <button className="pm-icon-btn pm-fullscreen-button" type="button" onClick={() => { void toggleFullscreen(); }} aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"} title={isFullscreen ? "Exit fullscreen (Esc)" : "Enter fullscreen"} aria-pressed={isFullscreen}>{isFullscreen ? <Minimize2 size={17}/> : <Maximize2 size={17}/>}</button>
           <span className="pm-toolbar-rule"/>
           <label className="pm-action pm-action-quiet pm-import"><Upload size={15}/> Import <input aria-label="Import scene JSON" type="file" accept=".json,application/json" className="sr-only" onChange={importJSON}/></label>
           <button className="pm-action pm-action-primary" type="button" onClick={exportJSON}><Download size={15}/> Export JSON</button>

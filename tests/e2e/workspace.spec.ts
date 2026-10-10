@@ -197,3 +197,53 @@ test("polar rose only exposes parameters that affect its curve", async ({ page }
   await expect(symmetry).toHaveValue("6");
   await expect(page.getByRole("tabpanel")).toContainText("12");
 });
+
+
+test("Studio occupies the full browser width while keeping the viewport and side tools usable", async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 1080 });
+  await page.goto("/studio");
+  await expect(page.locator(".pm-workspace")).toBeVisible();
+  await expect(page.locator(".pm-sidebar")).toBeVisible();
+  await expect(page.locator(".pm-inspector")).toBeVisible();
+  const layout = await page.evaluate(() => {
+    const root = document.querySelector(".pm-workspace")!.getBoundingClientRect();
+    const left = document.querySelector(".pm-sidebar")!.getBoundingClientRect();
+    const right = document.querySelector(".pm-inspector")!.getBoundingClientRect();
+    const canvas = document.querySelector(".pm-canvas-area")!.getBoundingClientRect();
+    const details = document.querySelector(".pm-details")!.getBoundingClientRect();
+    return { rootLeft: root.left, rootRight: root.right, rootWidth: root.width, leftWidth: left.width, rightWidth: right.width, canvasWidth: canvas.width, detailsHeight: details.height };
+  });
+  expect(layout.rootLeft).toBeLessThan(13);
+  expect(layout.rootRight).toBeGreaterThan(1907);
+  expect(layout.leftWidth).toBeGreaterThanOrEqual(280);
+  expect(layout.rightWidth).toBeGreaterThanOrEqual(370);
+  expect(layout.canvasWidth).toBeGreaterThan(850);
+  expect(layout.detailsHeight).toBeLessThan(165);
+});
+
+test("fullscreen button enters and exits real browser fullscreen when supported", async ({ page, browserName }) => {
+  test.skip(browserName !== "chromium", "Chromium-only fullscreen contract");
+  await page.goto("/studio");
+  const enter = page.getByRole("button", { name: "Enter fullscreen" });
+  await expect(enter).toBeVisible();
+  const isSupported = await page.evaluate(() => typeof document.documentElement.requestFullscreen === "function");
+  test.skip(!isSupported, "Fullscreen API is not supported");
+  await enter.click();
+  await expect.poll(() => page.evaluate(() => Boolean(document.fullscreenElement))).toBe(true);
+  await expect(page.getByRole("button", { name: "Exit fullscreen" })).toBeVisible();
+  await page.getByRole("button", { name: "Exit fullscreen" }).click();
+  await expect.poll(() => page.evaluate(() => Boolean(document.fullscreenElement))).toBe(false);
+});
+
+test("wave renderer preserves smooth geometry when zoomed", async ({ page }) => {
+  await page.goto("/studio?kind=wave");
+  const canvas = page.locator(".pm-canvas-area canvas");
+  await expect(canvas).toBeVisible();
+  await page.getByRole("button", { name: "Zoom in" }).click();
+  await expect(page.getByLabel("Zoom level")).toHaveText("125%");
+  const resolution = await canvas.evaluate((node) => {
+    const canvas = node as HTMLCanvasElement;
+    return { cssWidth: canvas.getBoundingClientRect().width, bitmapWidth: canvas.width };
+  });
+  expect(resolution.bitmapWidth).toBeGreaterThanOrEqual(Math.round(resolution.cssWidth));
+});
