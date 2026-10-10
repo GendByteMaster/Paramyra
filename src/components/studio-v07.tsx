@@ -70,6 +70,7 @@ export function StudioClient(props:{initialKind?:SceneKind;mode?:"studio"|"playg
 function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mode?:"studio"|"playground"}) {
   const root=useRef<HTMLDivElement>(null);
   const last=useRef({key:"",at:0});
+  const dragGroup=useRef<string|null>(null);
   const [history,setHistory]=useState(()=>initializeHistory(loadDoc(initialKind)));
   const doc=history.present;
   const [selected,setSelected]=useState(()=>loadDoc(initialKind).layers[0].id);
@@ -106,7 +107,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
     // Timestamp is sampled only in user-triggered edit handlers, never during render.
     // eslint-disable-next-line react-hooks/purity
     const now=Date.now();
-    const coalesce=!!key&&last.current.key===key&&now-last.current.at<500;
+    const coalesce=!!key&&last.current.key===key&&(dragGroup.current===key||now-last.current.at<500);
     setHistory(h=>commitDocument(h,fn(h.present),coalesce));
     last.current={key,at:now};
   };
@@ -261,6 +262,8 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
           <div className="pm-canvas-area">
             <div className="pm-canvas-surface"><SceneCanvas scene={doc} playing={playing} view={view} tool={tool} selectedLayerId={selected}
               onSelectLayer={setSelected} onLayerOffsetChange={moveLayerOffset} onSizeChange={setCanvasSize}
+              onLayerMoveStart={id=>{dragGroup.current="drag:"+id;last.current.key="";}}
+              onLayerMoveEnd={id=>{if(dragGroup.current==="drag:"+id){dragGroup.current=null;last.current.key="";}}}
               time={time} duration={doc.duration} speed={speed} seekVersion={seekVersion}
               onTimeChange={setTime} onPanChange={(x,y)=>setView(v=>({...v,pan:{x,y}}))}
               onCameraChange={camera=>setView(v=>({...v,...camera}))}/></div>

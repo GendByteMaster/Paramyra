@@ -325,6 +325,8 @@ test("professional canvas selects and moves a mathematical layer with Undo", asy
   });
   await page.mouse.move(point.x, point.y);
   await page.mouse.down();
+  await page.mouse.move(point.x + 20, point.y - 10, { steps: 3 });
+  await page.waitForTimeout(650); // One drag is one undo step, even beyond 500ms.
   await page.mouse.move(point.x + 55, point.y - 25, { steps: 5 });
   await page.mouse.up();
   await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("paramyra.document.v2")!).layers[0].offset.x)).toBeGreaterThan(0.1);
@@ -338,6 +340,9 @@ test("reset layer preserves the other layers in a composition", async ({ page })
   if (!(await library.isVisible())) await page.getByRole("button", { name: "Toggle scene library" }).click();
   await library.getByRole("button", { name: "Add layer" }).click();
   await expect(page.locator(".pm-layer-row")).toHaveCount(2);
+  if (await page.getByRole("button", { name: "Close scene library" }).isVisible()) {
+    await page.getByRole("button", { name: "Close scene library" }).click({ position: { x: 350, y: 300 } });
+  }
   await page.getByRole("button", { name: "Reset layer" }).click();
   await expect(page.locator(".pm-layer-row")).toHaveCount(2);
 });

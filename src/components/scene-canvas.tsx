@@ -19,6 +19,8 @@ type Props = {
   selectedLayerId?: string;
   onSelectLayer?: (id: string) => void;
   onLayerOffsetChange?: (id: string, x: number, y: number) => void;
+  onLayerMoveStart?: (id: string) => void;
+  onLayerMoveEnd?: (id: string) => void;
   onSizeChange?: (size: Size) => void;
   onTimeChange?: (time: number) => void;
   onPanChange?: (x: number, y: number) => void;
@@ -42,7 +44,7 @@ export function SceneCanvas(props: Props) {
   useEffect(() => {
     propsRef.current = props;
     wakeRef.current();
-  }, [props.scene, props.playing, props.view, props.zoom, props.duration, props.speed, props.selectedLayerId]);
+  }, [props]);
   useEffect(() => {
     timeRef.current = props.time ?? 0;
     wakeRef.current();
@@ -118,6 +120,7 @@ export function SceneCanvas(props: Props) {
     const id = shouldPan ? null : hitTestLayer(scene, timeRef.current, size, camera, point);
     if (id && p.onLayerOffsetChange) {
       const layer = scene.layers.find(l => l.id === id)!;
+      p.onLayerMoveStart?.(id);
       p.onSelectLayer?.(id);
       drag.current = { mode: "layer", pointerId: event.pointerId, startX: event.clientX,
         startY: event.clientY, layerId: id, offsetX: layer.offset.x, offsetY: layer.offset.y,
@@ -142,7 +145,10 @@ export function SceneCanvas(props: Props) {
     }
   };
   const onPointerUp = (event: PointerEvent<HTMLCanvasElement>) => {
-    if (drag.current?.pointerId === event.pointerId) drag.current = null;
+    const current = drag.current;
+    if (current?.pointerId !== event.pointerId) return;
+    drag.current = null;
+    if (current.mode === "layer") propsRef.current.onLayerMoveEnd?.(current.layerId);
   };
 
   const onWheel = (event: WheelEvent<HTMLCanvasElement>) => {
@@ -173,7 +179,7 @@ export function SceneCanvas(props: Props) {
   return <div className="scene-frame">
     <canvas
       ref={ref} role="img" tabIndex={0} aria-label={"Visualization of " + props.scene.title}
-      aria-description="Select a curve to move it. Drag empty space or hold Alt to pan. Arrow keys move the selected layer."
+      title="Select a curve to move it; Alt+drag pans; arrow keys move the selected curve."
       style={{ touchAction: props.onPanChange ? "none" : undefined, cursor: props.tool === "pan" ? "grab" : "crosshair" }}
       onPointerDown={onPointerDown} onPointerMove={onPointerMove}
       onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onLostPointerCapture={onPointerUp}
