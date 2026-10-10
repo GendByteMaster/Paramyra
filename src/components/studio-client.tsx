@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect, useState, useSyncExternalStore, type ChangeEvent } from "react";
 import { Download, Pause, Play, RotateCcw, Upload } from "lucide-react";
 import { SceneCanvas } from "./scene-canvas";
 import { presetFor, presets } from "@/core/scenes/presets";
@@ -17,31 +17,38 @@ const controls: readonly { key: NumericParam; label: string; min: number; max: n
   { key: "strokeWidth", label: "Stroke width", min: 0.5, max: 4, step: 0.1 },
 ];
 
-export function StudioClient({ initialKind, mode = "studio" }: { initialKind?: SceneKind; mode?: "studio" | "playground" }) {
-  const [scene, setScene] = useState<SceneDocument>(() => presetFor(initialKind ?? "lissajous"));
+const subscribeNoop = () => () => {};
+const getClientSnapshot = () => true;
+const getServerSnapshot = () => false;
+
+type StudioProps = { initialKind?: SceneKind; mode?: "studio" | "playground" };
+
+export function StudioClient(props: StudioProps) {
+  // Server and first hydration render match. Mount the editable browser workspace afterward.
+  const hydrated = useSyncExternalStore(subscribeNoop, getClientSnapshot, getServerSnapshot);
+  if (!hydrated) return <div className="shell section" role="status">Loading workspace…</div>;
+  return <StudioWorkspace {...props} />;
+}
+
+function StudioWorkspace({ initialKind, mode = "studio" }: StudioProps) {
+  const [scene, setScene] = useState<SceneDocument>(() => {
+    if (initialKind) return presetFor(initialKind);
+    try {
+      const saved = localStorage.getItem(KEY);
+      if (saved) {
+        const parsed = sceneSchema.safeParse(JSON.parse(saved));
+        if (parsed.success) return parsed.data;
+      }
+    } catch { /* unavailable or invalid local storage: use preset */ }
+    return presetFor("lissajous");
+  });
   const [playing, setPlaying] = useState(true);
-  const [ready, setReady] = useState(false);
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
-    // When a specific gallery link is requested, it takes precedence over previous local work.
-    if (!initialKind) {
-      try {
-        const saved = localStorage.getItem(KEY);
-        if (saved) {
-          const parsed = sceneSchema.safeParse(JSON.parse(saved));
-          if (parsed.success) setScene(parsed.data);
-        }
-      } catch { /* invalid or unavailable browser storage: use preset */ }
-    }
-    setReady(true);
-  }, [initialKind]);
-
-  useEffect(() => {
-    if (!ready) return;
     try { localStorage.setItem(KEY, JSON.stringify(scene)); }
-    catch { /* private browsing or full storage: exporting JSON remains available */ }
-  }, [scene, ready]);
+    catch { /* exporting JSON remains available */ }
+  }, [scene]);
 
   const changeParam = (key: NumericParam, value: number) => {
     if (!Number.isFinite(value)) return;

@@ -78,3 +78,10 @@ footer { border-top: 1px solid var(--border); padding: 28px 0 40px; color: var(-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+
+/* Arrow-reveal interaction adapted from Animata's arrow-button; reduced-motion safe. */
+.animata-arrow-link { overflow: hidden; }
+.animata-arrow-icon { transition: transform .22s ease; }
+.animata-arrow-link:hover .animata-arrow-icon,
+.animata-arrow-link:focus-visible .animata-arrow-icon { transform: translateX(5px); }
+@media (prefers-reduced-motion: reduce) { .animata-arrow-icon { transition: none; } }

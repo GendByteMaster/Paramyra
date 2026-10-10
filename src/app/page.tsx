@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { SceneCanvas } from "@/components/scene-canvas";
+import { AnimatedArrowLink } from "@/components/animata/animated-arrow-link";
 import { SceneGallery } from "@/components/scene-gallery";
 import { presets } from "@/core/scenes/presets";
 
@@ -13,7 +14,7 @@ export default function Home() {
           <h1>Where mathematics <span className="gradient">comes alive.</span></h1>
           <p className="lead">Explore beautiful equations, experiment with real-time simulations, and create mathematical art in your own studio.</p>
           <div className="actions">
-            <Link className="btn primary" href="/studio">Open Studio <ArrowRight size={17} aria-hidden="true" /></Link>
+            <AnimatedArrowLink href="/studio">Open Studio</AnimatedArrowLink>
             <Link className="btn" href="/explore">Explore scenes <Sparkles size={16} aria-hidden="true" /></Link>
           </div>
         </div>
