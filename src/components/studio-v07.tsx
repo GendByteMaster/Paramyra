@@ -327,8 +327,8 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
     :layer.kind==="lissajous"?{label:"Frequency ratio",value:layer.params.frequencyX+" : "+layer.params.frequencyY}
     :{label:"Harmonics",value:layer.params.frequencyX+" + "+layer.params.frequencyY};
 
-  return <div className="pm-workspace" data-mode={mode} ref={root}>
-    <header className="pm-projectbar" role="toolbar" aria-label="Workspace toolbar">
+  return <div className="pm-workspace pm-editor-shell" data-mode={mode} ref={root}>
+    <header className="pm-projectbar pm-editor-topbar" role="toolbar" aria-label="Workspace toolbar">
       <div className="pm-project-identity">
         <Link href="/explore" className="pm-icon-btn" aria-label="Back to Explore"><ArrowLeft size={16}/></Link>
         <div className="pm-project-mark"><CircleDot size={19}/></div>
@@ -368,13 +368,13 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
       <button type="button" onClick={()=>{void exportFrame("svg");}}><Download size={14}/> Download SVG</button>
       <button type="button" className="pm-export-close" aria-label="Close image export" onClick={()=>setExportOpen(false)}>✕</button>
     </div>}
-    <div className={"pm-grid"+(!libraryOpen?" pm-no-library":"")+(!inspectorOpen?" pm-no-inspector":"")+(animationFocus&&detailsOpen&&detailsTab==="animation"?" pm-animation-focus":"")}>
+    <div className={"pm-grid pm-editor-pane-layout"+(!libraryOpen?" pm-no-library":"")+(!inspectorOpen?" pm-no-inspector":"")+(animationFocus&&detailsOpen&&detailsTab==="animation"?" pm-animation-focus":"")}>
       {libraryOpen&&<button type="button" className="pm-library-backdrop" aria-label="Close scene library" onClick={()=>setLibraryOpen(false)}/>}
-      {libraryOpen&&<aside className="pm-sidebar" aria-label="Scene library">
-        <header className="pm-sidebar-heading"><span className="pm-sidebar-mark"><Layers3 size={18}/></span><div><span className="pm-label">LIBRARY</span><h2>Scene Library</h2><p>Models, layers and presets</p></div></header>
+      {libraryOpen&&<aside className="pm-sidebar pm-editor-panel" aria-label="Scene library">
+        <header className="pm-sidebar-heading pm-editor-panel-heading"><span className="pm-sidebar-mark"><Layers3 size={18}/></span><div><span className="pm-label">LIBRARY</span><h2>Scene Library</h2><p>Models, layers and presets</p></div></header>
         <div className="pm-library-search"><Search size={16}/><input type="search" aria-label="Search mathematical scenes" placeholder="Search scenes..." value={filter} onChange={e=>setFilter(e.target.value)}/></div>
         <div className="pm-library-group-heading"><span>MATHEMATICAL FORMS</span><span>{filtered.length} / {presets.length}</span></div>
-        <div className="pm-library-list">
+        <div className="pm-library-list pm-editor-content-scroll">
           {filtered.map((p,index)=><button type="button" key={p.id} className={"pm-library-item"+(doc.layers.length===1&&layer.kind===p.kind?" active":"")}
             aria-pressed={doc.layers.length===1&&layer.kind===p.kind} title="Open template (replaces the current document)" onClick={()=>selectPreset(p.kind)}>
             <span className="pm-library-thumb"><SceneGlyph kind={p.kind}/><span>0{index+1}</span></span>
@@ -404,8 +404,8 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
         </div>
       </aside>}
       <div ref={centerRef} className={"pm-center"+(detailsOpen&&detailsTab==="animation"?" pm-animation-workspace":"")} style={detailsOpen&&detailsTab==="animation"?({"--pm-editor-height":animationPanelHeight+"px"} as CSSProperties):undefined}>
-        <section className="pm-viewport-panel" aria-label="Visualization preview">
-          <div className="pm-viewport-toolbar"><div className="pm-viewport-heading"><span className="pm-blue-dot"/><div><strong>{doc.title}</strong><small>Canvas 2D · {doc.layers.length} layers</small></div></div>
+        <section className="pm-viewport-panel pm-editor-panel" aria-label="Visualization preview">
+          <div className="pm-viewport-toolbar pm-editor-viewport-heading"><div className="pm-viewport-heading"><span className="pm-blue-dot"/><div><strong>{doc.title}</strong><small>Canvas 2D · {doc.layers.length} layers</small></div></div>
             <div className="pm-viewport-tools"><span className="pm-live" data-state={playing?"playing":"paused"}><span className="live-indicator"/>{playing?"LIVE":"PAUSED"}</span>
             {nodeGraph.binding.enabled&&<span className={liveAtPlayhead.error?"pm-graph-live-badge is-error":"pm-graph-live-badge"} role="status">
               <GitBranch size={13}/>{liveAtPlayhead.error?"GRAPH ERROR":"GRAPH LINKED"}
@@ -445,7 +445,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
               <button type="button" className="pm-action pm-action-quiet" onClick={resetLayer}><RotateCcw size={15}/> Reset layer</button>
             </div></div>
         </section>
-        {detailsOpen&&<section className="pm-details" aria-label="Scene details">
+        {detailsOpen&&<section className="pm-details pm-editor-panel" aria-label="Scene details">
           {detailsTab==="animation"&&<div className="pm-animation-resizer" role="separator" tabIndex={0}
             aria-label="Resize animation workspace" aria-orientation="horizontal" aria-valuemin={300}
             aria-valuemax={Math.max(320,centerHeight-210)} aria-valuenow={animationPanelHeight}
@@ -496,9 +496,9 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
         </section>}
         {!detailsOpen&&<button type="button" className="pm-detail-reopen" onClick={()=>setDetailsOpen(true)}><ChevronUp size={16}/> Show scene details</button>}
       </div>
-      {inspectorOpen&&<aside className="pm-inspector" aria-label="Scene inspector">
-        <header className="pm-inspector-top"><span className="pm-sidebar-mark"><SlidersHorizontal size={18}/></span><div><span className="pm-label">PROPERTIES</span><h2>Inspector</h2><p>Selected mathematical layer</p></div></header>
-        <div className="pm-inspector-scroll">
+      {inspectorOpen&&<aside className="pm-inspector pm-editor-panel" aria-label="Scene inspector">
+        <header className="pm-inspector-top pm-editor-panel-heading"><span className="pm-sidebar-mark"><SlidersHorizontal size={18}/></span><div><span className="pm-label">PROPERTIES</span><h2>Inspector</h2><p>Selected mathematical layer</p></div></header>
+        <div className="pm-inspector-scroll pm-editor-content-scroll">
           <section className="pm-inspector-section"><div className="pm-inspector-sectionhead"><span>01 / LAYER</span><Layers3 size={16}/></div>
             <div className="field"><label htmlFor="layer-title">Layer name</label><input id="layer-title" className="pm-textfield" value={layer.title} maxLength={120} onChange={e=>{if(e.target.value)commit(d=>updateLayer(d,layer.id,l=>({...l,title:e.target.value})),"title:"+layer.id);}}/></div>
             <div className="field"><label htmlFor="scene-kind">Mathematical form</label><select id="scene-kind" value={layer.kind} onChange={e=>{
@@ -553,6 +553,6 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
     </div>
     <CalculatorWindow open={calculatorOpen} onClose={closeCalculator}
       formula={layer.kind==="formula"?layer.formula:defaultFormula()} onPlot={plotFromCalculator}/>
-    <div className="pm-statusbar"><div><span className="pm-status-dot"/> PARAMYRA ENGINE · {doc.layers.length} LAYERS</div><div>SCENE DOCUMENT V3 · ZOOM {Math.round(view.zoom*100)}% · LOCAL PROJECT</div></div>
+    <div className="pm-statusbar pm-editor-statusbar"><div><span className="pm-status-dot"/> PARAMYRA ENGINE · {doc.layers.length} LAYERS</div><div>SCENE DOCUMENT V3 · ZOOM {Math.round(view.zoom*100)}% · LOCAL PROJECT</div></div>
   </div>;
 }
