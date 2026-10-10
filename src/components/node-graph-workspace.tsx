@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { SceneCanvas } from "./scene-canvas";
 import { makeProjectBundle,parseProjectBundle,restoreProjectBundle } from "@/core/graph/project-bundle";
-import { copyGraphSelection,pasteGraphSelection,deleteGraphSelection,
+import { copyGraphSelection,parseGraphSelection,pasteGraphSelection,deleteGraphSelection,
   moveGraphSelection,groupGraphNodes,ungroupGraphNodes,type GraphSelection } from "@/core/graph/workspace";
 import { GraphReactFlowCanvas } from "./graph-react-flow";
 import { compileGraph, resolveLiveScene } from "@/core/graph/live";
