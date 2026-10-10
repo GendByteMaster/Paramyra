@@ -430,7 +430,8 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
             <span className="pm-tabs-meta">VERSION {doc.schemaVersion} · LOCAL ONLY</span>
           </div>
           {detailsTab==="animation"?<div role="tabpanel" className="pm-animation-surface">
-            <AnimationTimeline layer={layer} duration={doc.duration} time={Math.min(time,doc.duration)}
+            <AnimationTimeline layer={layer} layers={doc.layers} duration={doc.duration} time={Math.min(time,doc.duration)}
+              onSelectLayer={id=>{setPlaying(false);setSelected(id);}}
               onSeek={value=>{setPlaying(false);setTime(value);setSeekVersion(v=>v+1);}}
               onEdit={fn=>{setPlaying(false);commit(d=>updateLayer(d,layer.id,fn));}}/>
           </div>:detailsTab==="overview"?<div className="pm-detail-content" role="tabpanel">
