@@ -61,6 +61,7 @@ test("home presents a functional gallery and workspace entry", async ({ page }) 
 
 test("quick scene switch updates the inspector", async ({ page }) => {
   await page.goto("/studio");
+  await expect(page.locator(".pm-workspace")).toBeVisible();
   const library = page.getByRole("complementary", { name: "Scene library" });
   const openLibrary = async () => {
     if (!(await library.isVisible())) await page.getByRole("button", { name: "Toggle scene library" }).click();
@@ -97,6 +98,7 @@ test("workspace tools have real behavior", async ({ page }) => {
 
 test("scene search filters only real registered presets", async ({ page }) => {
   await page.goto("/studio");
+  await expect(page.locator(".pm-workspace")).toBeVisible();
   const library = page.getByRole("complementary", { name: "Scene library" });
   if (!(await library.isVisible())) await page.getByRole("button", { name: "Toggle scene library" }).click();
   await page.getByRole("searchbox", { name: "Search mathematical scenes" }).fill("rose");
@@ -266,6 +268,7 @@ test("v1 scene import migrates to v2 and can be exported without losing paramete
 
 test("layers are real composited objects and undo/redo is stable", async ({ page }) => {
   await page.goto("/studio");
+  await expect(page.locator(".pm-workspace")).toBeVisible();
   const library = page.getByRole("complementary", { name: "Scene library" });
   if (!(await library.isVisible())) await page.getByRole("button", { name: "Toggle scene library" }).click();
   await library.getByRole("button", { name: "Add layer" }).click();
@@ -336,6 +339,7 @@ test("professional canvas selects and moves a mathematical layer with Undo", asy
 
 test("reset layer preserves the other layers in a composition", async ({ page }) => {
   await page.goto("/studio");
+  await expect(page.locator(".pm-workspace")).toBeVisible();
   const library = page.getByRole("complementary", { name: "Scene library" });
   if (!(await library.isVisible())) await page.getByRole("button", { name: "Toggle scene library" }).click();
   await library.getByRole("button", { name: "Add layer" }).click();
@@ -362,6 +366,7 @@ test("canvas tools toggle between selection and pan", async ({ page }) => {
 
 test("custom formula can be added, edited and persisted", async ({ page }) => {
   await page.goto("/studio");
+  await expect(page.locator(".pm-workspace")).toBeVisible();
   const library=page.getByRole("complementary",{name:"Scene library"});
   if(!(await library.isVisible()))await page.getByRole("button",{name:"Toggle scene library"}).click();
   await library.getByRole("combobox",{name:"New layer kind"}).selectOption("formula");
@@ -421,6 +426,7 @@ test("v2 multilayer JSON import migrates into v3 formula-capable project", async
 
 test("formula shortcut reveals the editor without replacing existing layers", async ({ page }) => {
   await page.goto("/studio");
+  await expect(page.locator(".pm-workspace")).toBeVisible();
   const library=page.getByRole("complementary",{name:"Scene library"});
   if(!(await library.isVisible()))await page.getByRole("button",{name:"Toggle scene library"}).click();
   await library.getByRole("button",{name:"Add formula layer"}).click();
@@ -432,6 +438,7 @@ test("formula shortcut reveals the editor without replacing existing layers", as
 
 test("inline delete removes an arbitrary unselected layer, then Undo and Redo restore history", async ({ page }) => {
   await page.goto("/studio");
+  await expect(page.locator(".pm-workspace")).toBeVisible();
   const library=page.getByRole("complementary",{name:"Scene library"});
   if(!(await library.isVisible()))await page.getByRole("button",{name:"Toggle scene library"}).click();
   await library.getByRole("button",{name:"Add formula layer"}).click();
@@ -453,6 +460,7 @@ test("inline delete removes an arbitrary unselected layer, then Undo and Redo re
 
 test("deleting the selected layer selects an adjacent layer and protects the last layer", async ({ page }) => {
   await page.goto("/studio");
+  await expect(page.locator(".pm-workspace")).toBeVisible();
   const library=page.getByRole("complementary",{name:"Scene library"});
   if(!(await library.isVisible()))await page.getByRole("button",{name:"Toggle scene library"}).click();
   await library.getByRole("button",{name:"Add layer"}).click();
@@ -471,6 +479,7 @@ test("deleting the selected layer selects an adjacent layer and protects the las
 
 test("Undo after creating a selected layer keeps Canvas and Inspector selection coherent", async ({ page }) => {
   await page.goto("/studio");
+  await expect(page.locator(".pm-workspace")).toBeVisible();
   const library = page.getByRole("complementary", {name:"Scene library"});
   if (!(await library.isVisible())) await page.getByRole("button", {name:"Toggle scene library"}).click();
   await library.getByRole("button", {name:"Add formula layer"}).click();
