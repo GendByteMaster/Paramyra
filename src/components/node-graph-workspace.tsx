@@ -328,7 +328,7 @@ function GraphWorkspace() {
       </div>
       <div className="pm-ng-actions">
       <EditorModeSwitch active="graph"/>
-        <button type="button" className={"pm-ng-coursework-tab"+(courseworkMode?" is-active":"")} aria-pressed={courseworkMode} aria-label={courseworkMode?"Return to node editor":"Open coursework mode"} onClick={()=>setCourseworkMode(v=>!v)}><BookOpen size={15}/> {courseworkMode?"Node Editor":"Курсовая"}</button>
+        <button type="button" className={"pm-ng-coursework-tab"+(courseworkMode?" is-active":"")} aria-pressed={courseworkMode} aria-label={courseworkMode?"Return to node editor":"Open coursework mode"} onClick={()=>setCourseworkMode(v=>!v)}><BookOpen size={15}/> {courseworkMode?"Node Editor":"Coursework"}</button>
 
         <button type="button" className="pm-ng-icon" title="Undo" aria-label="Undo graph edit" disabled={!history.past.length} onClick={()=>setHistory(undoGraph)}><Undo2 size={17}/></button>
         <button type="button" className="pm-ng-icon" title="Redo" aria-label="Redo graph edit" disabled={!history.future.length} onClick={()=>setHistory(redoGraph)}><Redo2 size={17}/></button>
