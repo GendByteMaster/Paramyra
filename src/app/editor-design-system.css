@@ -12,7 +12,7 @@
   --editor-radius: 13px;
   --editor-outer-pad: 8px;
   --editor-header-height: 72px;
-  --editor-panel-header-height: 80px;
+  --editor-panel-header-height: 96px;
   --editor-viewport-header-height: 56px;
   --editor-bg: #070c14;
   --editor-panel-bg: linear-gradient(155deg, #111a28, #0b121d 50%, #0c1522);
@@ -61,9 +61,12 @@
   box-shadow: inset 0 1px #eef4ff04;
 }
 .pm-editor-shell .pm-editor-panel-heading {
+  flex: 0 0 var(--editor-panel-header-height);
+  height: var(--editor-panel-header-height);
   min-height: var(--editor-panel-header-height);
-  padding: 14px 16px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--editor-stroke);
+  overflow: hidden;
 }
 .pm-editor-shell .pm-editor-viewport-heading {
   flex: 0 0 auto;
