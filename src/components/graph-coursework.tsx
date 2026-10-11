@@ -75,7 +75,10 @@ export function GraphCoursework({graph,scene,time,outputs,error,projectId}:Props
   const update=(key:DraftKey,value:string)=>{
     const next={...draft,[key]:value};
     setDraft(next);
-    setSaved(projectId===activeProject(readStudioLibrary(localStorage)).id && !!writeActiveCoursework(next,localStorage,Date.now()));
+    // Timestamp is sampled in the input event handler, not during rendering.
+    // eslint-disable-next-line react-hooks/purity
+    const now=Date.now();
+    setSaved(projectId===activeProject(readStudioLibrary(localStorage)).id && !!writeActiveCoursework(next,localStorage,now));
   };
   const reportDate=useMemo(()=>new Date().toLocaleDateString("en-GB"),[]);
   const print=()=>window.print();
