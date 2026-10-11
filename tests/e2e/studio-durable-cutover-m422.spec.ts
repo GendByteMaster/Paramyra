@@ -149,3 +149,16 @@ test("M4.2.2 Coursework draft can be exported even before IDB save completes",as
   const draft=JSON.parse(await readFile(filename!,"utf8"));
   expect(draft.objective).toBe("Offline recoverable report text");
 });
+
+
+test("M4.2.2 legacy tabs warn when another tab activates transactional storage",async({context})=>{
+  const older=await context.newPage(),activator=await context.newPage();
+  try{
+    await older.goto("/studio");
+    await expect(older.locator("#frequencyX")).toBeVisible();
+    await enableDurable(activator);
+    await expect(older.getByRole("alert").filter({hasText:"Transactional storage changed in another tab"})).toBeVisible();
+    await older.reload();
+    await expect(older.getByText("Saved in IndexedDB")).toBeVisible();
+  }finally{await older.close();await activator.close();}
+});
