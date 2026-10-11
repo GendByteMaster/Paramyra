@@ -133,6 +133,14 @@ describe("Studio project library",()=>{
     expect(activeProject(restored).coursework.objective).toBe("Source-only text");
     expect(activeProject(restored).scene.layers[0].keyframes).toHaveLength(1);
   });
+  it("refuses to overwrite malformed registries during fallback autosave",()=>{
+    const {store,entries}=seed();
+    store.setItem(PROJECT_LIBRARY_KEY,'{"version":99,"projects":"unsupported"}');
+    const backup=store.getItem(PROJECT_LIBRARY_KEY);
+    const fallback=readStudioLibrary(store);
+    expect(persistStudioLibrary(fallback,store)).toBe(false);
+    expect(entries.get(PROJECT_LIBRARY_KEY)).toBe(backup);
+  });
   it("rolls back a failed Coursework registry write and rejects malformed reports",()=>{
     const {store,entries}=seed();
     const lib=readStudioLibrary(store);

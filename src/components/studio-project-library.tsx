@@ -24,7 +24,16 @@ export function StudioProjectLibrary({library,onClose,onSelect,onNew,onDuplicate
     return()=>window.removeEventListener("keydown",onKey);
   },[onClose]);
   return <div className="pm-project-dialog-backdrop" onMouseDown={e=>{if(e.target===e.currentTarget)onClose();}}>
-    <section role="dialog" aria-modal="true" aria-label="Studio project library" className="pm-project-dialog">
+    <section role="dialog" aria-modal="true" aria-label="Studio project library" className="pm-project-dialog"
+      onKeyDown={event=>{
+        if(event.key!=="Tab")return;
+        const focusable=Array.from(event.currentTarget.querySelectorAll<HTMLElement>("button:not([disabled]),input:not([disabled])"))
+          .filter(element=>element.getClientRects().length>0);
+        if(!focusable.length)return;
+        const first=focusable[0],last=focusable[focusable.length-1];
+        if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}
+        else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+      }}>
       <header className="pm-project-dialog-head">
         <div><span className="pm-label">PARAMYRA / STUDIO</span><h2>Project Library</h2>
         <p>Local projects are saved separately in this browser. Export JSON for backups.</p></div>

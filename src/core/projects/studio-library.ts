@@ -154,6 +154,14 @@ export function persistStudioLibrary(library:StudioLibrary,store:ProjectStore,
   const values=[...(mirrors.scene!==false?[scene]:[]),...(mirrors.graph!==false?[graph]:[]),serialized];
   let previous:(string|null)[];
   try{previous=keys.map(key=>store.getItem(key));}catch{return false;}
+  // Never destroy a corrupt/unsupported registry when the fallback UI mounts.
+  // Recovery needs explicit user action; legacy valid v1 registries remain migratable.
+  const previousRegistry=previous[previous.length-1];
+  if(previousRegistry!==null){
+    try{
+      if(previousRegistry.length>MAX_JSON_BYTES||!parseStudioLibrary(JSON.parse(previousRegistry)))return false;
+    }catch{return false;}
+  }
   try{
     for(let i=0;i<keys.length;i++)store.setItem(keys[i],values[i]);
     return true;

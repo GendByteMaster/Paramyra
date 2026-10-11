@@ -5,7 +5,13 @@
 [![CI](https://github.com/GendByteMaster/Paramyra/actions/workflows/ci.yml/badge.svg)](https://github.com/GendByteMaster/Paramyra/actions/workflows/ci.yml)
 
 
-## Studio v0.9 — Formula Editor (Draft)
+## Studio v1.0 — M4.1 Project Integrity (development branch)
+
+M4.1 stores Scene, Node Graph, authored Timeline keyframes, and Coursework together inside each Studio project. Legacy project registries (v1) and graph-scoped coursework drafts migrate to versioned v2 project snapshots without executing imported content or erasing old keys. Project JSON v2 includes Coursework; v1 JSON imports remain supported. Timeline playhead is session-only; the durable animation data consists of document duration and keyframes.
+
+See [M4.1 design and verification notes](docs/STUDIO_PROJECT_INTEGRITY_M41.md).
+
+## Studio v0.9 — Formula Editor (historical milestone)
 
 Studio v0.9 extends v0.8 with user-authored mathematical expressions:
 - Explicit graphs `y=f(x,t)`, parametric curves `x=f(u,t), y=g(u,t)`, and polar curves `r=f(theta,t)`.
@@ -78,6 +84,6 @@ Import this repository into Vercel and select **Next.js** with the repository ro
 
 ### Project principles
 
-The Gallery, Playground, and Studio share one legacy scene schema, the versioned Studio MathDocument v2 model, mathematical functions, and rendering system. The scene engine has no dependency on Next.js or UI animation libraries. Local projects are stored in the current browser only; authentication, online publishing, keyframes, and 3D are future milestones. See [architecture](docs/ARCHITECTURE.md).
+Gallery and Playground use the shared math/renderer foundation; Studio uses the validated MathDocument v3 and a separate versioned v2 project registry. Timeline keyframes, React Flow Node Graph and Coursework are supported. The mathematical engine is independent from Next.js; projects remain browser-local, with no cloud sync, collaboration or 3D. See [architecture](docs/ARCHITECTURE.md).
 
 MIT licensed.
