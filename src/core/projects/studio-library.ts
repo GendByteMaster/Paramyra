@@ -59,7 +59,25 @@ export function readStudioLibrary(store:ProjectStore):StudioLibrary{
     if(raw){
       if(raw.length>MAX_JSON_BYTES)return fallback(store);
       const parsed=parseStudioLibrary(JSON.parse(raw));
-      if(parsed)return parsed;
+      if(parsed){
+        // Existing Studio/Timeline integrations still update the compatibility mirrors.
+        // A valid mirror that differs from the active snapshot is an external edit.
+        const active=activeProject(parsed);
+        let scene=active.scene,graph=active.graph;
+        try{
+          const mirror=store.getItem(STUDIO_SCENE_KEY);
+          const valid=mirror&&mirror.length<MAX_JSON_BYTES?parseDocument(JSON.parse(mirror)):null;
+          if(valid&&valid.id===scene.id)scene=valid;
+        }catch{/* Ignore malformed external document. */}
+        try{
+          const mirror=store.getItem(GRAPH_KEY);
+          const valid=mirror&&mirror.length<MAX_JSON_BYTES?parseGraph(JSON.parse(mirror)):null;
+          if(valid&&valid.id===graph.id)graph=valid;
+        }catch{/* Ignore malformed external graph. */}
+        if(JSON.stringify(scene)===JSON.stringify(active.scene)&&
+           JSON.stringify(graph)===JSON.stringify(active.graph))return parsed;
+        return {...parsed,projects:parsed.projects.map(p=>p.id===parsed.activeId?{...p,scene,graph}:p)};
+      }
     }
   }catch{/* Safe legacy fallback. */}
   return fallback(store);
@@ -107,15 +125,16 @@ export function removeProject(library:StudioLibrary,id:string):StudioLibrary|nul
  * is authoritative. Legacy scene/graph keys are mirrors for existing workspaces.
  * Restore all keys on a write exception; multi-tab concurrency is last-writer-wins.
  */
-export function persistStudioLibrary(library:StudioLibrary,store:ProjectStore):boolean{
+export function persistStudioLibrary(library:StudioLibrary,store:ProjectStore,
+  mirrors:{scene?:boolean;graph?:boolean}={scene:true,graph:true}):boolean{
   const validated=parseStudioLibrary(library);
   if(!validated)return false;
   const scene=JSON.stringify(activeProject(validated).scene);
   const graph=JSON.stringify(activeProject(validated).graph);
   const serialized=JSON.stringify(validated);
   if(serialized.length>MAX_JSON_BYTES)return false;
-  const keys=[STUDIO_SCENE_KEY,GRAPH_KEY,PROJECT_LIBRARY_KEY];
-  const values=[scene,graph,serialized];
+  const keys=[...(mirrors.scene?[STUDIO_SCENE_KEY]:[]),...(mirrors.graph?[GRAPH_KEY]:[]),PROJECT_LIBRARY_KEY];
+  const values=[...(mirrors.scene?[scene]:[]),...(mirrors.graph?[graph]:[]),serialized];
   let previous:(string|null)[];
   try{previous=keys.map(key=>store.getItem(key));}catch{return false;}
   try{
@@ -132,10 +151,10 @@ export function persistStudioLibrary(library:StudioLibrary,store:ProjectStore):b
 export function writeActiveScene(scene:MathDocument,store:ProjectStore,now:number):StudioLibrary|null{
   const existing=readStudioLibrary(store);
   const next=replaceActiveScene(existing,scene,now);
-  return next&&persistStudioLibrary(next,store)?next:null;
+  return next&&persistStudioLibrary(next,store,{graph:false})?next:null;
 }
 export function writeActiveGraph(graph:NodeGraph,store:ProjectStore,now:number):StudioLibrary|null{
   const existing=readStudioLibrary(store);
   const next=replaceActiveGraph(existing,graph,now);
-  return next&&persistStudioLibrary(next,store)?next:null;
+  return next&&persistStudioLibrary(next,store,{scene:false})?next:null;
 }
