@@ -1,13 +1,13 @@
 "use client";
 
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow, ReactFlowProvider, Handle, Position, Background, BackgroundVariant,
   Controls, MiniMap, Panel, useReactFlow, MarkerType, ConnectionMode,
   type Connection, type Edge, type Node, type NodeChange, type NodeProps,
   type XYPosition,
 } from "@xyflow/react";
-import { ArrowRight, CircleDot, Focus, GitBranch, Link2, X } from "lucide-react";
+import { ArrowRight, CircleDot, Focus, GitBranch, Link2, Plus, Search, Copy, Trash2, X } from "lucide-react";
 import {
   connectGraph, inputPorts, type GraphKind, type GraphNode, type GraphPort, type NodeGraph,
 } from "@/core/graph/model";
@@ -96,16 +96,46 @@ type Props={
   onConnect:(source:string,target:string,port:GraphPort)=>void;
   onMove:(id:string,point:XYPosition)=>void;
   onDisconnect:(id:string)=>void;
+  onCreate:(kind:GraphKind,position:XYPosition)=>void;
+  onDuplicateNode:(id:string)=>void;
+  onDeleteNode:(id:string)=>void;
   onCancel:()=>void;
 };
 
 function CanvasContent(props:Props){
   const {graph,selectedNodeId,selectedNodeIds,selectedGroupId,selectedEdgeId,values,
     activeSource,onSelectNode,onSelectNodes,onSelectGroup,onMoveBatch,onSelectEdge,
-    onSource,onTarget,onConnect,onMove,onDisconnect,onCancel}=props;
+    onSource,onTarget,onConnect,onMove,onDisconnect,onCreate,onDuplicateNode,onDeleteNode,onCancel}=props;
   const rf=useReactFlow<CanvasNode,Edge>();
   const [moving,setMoving]=useState<Readonly<Record<string,XYPosition>>>({});
   const [zoom,setZoom]=useState(1);
+  const shellRef=useRef<HTMLDivElement>(null);
+  const quickSearchRef=useRef<HTMLInputElement>(null);
+  const [connecting,setConnecting]=useState(false);
+  const [menu,setMenu]=useState<{x:number;y:number;flow:XYPosition;nodeId?:string}|null>(null);
+  const [nodeSearch,setNodeSearch]=useState("");
+  const matches=useMemo(()=>(Object.keys(LABELS) as GraphKind[]).filter(kind=>
+    (LABELS[kind]+" "+({constant:"numeric input",time:"timeline seconds",add:"sum",multiply:"product",sine:"trigonometry",output:"property scene"} as Record<GraphKind,string>)[kind])
+      .toLowerCase().includes(nodeSearch.trim().toLowerCase())),[nodeSearch]);
+  const showMenu=useCallback((x:number,y:number,nodeId?:string)=>{
+    const rect=shellRef.current?.getBoundingClientRect();
+    if(!rect)return;
+    const localX=x-rect.left,localY=y-rect.top;
+    setNodeSearch("");
+    setMenu({x:Math.max(8,Math.min(rect.width-270,localX)),
+      y:Math.max(8,Math.min(rect.height-310,localY)),
+      flow:bounded(rf.screenToFlowPosition({x,y})),nodeId});
+  },[rf]);
+  useEffect(()=>{if(menu)quickSearchRef.current?.focus();},[menu]);
+  const createAtMenu=(kind:GraphKind)=>{
+    if(!menu)return;
+    onCreate(kind,menu.flow);
+    setMenu(null);
+  };
+  const showCenteredMenu=()=>{
+    const rect=shellRef.current?.getBoundingClientRect();
+    if(rect)showMenu(rect.left+Math.min(rect.width/2,420),rect.top+Math.min(rect.height/2,250));
+  };
   const onNodeChanges=useCallback((changes:NodeChange<CanvasNode>[])=>{
     const next=new Set(selectedNodeIds);
     let changed=false;
@@ -185,7 +215,28 @@ function CanvasContent(props:Props){
     else onMove(node.id,position);
   },[graph,selectedNodeIds,onMoveBatch,onMove]);
   const fit=useCallback(()=>{void rf.fitView({padding:.23,duration:260,maxZoom:1.2});},[rf]);
-  return <div className="pm-ng-reactflow-shell" aria-label="Interactive node canvas" tabIndex={-1}>
+  return <div ref={shellRef} className="pm-ng-reactflow-shell" aria-label="Interactive node canvas" tabIndex={0}
+    onKeyDown={event=>{
+      const target=event.target as HTMLElement;
+      if(target.closest("input,textarea,select,[contenteditable='true']"))return;
+      if(event.key==="Escape"){setMenu(null);setConnecting(false);onCancel();}
+      if(event.shiftKey&&event.key.toLowerCase()==="a"){event.preventDefault();showCenteredMenu();}
+    }}
+    onDragOver={event=>{
+      if(Array.from(event.dataTransfer.types).includes("application/x-paramyra-node-kind")){
+        event.preventDefault();event.dataTransfer.dropEffect="copy";
+      }
+    }}
+    onDrop={event=>{
+      const raw=event.dataTransfer.getData("application/x-paramyra-node-kind");
+      if(!Object.hasOwn(LABELS,raw))return;
+      event.preventDefault();
+      const rect=shellRef.current?.getBoundingClientRect();
+      if(!rect||event.clientX<rect.left||event.clientX>rect.right||
+        event.clientY<rect.top||event.clientY>rect.bottom)return;
+      onCreate(raw as GraphKind,bounded(rf.screenToFlowPosition({x:event.clientX,y:event.clientY})));
+      setMenu(null);
+    }}>
     <ReactFlow<CanvasNode,Edge> nodes={nodes} edges={edges}
       nodeTypes={nodeTypes} onNodesChange={onNodeChanges}
       onNodeClick={(event,node)=>{
@@ -195,11 +246,18 @@ function CanvasContent(props:Props){
         }
         onSelectGroup(null);onSelectEdge(null);
       }}
+      onNodeContextMenu={(event,node)=>{
+        event.preventDefault();
+        if(node.type!=="math")return;
+        onSelectNode(node.id);onSelectNodes([node.id]);onSelectGroup(null);
+        showMenu(event.clientX,event.clientY,node.id);
+      }}
+      onPaneContextMenu={event=>{event.preventDefault();showMenu(event.clientX,event.clientY);}}
       onEdgeClick={(_,edge)=>{onSelectEdge(edge.id);onSelectNode("");}}
       onEdgeDoubleClick={(_,edge)=>onDisconnect(edge.id)}
-      onPaneClick={()=>{onSelectNodes([]);onSelectNode("");onSelectGroup(null);onSelectEdge(null);onCancel();}}
+      onPaneClick={()=>{setMenu(null);onSelectNodes([]);onSelectNode("");onSelectGroup(null);onSelectEdge(null);onCancel();}}
       onNodeDragStop={stop}
-      onConnect={accept} isValidConnection={canConnect}
+      onConnect={accept} onConnectStart={()=>setConnecting(true)} onConnectEnd={()=>setConnecting(false)} isValidConnection={canConnect}
       connectionMode={ConnectionMode.Strict}
       nodesConnectable edgesFocusable nodesFocusable elementsSelectable
       nodesDraggable panOnDrag={[1,2]} selectionOnDrag
@@ -217,15 +275,29 @@ function CanvasContent(props:Props){
         maskColor="#0a1528bd" ariaLabel="Node minimap"/>
       <Controls showInteractive={false} className="pm-ng-rf-controls"/>
       <Panel position="top-right" className="pm-ng-rf-top-tools">
-        <span className="pm-ng-rf-chip"><GitBranch size={13}/> React Flow</span>
+        <button type="button" className="pm-ng-rf-add" aria-label="Add graph node" onClick={showCenteredMenu}><Plus size={15}/> Add node</button>
         <span className="pm-ng-rf-chip"><CircleDot size={12}/> {Math.round(zoom*100)}%</span>
         <button type="button" aria-label="Fit graph" title="Fit all nodes" onClick={fit}><Focus size={17}/> Fit</button>
       </Panel>
-      {activeSource&&<Panel position="top-center" className="pm-ng-connect-hint">
+      {(activeSource||connecting)&&<Panel position="top-center" className="pm-ng-connect-hint">
         <Link2 size={16}/> Select a target port, or drag an output handle onto an input
         <button type="button" aria-label="Cancel connection" onClick={onCancel}><X size={16}/></button>
       </Panel>}
     </ReactFlow>
+    {menu&&<div className="pm-ng-quick-menu" role="dialog" aria-label={menu.nodeId?"Node context menu":"Add graph node"}>
+      <div className="pm-ng-quick-menu-heading">{menu.nodeId?"NODE ACTIONS":"QUICK ADD"} <button type="button" aria-label="Close node menu" onClick={()=>setMenu(null)}><X size={14}/></button></div>
+      {menu.nodeId&&<div className="pm-ng-quick-actions">
+        <button type="button" onClick={()=>{onDuplicateNode(menu.nodeId!);setMenu(null);}}><Copy size={14}/> Duplicate node</button>
+        <button type="button" onClick={()=>{onDeleteNode(menu.nodeId!);setMenu(null);}}><Trash2 size={14}/> Delete node</button>
+      </div>}
+      <label className="pm-ng-quick-search"><Search size={14}/><input ref={quickSearchRef} aria-label="Search available nodes" placeholder="Search math nodes…" value={nodeSearch} onChange={e=>setNodeSearch(e.target.value)}
+        onKeyDown={e=>{if(e.key==="Enter"&&matches[0]){e.preventDefault();createAtMenu(matches[0]);} if(e.key==="Escape"){e.stopPropagation();setMenu(null);}}}/></label>
+      <div className="pm-ng-quick-results" role="group" aria-label="Available node types">
+        {matches.map(kind=><button key={kind} type="button" onClick={()=>createAtMenu(kind)}><span className={"pm-ng-library-icon kind-"+kind}>{kind==="time"?<CircleDot size={15}/>:kind==="output"?<ArrowRight size={15}/>:<GitBranch size={15}/>}</span><span>{LABELS[kind]}</span><Plus size={13}/></button>)}
+        {!matches.length&&<p>No matching nodes</p>}
+      </div>
+      <div className="pm-ng-quick-help">Right-click canvas · Shift+A · Drag from Library</div>
+    </div>}
     <output className="pm-ng-rf-zoom-readable" aria-label="Graph zoom">{Math.round(zoom*100)}%</output>
   </div>;
 }

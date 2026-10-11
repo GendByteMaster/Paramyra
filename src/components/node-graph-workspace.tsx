@@ -210,14 +210,31 @@ function GraphWorkspace() {
     setNotice(enabled?"Live Graph enabled. Timeline keyframes have priority on conflicting channels.":
       "Live Graph disabled. Studio uses base values and keyframes.");
   };
-  const add = (kind:GraphKind) => {
-    const node = createGraphNode(kind, crypto.randomUUID(), 240 + graph.nodes.length * 26, 120 + graph.nodes.length * 22);
-    const next = addGraphNode(graph, node);
-    if (next === graph) return setNotice("Node limit reached or output property already in use. Choose a different target property.");
-    commit(() => next);
-    setSelectedId(node.id);
-    setEdgeId(null);
-    setNotice(kindNames[kind] + " node added.");
+  const add = (kind:GraphKind,position?:{x:number;y:number}) => {
+    const node = createGraphNode(kind, crypto.randomUUID(),
+      position?.x ?? 240 + graph.nodes.length * 26, position?.y ?? 120 + graph.nodes.length * 22);
+    const next = addGraphNode(graph,node);
+    if(next===graph)return setNotice("Node limit reached or output property already in use. Choose a different target property.");
+    commit(()=>next);
+    setSelectedId(node.id);setSelectedIds([node.id]);setSelectedGroupId(null);setEdgeId(null);
+    setNotice(kindNames[kind]+" node added.");
+  };
+  const duplicateSingle=(id:string)=>{
+    const fragment=copyGraphSelection(graph,[id]);
+    if(!fragment)return setNotice("Select a node to duplicate.");
+    const result=pasteGraphSelection(graph,fragment,()=>crypto.randomUUID(),56);
+    if(result.error)return setNotice(result.error);
+    commit(()=>result.graph);
+    setSelectedId(result.nodeIds[0]);setSelectedIds(result.nodeIds);
+    setSelectedGroupId(null);setEdgeId(null);
+    setNotice("Node duplicated.");
+  };
+  const deleteSingle=(id:string)=>{
+    const next=deleteGraphSelection(graph,[id]);
+    if(next===graph)return setNotice("The graph must contain at least one node.");
+    commit(()=>next);
+    setSelectedId("");setSelectedIds([]);setSelectedGroupId(null);setEdgeId(null);
+    setNotice("Node deleted.");
   };
   const connect = (source:string, target:string, port:GraphPort) => {
     const next = connectGraph(graph, source, target, port, crypto.randomUUID());
@@ -328,7 +345,11 @@ function GraphWorkspace() {
         <div className="pm-ng-library-scroll pm-editor-content-scroll">
         {categories.map(group=>{
           const kinds=group.kinds.filter(kind=>(kindNames[kind]+" "+details[kind]).toLowerCase().includes(query.toLowerCase()));
-          return kinds.length?<section key={group.title}><h3>{group.title}</h3>{kinds.map(kind=><button type="button" key={kind} onClick={()=>add(kind)} className="pm-ng-library-item">
+          return kinds.length?<section key={group.title}><h3>{group.title}</h3>{kinds.map(kind=><button type="button" key={kind} onClick={()=>add(kind)} className="pm-ng-library-item"
+            draggable onDragStart={event=>{
+              event.dataTransfer.setData("application/x-paramyra-node-kind",kind);
+              event.dataTransfer.effectAllowed="copy";
+            }} title={"Drag "+kindNames[kind]+" to canvas or click to add"}>
             <span className={"pm-ng-library-icon kind-"+kind}>{kind==="time"?<CircleDot size={17}/>:kind==="output"?<ArrowRight size={17}/>:<Braces size={17}/>}</span>
             <span><strong>{kindNames[kind]}</strong><small>{details[kind]}</small></span><Plus size={16}/>
           </button>)}</section>:null;
@@ -364,6 +385,7 @@ function GraphWorkspace() {
             onSelectEdge={setEdgeId}
             onSource={chooseSource} onTarget={chooseTarget} onCancel={()=>setActiveSource(null)}
             onConnect={connect} onMove={move}
+            onCreate={add} onDuplicateNode={duplicateSingle} onDeleteNode={deleteSingle}
             onDisconnect={id=>{commit(old=>disconnectGraph(old,id));setEdgeId(null);
               setNotice("Connection removed.");}}/>
         </div>
@@ -375,7 +397,7 @@ function GraphWorkspace() {
           <span className="pm-ng-playhead-mode">{graph.binding.enabled?"LIVE":"PREVIEW"}</span>
         </div>
         <div className="pm-ng-footer">
-          <div className="pm-ng-footer-left"><Link2 size={15}/> Drag to multi-select · Shift/Ctrl-click to extend · Space+drag pans · Ctrl/⌘ C,V,G,Z</div>
+          <div className="pm-ng-footer-left"><Link2 size={15}/> Right-click to add · Shift+A quick search · Drag library nodes · Space+drag to pan</div>
           <span>REACT FLOW <span className="pm-ng-divider"/> TYPED DAG</span>
         </div>
       </section>
