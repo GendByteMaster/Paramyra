@@ -36,7 +36,8 @@ test("Quick Add stays fully visible when opened against the canvas bottom-right"
 
 test("Graph canvas has a refined background, not a second light-mode UI",async({page})=>{
   await page.goto("/studio/graph");
-  const before=await page.evaluate(()=>localStorage.getItem("paramyra.nodegraph.v3"));
+  await expect.poll(()=>page.evaluate(()=>localStorage.getItem("paramyra.nodegraph.v3"))).not.toBeNull();
+  const before=JSON.parse((await page.evaluate(()=>localStorage.getItem("paramyra.nodegraph.v3")))!);
   await expect(page.getByRole("button",{name:"Switch to light canvas"})).toHaveCount(0);
   await expect(page.getByRole("button",{name:"Switch to dark canvas"})).toHaveCount(0);
   const flow=page.locator(".pm-ng-reactflow");
@@ -45,7 +46,7 @@ test("Graph canvas has a refined background, not a second light-mode UI",async({
   const background=await flow.evaluate(el=>getComputedStyle(el).backgroundImage);
   expect(background).toContain("linear-gradient");
   await expect(page.locator(".pm-ng-reactflow-shell")).not.toHaveClass(/pm-ng-canvas-light/);
-  expect(await page.evaluate(()=>localStorage.getItem("paramyra.nodegraph.v3"))).toBe(before);
+  expect(JSON.parse((await page.evaluate(()=>localStorage.getItem("paramyra.nodegraph.v3")))!)).toEqual(before);
   await page.evaluate(()=>localStorage.setItem("paramyra.graph.canvas-light.v1","true"));
   await page.reload();
   await expect(page.locator(".pm-ng-reactflow")).toHaveCSS("background-image",/radial-gradient/);
@@ -54,7 +55,8 @@ test("Graph canvas has a refined background, not a second light-mode UI",async({
 
 test("Coursework is a distinct editable and printable workspace backed by the real graph",async({page})=>{
   await page.goto("/studio/graph");
-  const graphBefore=await page.evaluate(()=>localStorage.getItem("paramyra.nodegraph.v3"));
+  await expect.poll(()=>page.evaluate(()=>localStorage.getItem("paramyra.nodegraph.v3"))).not.toBeNull();
+  const graphBefore=JSON.parse((await page.evaluate(()=>localStorage.getItem("paramyra.nodegraph.v3")))!);
   await page.getByRole("button",{name:"Open coursework mode"}).click();
   const editor=page.getByRole("complementary",{name:"Coursework settings"});
   const report=page.getByLabel("Coursework report preview");
@@ -71,8 +73,8 @@ test("Coursework is a distinct editable and printable workspace backed by the re
   await expect(report.getByText("Investigate periodic motion")).toBeVisible();
   expect(await report.innerText()).not.toMatch(/[А-Яа-яЁё]/);
   await expect(page.getByRole("button",{name:"Print / Save as PDF"})).toBeVisible();
-  const graphAfter=await page.evaluate(()=>localStorage.getItem("paramyra.nodegraph.v3"));
-  expect(graphAfter).toBe(graphBefore);
+  const graphAfter=JSON.parse((await page.evaluate(()=>localStorage.getItem("paramyra.nodegraph.v3")))!);
+  expect(graphAfter).toEqual(graphBefore);
   await page.getByRole("button",{name:"Return to node editor"}).click();
   await expect(page.locator(".react-flow__pane")).toBeVisible();
   await page.getByRole("button",{name:"Open coursework mode"}).click();
@@ -85,14 +87,15 @@ test("Coursework is a distinct editable and printable workspace backed by the re
 
 test("Coursework report draft survives reload but does not overwrite scene data",async({page})=>{
   await page.goto("/studio/graph");
-  const scene=await page.evaluate(()=>localStorage.getItem("paramyra.document.v3"));
+  await expect.poll(()=>page.evaluate(()=>localStorage.getItem("paramyra.document.v3"))).not.toBeNull();
+  const scene=JSON.parse((await page.evaluate(()=>localStorage.getItem("paramyra.document.v3")))!);
   await page.getByRole("button",{name:"Open coursework mode"}).click();
   await page.getByRole("textbox",{name:"Methodology"}).fill("Time-dependent numerical investigation");
   await expect(page.getByText("Draft saved locally")).toBeVisible();
   await page.reload();
   await page.getByRole("button",{name:"Open coursework mode"}).click();
   await expect(page.getByRole("textbox",{name:"Methodology"})).toHaveValue("Time-dependent numerical investigation");
-  expect(await page.evaluate(()=>localStorage.getItem("paramyra.document.v3"))).toBe(scene);
+  expect(JSON.parse((await page.evaluate(()=>localStorage.getItem("paramyra.document.v3")))!)).toEqual(scene);
 });
 
 test("Previously generated Russian draft title migrates to English without rewriting user notes",async({page})=>{
