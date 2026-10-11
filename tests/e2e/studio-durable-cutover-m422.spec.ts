@@ -44,7 +44,7 @@ test("M4.2.2 authoritative IDB persists Studio scene, graph, Coursework and new 
   await page.getByRole("spinbutton",{name:"Constant value"}).blur();
   await expect.poll(async()=>{
     const snapshot=await durableSnapshot(page);
-    return snapshot.library.projects.find(p=>p.graph.nodes.some(n=>n.id==="amplitude"))?.graph.nodes.find(n=>n.id==="amplitude")?.value;
+    return snapshot.library.projects.find(p=>p.graph.nodes.some(n=>n.id==="amp"))?.graph.nodes.find(n=>n.id==="amp")?.value;
   }).toBe(9);
   await page.getByRole("button",{name:"Open coursework mode"}).click();
   await page.getByRole("textbox",{name:"Research objective"}).fill("Durable report on mathematical models");
