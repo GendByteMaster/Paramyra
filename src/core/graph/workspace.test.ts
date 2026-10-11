@@ -7,6 +7,7 @@ import {copyGraphSelection,deleteGraphSelection,groupGraphNodes,moveGraphSelecti
   parseGraphSelection,pasteGraphSelection,ungroupGraphNodes} from "./workspace";
 import {makeProjectBundle,parseProjectBundle,restoreProjectBundle,SCENE_KEY} from "./project-bundle";
 import {GRAPH_KEY} from "./model";
+import {defaultCourseworkDraft} from "./coursework";
 
 function ids(){let n=0;return ()=>"test-id-"+(++n);}
 describe("M3.3 Graph Workspace domain",()=>{
@@ -83,6 +84,23 @@ describe("M3.3 portable scene/graph project file",()=>{
     expect(parsed?.scene.layers).toHaveLength(1);
     expect(parseProjectBundle({...bundle,script:"alert(1)"})).toBeNull();
     expect(parseProjectBundle({...bundle,graph:{...graph,edges:[...graph.edges,{id:"cycle",source:"product",target:"sine",port:"in"}]}})).toBeNull();
+  });
+  it("round-trips Coursework in v2 and accepts strict v1 imports without executable fields",()=>{
+    const graph=initialGraph();
+    const report={...defaultCourseworkDraft(graph),objective:"Investigate wave motion"};
+    const sceneWithFrames={...scene,layers:scene.layers.map(l=>({...l,keyframes:[
+      {property:"opacity" as const,time:1,value:.6,ease:"linear" as const},
+    ]}))};
+    const bundle=makeProjectBundle(sceneWithFrames,graph,report)!;
+    expect(bundle.version).toBe(2);
+    expect(parseProjectBundle(JSON.parse(JSON.stringify(bundle)))).toEqual(bundle);
+    expect(bundle.scene.layers[0].keyframes).toHaveLength(1);
+    expect(parseProjectBundle({...bundle,coursework:{...report,title:""}})).toBeNull();
+    const legacy={format:bundle.format,version:1,scene:bundle.scene,graph:bundle.graph};
+    const migrated=parseProjectBundle(legacy)!;
+    expect(migrated.version).toBe(2);
+    expect(migrated.coursework).toEqual(defaultCourseworkDraft(graph));
+    expect(parseProjectBundle({...legacy,script:"evil"})).toBeNull();
   });
   it("rejects enabled binding to deleted layer or incompatible channel before persisting",()=>{
     const missing=updateGraphBinding(initialGraph(),{enabled:true,layerId:"gone",priority:"keyframes-win"});

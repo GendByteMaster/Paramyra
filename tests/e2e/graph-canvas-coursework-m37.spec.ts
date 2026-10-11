@@ -91,7 +91,7 @@ test("Coursework report draft survives reload but does not overwrite scene data"
   const scene=await page.evaluate(()=>localStorage.getItem("paramyra.document.v3"));
   await page.getByRole("button",{name:"Open coursework mode"}).click();
   await page.getByRole("textbox",{name:"Methodology"}).fill("Time-dependent numerical investigation");
-  await expect(page.getByText("Draft saved locally")).toBeVisible();
+  await expect(page.getByText("Saved in this project · Included in project export")).toBeVisible();
   await page.reload();
   await page.getByRole("button",{name:"Open coursework mode"}).click();
   await expect(page.getByRole("textbox",{name:"Methodology"})).toHaveValue("Time-dependent numerical investigation");
@@ -99,17 +99,16 @@ test("Coursework report draft survives reload but does not overwrite scene data"
 });
 
 test("Previously generated Russian draft title migrates to English without rewriting user notes",async({page})=>{
-  await page.goto("/studio/graph");
-  await expect(page.getByRole("button",{name:"Open coursework mode"})).toBeVisible();
-  await expect.poll(()=>page.evaluate(()=>localStorage.getItem("paramyra.nodegraph.v3"))).not.toBeNull();
-  await page.evaluate(()=>{
-    const graph=JSON.parse(localStorage.getItem("paramyra.nodegraph.v3")!);
-    localStorage.setItem("paramyra.graph.coursework.v1."+graph.id,JSON.stringify({
+  await page.addInitScript(()=>{
+    // The legacy report must exist before v2 registry creation, as in a real upgrade.
+    localStorage.setItem("paramyra.graph.coursework.v1.graph-1",JSON.stringify({
       version:1,institution:"School of Engineering",student:"Example Student",supervisor:"",
-      title:"Исследование математической модели «"+graph.title+"»",
+      title:"Исследование математической модели «Sine motion»",
       objective:"Preserve my original research objective",method:"",conclusion:""
     }));
   });
+  await page.goto("/studio/graph");
+  await expect(page.getByRole("button",{name:"Open coursework mode"})).toBeVisible();
   await page.getByRole("button",{name:"Open coursework mode"}).click();
   await expect(page.getByRole("textbox",{name:"Coursework title"})).toHaveValue("Mathematical modelling study: Sine motion");
   await expect(page.getByRole("textbox",{name:"Research objective"})).toHaveValue("Preserve my original research objective");
