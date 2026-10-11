@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+
 import { ArrowLeft, ArrowRight, Beaker, Check, CircleDot, Pause, Play, RotateCcw, Shuffle, SlidersHorizontal, Sparkles } from "lucide-react";
 import { SceneCanvas } from "./scene-canvas";
 import { SceneGlyph } from "./scene-glyph";
@@ -37,7 +37,7 @@ export function PlaygroundClient(){
   return <PlaygroundWorkspace/>;
 }
 function PlaygroundWorkspace(){
-  const router=useRouter();
+
   const [scene,setScene]=useState<SceneDocument>(()=>readPlaygroundScene()??presetFor("lissajous"));
   const [playing,setPlaying]=useState(true);
   const [time,setTime]=useState(0);
@@ -69,7 +69,8 @@ function PlaygroundWorkspace(){
     const token=createStudioHandoff(validated.data);
     if(!token)return setNotice("Unable to prepare a Studio draft. Session storage may be disabled.");
     setOpening(true);
-    router.push("/studio?playgroundTransfer="+encodeURIComponent(token));
+    // Use a full navigation so Studio reads session handoff after its URL is committed.
+    window.location.assign("/studio?playgroundTransfer="+encodeURIComponent(token));
   };
   const hint=hints[scene.kind];
   const visible=controls.filter(c=>scene.kind!=="polar-rose"||c.key!=="frequencyY");
