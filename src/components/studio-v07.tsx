@@ -10,7 +10,8 @@ import { CalculatorWindow } from "./calculator-window";
 import { AnimationTimeline } from "./animation-timeline";
 import { AnimationValueComparison } from "./animation-value-comparison";
 import { EditorModeSwitch, EditorPanelHeader } from "./editor-ui";
-import { compileGraph, resolveLiveScene } from "@/core/graph/live";
+import { compileGraph, resolveLiveScene, validateLiveGraphRange } from "@/core/graph/live";
+import { readSessionPlayhead, writeSessionPlayhead } from "@/core/animation/playhead-session";
 import { readStoredGraph } from "@/core/graph/storage";
 import { GRAPH_KEY, PREVIOUS_GRAPH_KEY, LEGACY_GRAPH_KEY } from "@/core/graph/model";
 import { savePng, saveSvg, type ExportBackground, type ExportSize } from "@/core/rendering/export";
@@ -127,10 +128,16 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
   const [canvasSize,setCanvasSize]=useState<Size>({width:800,height:600});
   const [tool,setTool]=useState<"select"|"pan">("select");
   const [playing,setPlaying]=useState(true);
-  const [time,setTime]=useState(0);
+  const [time,setTime]=useState(()=>readSessionPlayhead(doc.duration));
   const [speed,setSpeed]=useState(1);
   const [seekVersion,setSeekVersion]=useState(0);
-  const liveAtPlayhead=useMemo(()=>resolveLiveScene(doc,time,compiledGraph),[doc,time,compiledGraph]);
+  const liveRangeError=useMemo(()=>compiledGraph?.graph.binding.enabled?validateLiveGraphRange(doc,compiledGraph):null,[doc,compiledGraph]);
+  const validCompiledGraph=liveRangeError?null:compiledGraph;
+  const liveAtPlayhead=useMemo(()=>{
+    const resolved=resolveLiveScene(doc,time,validCompiledGraph);
+    return liveRangeError?{...resolved,error:liveRangeError}:resolved;
+  },[doc,time,validCompiledGraph,liveRangeError]);
+  useEffect(()=>writeSessionPlayhead(time,doc.duration),[time,doc.duration]);
   const [fullscreen,setFullscreen]=useState(false);
   const [notice,setNotice]=useState("");
   const [exportOpen,setExportOpen]=useState(false);
@@ -416,7 +423,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
               <button type="button" className="pm-icon-btn" aria-label="Toggle scene details" aria-pressed={detailsOpen} onClick={()=>setDetailsOpen(v=>!v)}><Info size={16}/></button>
             </div></div>
           <div className="pm-canvas-area">
-            <div className="pm-canvas-surface"><SceneCanvas scene={doc} liveGraph={compiledGraph} playing={playing} view={view} tool={tool} selectedLayerId={effectiveSelected}
+            <div className="pm-canvas-surface"><SceneCanvas scene={doc} liveGraph={validCompiledGraph} playing={playing} view={view} tool={tool} selectedLayerId={effectiveSelected}
               onSelectLayer={setSelected} onLayerOffsetChange={moveLayerOffset} onSizeChange={setCanvasSize}
               onLayerMoveStart={id=>{dragGroup.current="drag:"+id;last.current.key="";}}
               onLayerMoveEnd={id=>{if(dragGroup.current==="drag:"+id){dragGroup.current=null;last.current.key="";}}}
