@@ -7,7 +7,7 @@ import {
   type Connection, type Edge, type Node, type NodeChange, type NodeProps,
   type XYPosition,
 } from "@xyflow/react";
-import { ArrowRight, CircleDot, Focus, GitBranch, Link2, Plus, Search, Copy, Trash2, X } from "lucide-react";
+import { ArrowRight, CircleDot, Focus, GitBranch, Link2, Plus, Search, Copy, Trash2, X, Sun, Moon } from "lucide-react";
 import {
   connectGraph, inputPorts, type GraphKind, type GraphNode, type GraphPort, type NodeGraph,
 } from "@/core/graph/model";
@@ -109,6 +109,10 @@ function CanvasContent(props:Props){
   const rf=useReactFlow<CanvasNode,Edge>();
   const [moving,setMoving]=useState<Readonly<Record<string,XYPosition>>>({});
   const [zoom,setZoom]=useState(1);
+  const [lightCanvas,setLightCanvas]=useState(()=>{
+    try{return localStorage.getItem("paramyra.graph.canvas-light.v1")==="true";}catch{return false;}
+  });
+  useEffect(()=>{try{localStorage.setItem("paramyra.graph.canvas-light.v1",String(lightCanvas));}catch{/* optional UI preference */}},[lightCanvas]);
   const shellRef=useRef<HTMLDivElement>(null);
   const quickSearchRef=useRef<HTMLInputElement>(null);
   const [connecting,setConnecting]=useState(false);
@@ -122,8 +126,11 @@ function CanvasContent(props:Props){
     if(!rect)return;
     const localX=x-rect.left,localY=y-rect.top;
     setNodeSearch("");
-    setMenu({x:Math.max(8,Math.min(rect.width-270,localX)),
-      y:Math.max(8,Math.min(rect.height-310,localY)),
+    // Keep the entire palette inside React Flow, including when opened near an edge.
+    const maxX=Math.max(8,rect.width-270);
+    const maxY=Math.max(8,rect.height-Math.min(345,Math.max(200,rect.height-16))-8);
+    setMenu({x:Math.max(8,Math.min(maxX,localX)),
+      y:Math.max(8,Math.min(maxY,localY)),
       flow:bounded(rf.screenToFlowPosition({x,y})),nodeId});
   },[rf]);
   useEffect(()=>{if(menu)quickSearchRef.current?.focus();},[menu]);
@@ -215,7 +222,7 @@ function CanvasContent(props:Props){
     else onMove(node.id,position);
   },[graph,selectedNodeIds,onMoveBatch,onMove]);
   const fit=useCallback(()=>{void rf.fitView({padding:.23,duration:260,maxZoom:1.2});},[rf]);
-  return <div ref={shellRef} className="pm-ng-reactflow-shell" aria-label="Interactive node canvas" tabIndex={0}
+  return <div ref={shellRef} className={"pm-ng-reactflow-shell"+(lightCanvas?" pm-ng-canvas-light":"")} aria-label="Interactive node canvas" tabIndex={0}
     onKeyDown={event=>{
       const target=event.target as HTMLElement;
       if(target.closest("input,textarea,select,[contenteditable='true']"))return;
@@ -269,13 +276,14 @@ function CanvasContent(props:Props){
       proOptions={{hideAttribution:true}}
       colorMode="dark" deleteKeyCode={null}
       className="pm-ng-reactflow">
-      <Background variant={BackgroundVariant.Dots} color="#29415e" gap={24} size={1.3}/>
+      <Background variant={BackgroundVariant.Dots} color={lightCanvas?"#b2c2d7":"#416080"} gap={24} size={lightCanvas?1:1.15}/>
       <MiniMap pannable zoomable className="pm-ng-rf-minimap"
         nodeColor={node=>node.type==="group"?"#38627e":selectedNodeIds.includes(node.id)?"#91bdff":node.id.startsWith("target")?"#ad99e6":"#5c8ea9"}
-        maskColor="#0a1528bd" ariaLabel="Node minimap"/>
+        maskColor={lightCanvas?"#e4edf7cb":"#101a2bd4"} ariaLabel="Node minimap"/>
       <Controls showInteractive={false} className="pm-ng-rf-controls"/>
       <Panel position="top-right" className="pm-ng-rf-top-tools">
         <button type="button" className="pm-ng-rf-add" aria-label="Add graph node" onClick={showCenteredMenu}><Plus size={15}/> Add node</button>
+        <button type="button" className="pm-ng-rf-light" aria-label={lightCanvas?"Switch to dark canvas":"Switch to light canvas"} aria-pressed={lightCanvas} title="Toggle canvas lighting" onClick={()=>setLightCanvas(v=>!v)}>{lightCanvas?<Moon size={15}/>:<Sun size={15}/>} {lightCanvas?"Dark":"Light"}</button>
         <span className="pm-ng-rf-chip"><CircleDot size={12}/> {Math.round(zoom*100)}%</span>
         <button type="button" aria-label="Fit graph" title="Fit all nodes" onClick={fit}><Focus size={17}/> Fit</button>
       </Panel>
@@ -284,7 +292,7 @@ function CanvasContent(props:Props){
         <button type="button" aria-label="Cancel connection" onClick={onCancel}><X size={16}/></button>
       </Panel>}
     </ReactFlow>
-    {menu&&<div className="pm-ng-quick-menu" role="dialog" aria-label={menu.nodeId?"Node context menu":"Add graph node"}>
+    {menu&&<div className="pm-ng-quick-menu" style={{left:menu.x,top:menu.y}} role="dialog" aria-modal="false" aria-label={menu.nodeId?"Node context menu":"Add graph node"}>
       <div className="pm-ng-quick-menu-heading">{menu.nodeId?"NODE ACTIONS":"QUICK ADD"} <button type="button" aria-label="Close node menu" onClick={()=>setMenu(null)}><X size={14}/></button></div>
       {menu.nodeId&&<div className="pm-ng-quick-actions">
         <button type="button" onClick={()=>{onDuplicateNode(menu.nodeId!);setMenu(null);}}><Copy size={14}/> Duplicate node</button>
