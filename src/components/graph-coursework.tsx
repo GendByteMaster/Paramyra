@@ -17,13 +17,13 @@ type Props = {
 type DraftKey = Exclude<keyof CourseworkDraft, "version">;
 
 const inputFields: readonly {key:DraftKey; label:string; rows?:number; hint?:string}[] = [
-  {key:"institution",label:"Учебное заведение"},
-  {key:"student",label:"Студент"},
-  {key:"supervisor",label:"Руководитель"},
-  {key:"title",label:"Тема курсовой"},
-  {key:"objective",label:"Цель работы",rows:3,hint:"Что исследуется и почему"},
-  {key:"method",label:"Методика исследования",rows:4,hint:"Описание выбранной модели и расчётов"},
-  {key:"conclusion",label:"Выводы",rows:4,hint:"Итоги и наблюдения"},
+  {key:"institution",label:"Institution"},
+  {key:"student",label:"Student"},
+  {key:"supervisor",label:"Supervisor"},
+  {key:"title",label:"Coursework title"},
+  {key:"objective",label:"Research objective",rows:3,hint:"What are you investigating, and why?"},
+  {key:"method",label:"Methodology",rows:4,hint:"Describe the mathematical model and calculations"},
+  {key:"conclusion",label:"Conclusions",rows:4,hint:"Summarize findings and observations"},
 ];
 
 /** Small, print-safe diagram derived exclusively from validated graph nodes and edges. */
@@ -40,7 +40,7 @@ function GraphFigure({graph}:{graph:NodeGraph}) {
       y:28 + ((node.y-minY)/yRange)*216,
     }]));
   },[graph.nodes]);
-  return <svg className="pm-ng-coursework-diagram" role="img" aria-label="Схема математических узлов" viewBox="0 0 900 330" preserveAspectRatio="xMidYMid meet">
+  return <svg className="pm-ng-coursework-diagram" role="img" aria-label="Mathematical node diagram" viewBox="0 0 900 330" preserveAspectRatio="xMidYMid meet">
     <defs>
       <marker id="pm-ng-report-arrow" markerWidth="6" markerHeight="6" refX="5.5" refY="3" orient="auto">
         <path d="M0 0 L6 3 L0 6 Z" fill="#3c7faf"/>
@@ -72,14 +72,14 @@ export function GraphCoursework({graph,scene,time,outputs,error}:Props){
     setDraft(next);
     setSaved(saveCourseworkDraft(graph.id,next));
   };
-  const reportDate=useMemo(()=>new Date().toLocaleDateString("ru-RU"),[]);
+  const reportDate=useMemo(()=>new Date().toLocaleDateString("en-GB"),[]);
   const print=()=>window.print();
 
   return <div className="pm-ng-coursework-layout" aria-label="Coursework workspace">
-    <aside className="pm-ng-coursework-settings" aria-label="Настройки курсовой">
+    <aside className="pm-ng-coursework-settings" aria-label="Coursework settings">
       <div className="pm-ng-coursework-settings-head">
         <BookOpen size={19}/>
-        <div><strong>Курсовая работа</strong><span>Отдельный режим оформления отчёта</span></div>
+        <div><strong>Coursework</strong><span>Academic report workspace</span></div>
       </div>
       <div className="pm-ng-coursework-form">
         {inputFields.map(field=><label key={field.key}>
@@ -91,43 +91,44 @@ export function GraphCoursework({graph,scene,time,outputs,error}:Props){
         </label>)}
       </div>
       <div className="pm-ng-coursework-actions">
-        <button type="button" onClick={print}><Printer size={16}/> Печать / сохранить PDF</button>
-        <span role="status">{saved?"Черновик сохранён локально":"Не удалось сохранить черновик"}</span>
+        <button type="button" onClick={print}><Printer size={16}/> Print / Save as PDF</button>
+        <span role="status">{saved?"Draft saved locally":"Unable to save draft"}</span>
       </div>
     </aside>
     <div className="pm-ng-coursework-scroll">
-      <div className="pm-ng-coursework-paper" aria-label="Предпросмотр курсовой работы">
-        <div className="pm-ng-report-eyebrow"><FileText size={14}/> PARAMYRA · МАТЕМАТИЧЕСКОЕ МОДЕЛИРОВАНИЕ</div>
+      <div className="pm-ng-coursework-paper" aria-label="Coursework report preview">
+        <div className="pm-ng-report-eyebrow"><FileText size={14}/> PARAMYRA · MATHEMATICAL MODELLING</div>
         <div className="pm-ng-report-cover">
-          <p>{draft.institution||"Учебное заведение"}</p>
-          <small>КУРСОВАЯ РАБОТА</small>
+          <p>{draft.institution||"Institution"}</p>
+          <small>COURSEWORK REPORT</small>
           <h2>{draft.title}</h2>
-          <div className="pm-ng-report-authors"><span>Выполнил: {draft.student||"—"}</span><span>Руководитель: {draft.supervisor||"—"}</span></div>
+          <div className="pm-ng-report-authors"><span>Student: {draft.student||"—"}</span><span>Supervisor: {draft.supervisor||"—"}</span></div>
           <div className="pm-ng-report-date">{reportDate}</div>
         </div>
-        <section><h3>1. Цель работы</h3><p>{draft.objective||"Заполните цель работы в панели слева."}</p></section>
-        <section><h3>2. Математическая модель</h3>
-          <p>Схема: {graph.title}. Узлов: {graph.nodes.length}; направленных связей: {graph.edges.length}. Граф использует детерминированные численные операции.</p>
+        <section><h3>1. Research objective</h3><p>{draft.objective||"Describe the research objective using the form on the left."}</p></section>
+        <section><h3>2. Mathematical model</h3>
+          <p>Model: {graph.title}. Nodes: {graph.nodes.length}; directed connections: {graph.edges.length}. This graph uses deterministic numerical operations.</p>
           <GraphFigure graph={graph}/>
+          <p className="pm-ng-report-caption">Figure 1 — mathematical node graph and its connections.</p>
           <div className="pm-ng-report-formulas">
-            {formulas.length?formulas.map(({property,expression})=><div key={property}><span>{property}</span><code>{expression}</code></div>):<p>Выходные свойства ещё не заданы.</p>}
+            {formulas.length?formulas.map(({property,expression})=><div key={property}><span>{property}</span><code>{expression}</code></div>):<p>No output properties have been defined.</p>}
           </div>
         </section>
-        <section><h3>3. Методика исследования</h3><p>{draft.method||"Заполните описание методики в панели слева."}</p></section>
-        <section><h3>4. Результаты вычислений</h3>
-          <p>Снимок состояния модели в момент времени t = {time.toFixed(2)} с. Значения являются результатом текущего графа, а не вручную введёнными измерениями.</p>
-          {error?<p className="pm-ng-report-error" role="alert">Ошибка вычисления: {error}</p>:null}
-          <table><thead><tr><th>Параметр</th><th>Значение</th></tr></thead><tbody>
+        <section><h3>3. Methodology</h3><p>{draft.method||"Describe your methodology using the form on the left."}</p></section>
+        <section><h3>4. Computational results</h3>
+          <p>Model snapshot at t = {time.toFixed(2)} s. These values are computed from the current graph, not manually entered measurements.</p>
+          {error?<p className="pm-ng-report-error" role="alert">Computation error: {error}</p>:null}
+          <table><thead><tr><th>Parameter</th><th>Value</th></tr></thead><tbody>
             {Object.entries(outputs).map(([property,value])=><tr key={property}><td>{property}</td><td>{value.toFixed(4)}</td></tr>)}
-            {!Object.keys(outputs).length?<tr><td colSpan={2}>Нет подключённых выходов</td></tr>:null}
+            {!Object.keys(outputs).length?<tr><td colSpan={2}>No connected outputs</td></tr>:null}
           </tbody></table>
-          <div className="pm-ng-report-scene" aria-label="Визуализация модели для курсовой"><SceneCanvas scene={scene} time={time} seekVersion={time} playing={false}/></div>
-          <p className="pm-ng-report-caption">Рисунок 2 — визуализация математической модели при t = {time.toFixed(2)} с.</p>
+          <div className="pm-ng-report-scene" aria-label="Coursework model visualization"><SceneCanvas scene={scene} time={time} seekVersion={time} playing={false}/></div>
+          <p className="pm-ng-report-caption">Figure 2 — mathematical model visualization at t = {time.toFixed(2)} s.</p>
         </section>
-        <section><h3>5. Выводы</h3><p>{draft.conclusion||"Заполните выводы в панели слева."}</p></section>
-        <div className="pm-ng-report-endnote">Paramyra Studio · Результаты вычислены локально · {reportDate}</div>
+        <section><h3>5. Conclusions</h3><p>{draft.conclusion||"Summarize the findings using the form on the left."}</p></section>
+        <div className="pm-ng-report-endnote">Paramyra Studio · Results computed locally · {reportDate}</div>
       </div>
-      <div className="pm-ng-coursework-hint"><Download size={14}/> Используйте «Печать / сохранить PDF» и выберите «Сохранить как PDF» в браузере.</div>
+      <div className="pm-ng-coursework-hint"><Download size={14}/> Select “Print / Save as PDF” and choose “Save as PDF” in your browser.</div>
     </div>
   </div>;
 }
