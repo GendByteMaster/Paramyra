@@ -315,7 +315,7 @@ function GraphWorkspace() {
     </header>
     <div className={"pm-ng-layout pm-editor-pane-layout"+(!libraryOpen?" no-library":"")+(!inspectorOpen?" no-inspector":"")}>
       {libraryOpen&&<aside className="pm-ng-library pm-editor-panel" aria-label="Node library">
-        <EditorPanelHeader className="pm-ng-pane-header" eyebrow="LIBRARY" title="Node Library" description="Mathematical nodes and operators" icon={<GitBranch size={18}/>}/>
+        <EditorPanelHeader className="pm-ng-pane-header" eyebrow="LIBRARY" title="Node Library" description="Nodes and operators" icon={<GitBranch size={18}/>}/>
         <label className="pm-ng-search"><Search size={15}/><input type="search" aria-label="Search graph nodes" placeholder="Search nodes…" value={query} onChange={e=>setQuery(e.target.value)}/></label>
         <div className="pm-ng-library-scroll pm-editor-content-scroll">
         {categories.map(group=>{
