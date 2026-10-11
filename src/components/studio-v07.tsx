@@ -75,9 +75,42 @@ function Numeric({label,value,min,max,step,change}:{label:string;value:number;mi
 const noSubscribe=()=>()=>{};
 const client=()=>true;
 const server=()=>false;
+/** A gallery launch creates an independent durable project; never overwrites active work. */
+function DurableGalleryImport({kind}:{kind:SceneKind}){
+  const invoked=useRef(false);
+  const [failure,setFailure]=useState("");
+  useEffect(()=>{
+    if(invoked.current)return;
+    invoked.current=true;
+    void (async()=>{
+      const {hydrateDurableSession}=await import("@/core/projects/durable-session");
+      if(!await hydrateDurableSession()){
+        setFailure("Transactional storage is unavailable. Your existing projects were preserved.");
+        return;
+      }
+      const expected=liveProjectId();
+      if(!expected){setFailure("Unable to determine the active project.");return;}
+      const id=crypto.randomUUID();
+      const scene={...documentFromScene(presetFor(kind)),id};
+      const result=await queueDurableMutation(library=>createProject(library,id,scene,initialGraph(),Date.now()),expected);
+      if(result.status!=="saved"){
+        setFailure("Gallery import rejected ("+result.status+"). Export JSON before trying again.");
+        return;
+      }
+      window.history.replaceState(null,"","/studio");
+      window.location.reload();
+    })();
+  },[kind]);
+  return <div className="shell section" role={failure?"alert":"status"}>
+    {failure||"Creating an independent Studio project from Gallery…"}
+    {failure&&<button type="button" onClick={()=>window.location.assign("/studio")}>Return to Studio</button>}
+  </div>;
+}
 export function StudioClient(props:{initialKind?:SceneKind;mode?:"studio"|"playground"}) {
   const ready=useSyncExternalStore(noSubscribe,client,server);
   if(!ready)return <div className="shell section" role="status">Loading workspace…</div>;
+  if(props.mode==="studio"&&props.initialKind&&durableModeEnabled())
+    return <DurableGalleryImport kind={props.initialKind}/>;
   return <DurableWorkspaceGate><StudioWorkspace {...props}/></DurableWorkspaceGate>;
 }
 function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mode?:"studio"|"playground"}) {
