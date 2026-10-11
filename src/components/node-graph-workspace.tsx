@@ -101,8 +101,7 @@ function GraphWorkspace() {
   const evaluation = useMemo(() => evaluateGraph(graph, time), [graph, time]);
 
   useEffect(() => {
-    if(!writeActiveGraph(graph,localStorage,Date.now()))
-      setNotice("Unable to save Node Graph to this project. Export JSON for backup.");
+    writeActiveGraph(graph,localStorage,Date.now());
   }, [graph]);
   useEffect(()=>writeSessionPlayhead(time,documentModel.duration),[time,documentModel.duration]);
   useEffect(() => {
