@@ -29,11 +29,12 @@ export function defaultCourseworkDraft(graph: NodeGraph): CourseworkDraft {
 }
 
 /** Notes are per graph, separate from the authoritative project and MathDocument. */
-export function readCourseworkDraft(graph: NodeGraph): CourseworkDraft {
+export function readCourseworkDraft(graph: NodeGraph, projectId?: string, allowLegacy = true): CourseworkDraft {
   const fallback = defaultCourseworkDraft(graph);
   if (typeof window === "undefined") return fallback;
   try {
-    const raw = window.localStorage.getItem(PREFIX + graph.id);
+    const scopedKey = projectId ? PREFIX + projectId + "." + graph.id : PREFIX + graph.id;
+    const raw = window.localStorage.getItem(scopedKey) ?? (allowLegacy ? window.localStorage.getItem(PREFIX + graph.id) : null);
     if (!raw) return fallback;
     const result = courseworkSchema.safeParse(JSON.parse(raw));
     return result.success
@@ -49,12 +50,12 @@ export function readCourseworkDraft(graph: NodeGraph): CourseworkDraft {
     return fallback;
   }
 }
-export function saveCourseworkDraft(graphId: string, draft: CourseworkDraft): boolean {
+export function saveCourseworkDraft(graphId: string, draft: CourseworkDraft, projectId?: string): boolean {
   if (typeof window === "undefined") return false;
   const result = courseworkSchema.safeParse(draft);
   if (!result.success) return false;
   try {
-    window.localStorage.setItem(PREFIX + graphId, JSON.stringify(result.data));
+    window.localStorage.setItem(projectId ? PREFIX + projectId + "." + graphId : PREFIX + graphId, JSON.stringify(result.data));
     return true;
   } catch {
     return false;
