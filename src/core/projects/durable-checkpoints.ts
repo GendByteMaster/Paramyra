@@ -41,7 +41,7 @@ export function matchesCheckpointRevision(expected: number | null, actual: numbe
   return expected === actual;
 }
 
-function openDatabase(factory: IDBFactory): Promise<IDBDatabase> {
+export function openDatabase(factory: IDBFactory): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     let request: IDBOpenDBRequest;
     try { request = factory.open(CHECKPOINT_DATABASE, 1); }

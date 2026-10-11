@@ -162,3 +162,65 @@ test("M4.2 refuses to overwrite a recovery checkpoint committed in another tab",
     await expect(b.getByText(/Conflict: another tab updated/)).toBeVisible();
   }finally{await left.close();await right.close();}
 });
+
+
+test("M4.2.1 transactional snapshot bootstrap and CAS reject stale tab edits",async({context})=>{
+  const left=await context.newPage(),right=await context.newPage();
+  try{
+    await Promise.all([left.goto("/studio"),right.goto("/studio")]);
+    await left.getByRole("button",{name:"Open project library"}).click();
+    await right.getByRole("button",{name:"Open project library"}).click();
+    const a=left.getByRole("dialog",{name:"Studio project library"});
+    const b=right.getByRole("dialog",{name:"Studio project library"});
+    const previewA=a.locator(".pm-project-storage-preview");
+    const previewB=b.locator(".pm-project-storage-preview");
+    await previewA.locator("summary").click();
+    await previewB.locator("summary").click();
+    await expect(previewA.getByText("No transactional snapshot initialized")).toBeVisible();
+    await expect(previewB.getByText("No transactional snapshot initialized")).toBeVisible();
+    await previewA.getByRole("button",{name:"Initialize snapshot"}).click();
+    await expect(previewA.getByText("Initialized transactional snapshot · Revision 1")).toBeVisible();
+    await previewB.getByRole("button",{name:"Initialize snapshot"}).click();
+    await expect(previewB.getByText("Loaded existing transactional snapshot · Revision 1")).toBeVisible();
+    await previewA.getByRole("button",{name:"Commit local snapshot"}).click();
+    await expect(previewA.getByText("Transaction committed · Revision 2")).toBeVisible();
+    await previewB.getByRole("button",{name:"Commit local snapshot"}).click();
+    await expect(previewB.getByText(/Conflict: transactional snapshot changed/)).toBeVisible();
+    const record=await left.evaluate(async()=>{
+      const db=await new Promise<IDBDatabase>((resolve,reject)=>{
+        const request=indexedDB.open("paramyra-studio-checkpoints");
+        request.onsuccess=()=>resolve(request.result);
+        request.onerror=()=>reject(request.error);
+      });
+      try{return await new Promise<{revision:number;library:{version:number;projects:unknown[]}}>((resolve,reject)=>{
+        const request=db.transaction("snapshots","readonly").objectStore("snapshots").get("studio-library-live");
+        request.onsuccess=()=>resolve(request.result);
+        request.onerror=()=>reject(request.error);
+      });}finally{db.close();}
+    });
+    expect(record.revision).toBe(2);
+    expect(record.library.version).toBe(2);
+    expect(record.library.projects).toHaveLength(1);
+  }finally{await left.close();await right.close();}
+});
+
+test("M4.2.1 corrupt legacy registry must not initialize transactional storage",async({page})=>{
+  await page.goto("/studio");
+  await page.evaluate(()=>localStorage.setItem("paramyra.studio.projects.v1",'{"version":999}'));
+  await page.getByRole("button",{name:"Open project library"}).click();
+  const preview=page.locator(".pm-project-storage-preview");
+  await preview.locator("summary").click();
+  await preview.getByRole("button",{name:"Initialize snapshot"}).click();
+  await expect(preview.getByText(/Cannot initialize: invalid-legacy/)).toBeVisible();
+  const record=await page.evaluate(async()=>{
+    const request=indexedDB.open("paramyra-studio-checkpoints");
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{
+      request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);
+    });
+    try{return await new Promise<unknown>((resolve,reject)=>{
+      const get=db.transaction("snapshots","readonly").objectStore("snapshots").get("studio-library-live");
+      get.onsuccess=()=>resolve(get.result);get.onerror=()=>reject(get.error);
+    });}finally{db.close();}
+  });
+  expect(record).toBeUndefined();
+});

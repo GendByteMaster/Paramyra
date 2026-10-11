@@ -47,3 +47,10 @@
 .pm-project-checkpoint-actions button:hover:not(:disabled){background:#356287}
 .pm-project-checkpoint>p{flex-basis:100%;font-size:11px;color:#aec5e1;margin:0}
 @media(max-width:720px){.pm-project-checkpoint{padding:12px}.pm-project-checkpoint-title{width:100%}.pm-project-checkpoint-actions{width:100%}}
+
+.pm-project-storage-preview{flex:none;border-top:1px solid #8fadd024;background:#142638;color:#b8cde5;padding:12px 20px}
+.pm-project-storage-preview summary{display:flex;align-items:center;gap:8px;font-weight:650;font-size:11px;color:#d6e8ff;cursor:pointer;list-style:revert}
+.pm-project-storage-preview>p{font-size:10px;line-height:1.5;max-width:720px;margin:9px 0}
+.pm-project-storage-preview .pm-project-checkpoint-actions{margin:8px 0}
+.pm-project-storage-preview .pm-project-checkpoint-actions button{min-height:34px}
+@media(max-width:720px){.pm-project-storage-preview{padding:11px}}
