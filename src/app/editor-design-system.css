@@ -131,6 +131,8 @@
 .pm-editor-shell .pm-ng-playhead,
 .pm-editor-shell .pm-ng-footer,
 .pm-editor-shell .pm-ng-commandbar { flex-shrink: 0; }
+.pm-editor-shell .pm-ng-playhead-duration { color: var(--editor-muted); font: 10px ui-monospace, Menlo, Consolas, monospace; white-space: nowrap; }
+.pm-editor-shell .pm-ng-playhead output { min-width: 52px; }
 
 /* Both desktop editors use the same width tiers and identical pane tracks. */
 @media (min-width: 1600px) {
