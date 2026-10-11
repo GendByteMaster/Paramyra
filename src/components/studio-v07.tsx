@@ -229,7 +229,10 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
     if(!window.confirm("Delete project “"+project.name+"”? This cannot be undone."))return;
     const next=removeProject(projectLibrary,id);
     if(!next)return setNotice("Keep at least one Studio project.");
-    openProject(next);
+    if(projectLibrary.activeId===id){openProject(next);return;}
+    if(!persistStudioLibrary(next,localStorage))return setNotice("Unable to delete project: storage unavailable.");
+    setProjectLibrary(next);
+    setNotice("Project deleted.");
   };
   const savePlaygroundDraftToStudio=()=>{
     if(!transferToken)return;
