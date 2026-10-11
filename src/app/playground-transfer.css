@@ -1,0 +1,12 @@
+/* An unsaved Playground handoff must remain distinct from Studio's saved project. */
+.pm-workspace:has(.pm-studio-transfer){gap:7px}
+.pm-studio-transfer{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:52px;flex:0 0 auto;padding:9px 15px;border:1px solid #5da5bd83;border-radius:11px;background:linear-gradient(110deg,#19334c,#132c3d);color:#e4f3ff}
+.pm-studio-transfer>div:first-child{display:grid;gap:4px;min-width:0}
+.pm-studio-transfer strong{font-size:12px}
+.pm-studio-transfer span{font-size:10px;color:#9fd2e0}
+.pm-studio-transfer-actions{display:flex;gap:7px;flex:none}
+.pm-studio-transfer-actions button{min-height:32px;padding:7px 12px;border:1px solid #87bade60;border-radius:8px;background:#274969;color:#ddecff;font-size:11px;font-weight:700;cursor:pointer}
+.pm-studio-transfer-actions button:first-child{background:#8fd5e6;color:#092c3a}
+.pm-studio-transfer-actions button:hover{filter:brightness(1.1)}
+.pm-studio-transfer-actions button:focus-visible{outline:2px solid #a9e3ff;outline-offset:2px}
+@media(max-width:700px){.pm-studio-transfer{align-items:stretch;flex-direction:column}.pm-studio-transfer-actions button{flex:1}}
