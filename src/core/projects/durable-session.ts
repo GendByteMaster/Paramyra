@@ -5,7 +5,7 @@ export const DURABLE_MODE_KEY="paramyra.studio.idb-primary.v1";
 export const DURABLE_SESSION_EVENT="paramyra:durable-session";
 const MODE_VALUE="enabled";
 
-type CommitState={status:"saved";record:LiveLibraryRecord}|{status:"conflict"|"missing"|"invalid"|"unavailable"};
+type CommitState={status:"saved";record:LiveLibraryRecord}|{status:"conflict"|"missing"|"invalid"|"unavailable"|"rejected"};
 type SessionState={record:LiveLibraryRecord|null;error:string|null;pending:number;mirrorWarning:boolean};
 const session:SessionState={record:null,error:null,pending:0,mirrorWarning:false};
 let queue:Promise<unknown>=Promise.resolve();
@@ -78,7 +78,10 @@ export async function queueDurableMutation(
       try{result=await mutateLiveProjectLibrary(current.revision,expectedProjectId,update);}
       catch{result={status:"unavailable"};}
       if(result.status!=="saved"){
-        fail("Project save rejected ("+result.status+"). This tab is now read-only. Export any unsaved edits before reloading.");
+        // A legitimate domain validation failure (e.g. project limit reached,
+        // invalid user text) must not permanently lock an otherwise healthy tab.
+        if(result.status!=="rejected")
+          fail("Project save rejected ("+result.status+"). This tab is now read-only. Export any unsaved edits before reloading.");
         return result;
       }
       session.record=result.record;

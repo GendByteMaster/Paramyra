@@ -40,3 +40,5 @@ This stacked milestone turns the preview `studio-library-live` IndexedDB record 
 ## Additional recovery and navigation behavior
 
 The failed-hydration UI can export the valid authoritative IndexedDB snapshot **without starting an editor**, as well as the last validated local mirror. Explicit fallback to a validated local copy preserves the IndexedDB record for later recovery. A pending write triggers the browser's before-unload warning where the browser permits it; this is not an fsync guarantee on abrupt shutdown. Gallery `/studio?kind=...` launches create a new durable project and remove the query parameter only after a successful commit, rather than overriding existing Scene data. Coursework uses latest-edit receipt tracking so an older completed write does not falsely mark newer unsaved text as saved.
+
+Transaction failure statuses distinguish `rejected` (invalid proposed edit, including the 20-project limit, which leaves the editor usable) from `invalid` (malformed persisted record, which blocks potentially destructive writes). Neither outcome alters the stored project record.

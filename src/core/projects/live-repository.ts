@@ -27,7 +27,7 @@ export type LiveInitialize =
   | {status:"invalid-legacy"|"invalid"|"unavailable"};
 export type LiveCommit =
   | {status:"saved";record:LiveLibraryRecord}
-  | {status:"conflict"|"missing"|"invalid"|"unavailable"};
+  | {status:"conflict"|"missing"|"invalid"|"unavailable"|"rejected"};
 
 export function parseLiveLibraryRecord(value:unknown):LiveLibraryRecord|null{
   if(!value||typeof value!=="object"||Array.isArray(value))return null;
@@ -173,7 +173,7 @@ export async function mutateLiveProjectLibrary(
           let next:StudioLibrary|null=null;
           try{next=mutate(original.library);}catch{next=null;}
           const library=next?validSnapshot(next):null;
-          if(!library){outcome={status:"invalid"};tx.abort();return;}
+          if(!library){outcome={status:"rejected"};tx.abort();return;}
           const updated:LiveLibraryRecord={
             ...original,revision:original.revision+1,updatedAt:Date.now(),library,
           };
