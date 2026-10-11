@@ -83,3 +83,35 @@ test("M4.2.2 concurrent editing fails closed and preserves saved project revisio
     await expect(b.locator("#frequencyX")).toHaveValue("12");
   }finally{await a.close();await b.close();}
 });
+
+
+test("M4.2.2 Gallery launch creates a separate project instead of replacing the active one",async({page})=>{
+  await enableDurable(page);
+  const original=await durableSnapshot(page);
+  await page.goto("/studio?kind=polar-rose");
+  await expect.poll(async()=>(await durableSnapshot(page)).library.projects.length).toBe(2);
+  await expect(page.locator("#frequencyX")).toBeVisible();
+  const stored=await durableSnapshot(page);
+  expect(stored.library.projects.map(p=>p.scene.layers[0].params.frequencyX)).toContain(original.library.projects[0].scene.layers[0].params.frequencyX);
+  expect(stored.library.activeId).not.toBe(original.library.activeId);
+  expect(new URL(page.url()).searchParams.has("kind")).toBe(false);
+});
+
+test("M4.2.2 checkpoint restore replaces durable project through a revisioned commit",async({page})=>{
+  await enableDurable(page);
+  const launch=page.getByRole("button",{name:"Open project library"});
+  await launch.click();
+  const dialog=page.getByRole("dialog",{name:"Studio project library"});
+  await expect(dialog.getByText("No recovery checkpoint saved yet")).toBeVisible();
+  await dialog.getByRole("button",{name:"Save checkpoint"}).click();
+  await expect(dialog.getByText("Recovery checkpoint saved · Revision 1")).toBeVisible();
+  await dialog.getByRole("button",{name:"Close project library"}).click();
+  const control=page.locator("#frequencyX");
+  await control.focus();await control.press("End");
+  await expect.poll(async()=>(await durableSnapshot(page)).library.projects[0].scene.layers[0].params.frequencyX).toBe(12);
+  await launch.click();
+  page.once("dialog",d=>d.accept());
+  await dialog.getByRole("button",{name:"Restore checkpoint"}).click();
+  await expect(page.locator("#frequencyX")).toHaveValue("3");
+  expect((await durableSnapshot(page)).library.projects[0].scene.layers[0].params.frequencyX).toBe(3);
+});
