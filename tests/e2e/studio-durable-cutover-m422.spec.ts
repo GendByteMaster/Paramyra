@@ -90,6 +90,10 @@ test("M4.2.2 Gallery launch creates a separate project instead of replacing the 
   await enableDurable(page);
   const original=await durableSnapshot(page);
   await page.goto("/studio?kind=polar-rose");
+  // Gallery creates a new project and reloads Studio. Do not evaluate IDB
+  // against an execution context about to be destroyed by that reload.
+  await expect.poll(()=>new URL(page.url()).searchParams.has("kind")).toBe(false);
+  await expect(page.locator("#frequencyX")).toBeVisible();
   await expect.poll(async()=>(await durableSnapshot(page)).library.projects.length).toBe(2);
   await expect(page.locator("#frequencyX")).toBeVisible();
   const stored=await durableSnapshot(page);
