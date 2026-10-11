@@ -51,7 +51,6 @@ test("Open in Studio transfers a scene into an isolated unsaved draft, then save
   await expect(page.locator("#frequencyX")).toHaveValue("7");
   expect(JSON.parse((await page.evaluate(()=>localStorage.getItem("paramyra.document.v3")))!)).toEqual(JSON.parse(original!));
 
-  page.once("dialog",dialog=>dialog.accept());
   await page.getByRole("button",{name:"Save to Studio"}).click();
   await expect(page.getByText("Playground experiment · Unsaved Studio draft")).toHaveCount(0);
   await expect(page).toHaveURL(/\/studio$/);
@@ -59,26 +58,28 @@ test("Open in Studio transfers a scene into an isolated unsaved draft, then save
   expect(next.layers[0].kind).toBe("polar-rose");
   expect(next.layers[0].params.frequencyX).toBe(7);
   expect(next.id).not.toBe(JSON.parse(original!).id);
+  const library=JSON.parse((await page.evaluate(()=>localStorage.getItem("paramyra.studio.projects.v1")))!);
+  expect(library.projects).toHaveLength(2);
+  expect(library.projects.some((p:{scene:unknown})=>JSON.stringify(p.scene)===JSON.stringify(JSON.parse(original!)))).toBe(true);
   await page.reload();
   await expect(page.locator("#scene-kind")).toHaveValue("polar-rose");
 });
 
-test("Declining Save to Studio keeps the old document and the isolated draft",async({page})=>{
+test("Discarding an imported Playground draft preserves all saved Studio projects",async({page})=>{
   await page.goto("/studio");
   await expect(page.locator("#frequencyX")).toBeVisible();
-  const original=await page.evaluate(()=>localStorage.getItem("paramyra.document.v3"));
+  const original=JSON.parse((await page.evaluate(()=>localStorage.getItem("paramyra.document.v3")))!);
   await page.goto("/playground");
   await page.getByRole("button",{name:/Harmonic Waves/}).click();
   await page.getByRole("button",{name:/Open in Studio/}).click();
   await expect(page.getByText("Playground experiment · Unsaved Studio draft")).toBeVisible();
-  page.once("dialog",dialog=>dialog.dismiss());
-  await page.getByRole("button",{name:"Save to Studio"}).click();
-  await expect(page.getByText("Playground experiment · Unsaved Studio draft")).toBeVisible();
-  expect(JSON.parse((await page.evaluate(()=>localStorage.getItem("paramyra.document.v3")))!)).toEqual(JSON.parse(original!));
+  expect(JSON.parse((await page.evaluate(()=>localStorage.getItem("paramyra.document.v3")))!)).toEqual(original);
   await page.getByRole("button",{name:"Discard draft"}).click();
   await expect(page).toHaveURL(/\/studio$/);
   await expect(page.getByText("Playground experiment · Unsaved Studio draft")).toHaveCount(0);
-  expect(JSON.parse((await page.evaluate(()=>localStorage.getItem("paramyra.document.v3")))!)).toEqual(JSON.parse(original!));
+  expect(JSON.parse((await page.evaluate(()=>localStorage.getItem("paramyra.document.v3")))!)).toEqual(original);
+  const projects=JSON.parse((await page.evaluate(()=>localStorage.getItem("paramyra.studio.projects.v1")))!);
+  expect(projects.projects).toHaveLength(1);
 });
 
 test("An untrusted URL token cannot import an arbitrary document into Studio",async({page})=>{

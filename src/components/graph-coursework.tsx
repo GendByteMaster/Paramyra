@@ -13,6 +13,8 @@ type Props = {
   time: number;
   outputs: Readonly<Record<string, number>>;
   error: string | null;
+  projectId?: string;
+  allowLegacy?: boolean;
 };
 type DraftKey = Exclude<keyof CourseworkDraft, "version">;
 
@@ -63,14 +65,14 @@ function GraphFigure({graph}:{graph:NodeGraph}) {
   </svg>;
 }
 
-export function GraphCoursework({graph,scene,time,outputs,error}:Props){
-  const [draft,setDraft]=useState(()=>readCourseworkDraft(graph));
+export function GraphCoursework({graph,scene,time,outputs,error,projectId,allowLegacy=true}:Props){
+  const [draft,setDraft]=useState(()=>readCourseworkDraft(graph,projectId,allowLegacy));
   const [saved,setSaved]=useState(true);
   const formulas=useMemo(()=>courseworkFormulas(graph),[graph]);
   const update=(key:DraftKey,value:string)=>{
     const next={...draft,[key]:value};
     setDraft(next);
-    setSaved(saveCourseworkDraft(graph.id,next));
+    setSaved(saveCourseworkDraft(graph.id,next,projectId));
   };
   const reportDate=useMemo(()=>new Date().toLocaleDateString("en-GB"),[]);
   const print=()=>window.print();
