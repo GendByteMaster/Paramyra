@@ -1,0 +1,76 @@
+import {test,expect} from "@playwright/test";
+
+test("M2.4 desktop split exposes timeline and graph while retaining usable canvas",async({page})=>{
+  await page.setViewportSize({width:1640,height:930});
+  await page.goto("/studio");
+  await page.getByRole("button",{name:"Pause animation"}).click();
+  await page.getByRole("button",{name:"Open animation workspace"}).click();
+  const canvas=page.getByRole("region",{name:"Visualization preview"});
+  const dock=page.getByRole("region",{name:"Scene details"});
+  const editor=page.getByLabel("Keyframe Animation Editor");
+  const graph=editor.getByRole("img",{name:"Interpolation graph for Opacity"});
+  await expect(graph).toBeInViewport({ratio:.1});
+  await expect(editor.getByLabel("Animation property tracks")).toBeVisible();
+  const canvasBox=await canvas.boundingBox(),dockBox=await dock.boundingBox();
+  expect(canvasBox).not.toBeNull();expect(dockBox).not.toBeNull();
+  expect(canvasBox!.height).toBeGreaterThan(230);
+  expect(dockBox!.height).toBeGreaterThan(360);
+  const surface=dock.locator(".pm-animation-surface");
+  await expect.poll(()=>surface.evaluate(el=>el.scrollHeight>el.clientHeight)).toBe(true);
+  const toolbar=editor.getByRole("group",{name:"Professional Timeline controls"});
+  await expect(toolbar).toHaveCSS("position","sticky");
+  await surface.evaluate(el=>{el.scrollTop=170;});
+  await expect.poll(()=>surface.evaluate(el=>el.scrollTop)).toBeGreaterThan(0);
+  const after=await toolbar.boundingBox();
+  const scrollRect=await surface.boundingBox();
+  // Sticky toolbar pins to the scroll container top after the heading scrolls away.
+  expect(after!.y).toBeGreaterThanOrEqual(scrollRect!.y-3);
+  expect(after!.y).toBeLessThanOrEqual(scrollRect!.y+7);
+  await dock.getByRole("separator",{name:"Resize animation workspace"}).focus();
+  await dock.getByRole("separator",{name:"Resize animation workspace"}).press("ArrowUp");
+  await expect.poll(async()=>Math.round((await dock.boundingBox())!.height)).toBeGreaterThan(Math.round(dockBox!.height));
+  await expect(canvas).toBeVisible();
+});
+
+test("M2.4 Inspector differentiates immutable base from animated playhead output",async({page})=>{
+  await page.goto("/studio");
+  await page.getByRole("button",{name:"Pause animation"}).click();
+  await page.getByRole("button",{name:"Open animation workspace"}).click();
+  const editor=page.getByLabel("Keyframe Animation Editor");
+  const comparison=page.getByRole("region",{name:"Animation value comparison"});
+  const baseValue=await comparison.getByLabel("Base Stroke width").textContent();
+  expect(baseValue).not.toBeNull();
+  const slider=page.getByRole("slider",{name:"Timeline position"});
+  await slider.focus();await slider.press("Home");
+  await editor.getByRole("combobox",{name:"Animated property"}).selectOption("params.strokeWidth");
+  await editor.getByRole("button",{name:"Add keyframe at playhead"}).click();
+  await editor.getByRole("spinbutton",{name:"Animated value"}).fill("2.5");
+  await expect(comparison.getByLabel("At playhead Stroke width")).toHaveText("2.5");
+  await expect(comparison.getByLabel("Base Stroke width")).toHaveText(baseValue!);
+  await slider.focus();await slider.press("End");
+  await editor.getByRole("button",{name:"Add keyframe at playhead"}).click();
+  await editor.getByRole("spinbutton",{name:"Animated value"}).fill("3.5");
+  const persistedBeforeSeek=await page.evaluate(()=>localStorage.getItem("paramyra.document.v3"));
+  await slider.focus();await slider.press("Home");
+  await expect(comparison.getByLabel("At playhead Stroke width")).toHaveText("2.5");
+  await expect.poll(()=>page.evaluate(()=>localStorage.getItem("paramyra.document.v3"))).toBe(persistedBeforeSeek);
+  await expect(comparison.getByLabel("Base Stroke width")).toHaveText(baseValue!);
+});
+
+test("M2.4 animation dock and Inspector stay accessible at compact desktop and mobile sizes",async({page})=>{
+  await page.setViewportSize({width:1365,height:768});
+  await page.goto("/studio");
+  await page.getByRole("button",{name:"Pause animation"}).click();
+  await page.getByRole("button",{name:"Open animation workspace"}).click();
+  const dock=page.getByRole("region",{name:"Scene details"});
+  const canvas=page.getByRole("region",{name:"Visualization preview"});
+  await expect(dock.getByRole("group",{name:"Professional Timeline controls"})).toBeVisible();
+  expect((await dock.boundingBox())!.height).toBeGreaterThan(320);
+  expect((await canvas.boundingBox())!.height).toBeGreaterThan(180);
+  await expect(page.getByRole("region",{name:"Animation value comparison"})).toBeVisible();
+  await page.setViewportSize({width:390,height:844});
+  await expect(dock.getByRole("group",{name:"Professional Timeline controls"})).toBeVisible();
+  await expect(dock.getByRole("img",{name:"Interpolation graph for Opacity"})).toBeVisible();
+  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(2);
+});

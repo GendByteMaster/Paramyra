@@ -25,3 +25,30 @@ describe("scientific calculator, bounded AST only",()=>{
     expect(calculateExpression("t",{...values,t:Infinity}).ok).toBe(false);
   });
 });
+
+describe("Calculator Pro advanced math",()=>{
+  it("uses DEG/RAD only for trig and inverse trig",()=>{
+    expect(calculateExpression("sin(30)",values,{angleUnit:"deg"})).toMatchObject({ok:true,display:"0.5"});
+    expect(calculateExpression("sin(pi/6)",values,{angleUnit:"rad"})).toMatchObject({ok:true,display:"0.5"});
+    expect(calculateExpression("asin(0.5)",values,{angleUnit:"deg"})).toMatchObject({ok:true,display:"30"});
+    expect(calculateExpression("cos(60)+2^3",values,{angleUnit:"deg"})).toMatchObject({ok:true,display:"8.5"});
+  });
+  it("supports safe factorial, percent and prior answer",()=>{
+    expect(calculateExpression("9!",values)).toMatchObject({ok:true,display:"362880"});
+    expect(calculateExpression("0!",values)).toMatchObject({ok:true,display:"1"});
+    expect(calculateExpression("50%+1",values)).toMatchObject({ok:true,display:"1.5"});
+    expect(calculateExpression("-3!",values)).toMatchObject({ok:true,display:"-6"});
+    expect(calculateExpression("2^3!",values)).toMatchObject({ok:true,display:"64"});
+    expect(calculateExpression("ans+2",values,{ans:7})).toMatchObject({ok:true,display:"9"});
+    expect(calculateExpression("1e-3",values)).toMatchObject({ok:true,display:"0.001"});
+    expect(calculateExpression("10!",values).ok).toBe(false);
+    expect(calculateExpression("(-1)!",values).ok).toBe(false);
+    expect(calculateExpression("1.5!",values).ok).toBe(false);
+    expect(calculateExpression("ans",values,{ans:Infinity}).ok).toBe(false);
+  });
+  it("does not permit arbitrary script syntax in advanced operations",()=>{
+    for(const source of ["1!;alert(1)","2%%constructor","1!.__proto__","x=>x","sin(45).constructor"]){
+      expect(calculateExpression(source,values).ok).toBe(false);
+    }
+  });
+});

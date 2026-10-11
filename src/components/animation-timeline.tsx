@@ -1,0 +1,375 @@
+"use client";
+import {useEffect,useRef,useState} from "react";
+import {KeyRound,Plus,Trash2} from "lucide-react";
+import {BezierCurveEditor} from "./bezier-curve-editor";
+import {TimelineLayerOverview} from "./timeline-layer-overview";
+import {keyframesInBox,panTimeline,snapTimelineTime,timeAtPointer,timelineFraction,timelineWindow,
+  type TimelineSnap,type TimelineWindow} from "@/core/animation/timeline-view";
+import {ANIMATABLE_PROPERTIES,DEFAULT_BEZIER,deleteKeyframe,deleteKeyframes,moveKeyframe,moveKeyframes,propertyBounds,sampleProperty,supportsProperty,upsertKeyframe,
+  type AnimatableProperty,type KeyframeEase,type KeyframeRef,type LayerKeyframe} from "@/core/animation/keyframes";
+import type {MathLayer} from "@/core/document/schema";
+
+type Props={layer:MathLayer;layers:readonly MathLayer[];time:number;duration:number;
+  onSeek:(time:number)=>void;onSelectLayer:(layerId:string)=>void;
+  onEdit:(fn:(layer:MathLayer)=>MathLayer)=>void};
+const names:Record<AnimatableProperty,string>={
+  "opacity":"Opacity","offset.x":"Position X","offset.y":"Position Y",
+  "params.strokeWidth":"Stroke width","formula.a":"Formula a","formula.b":"Formula b","formula.c":"Formula c",
+};
+const EASES:KeyframeEase[]=["linear","ease-in","ease-out","ease-in-out","hold","bezier"];
+const frameKey=(p:AnimatableProperty,t:number)=>p+":"+t.toFixed(2);
+type Drag={pointerId:number;property:AnimatableProperty;from:number;startX:number;left:number;width:number;refs:KeyframeRef[]};
+type BoxDrag={pointerId:number;startX:number;startY:number;rect:DOMRect;extend:boolean};
+type BoxVisual={left:number;top:number;width:number;height:number};
+const clamp=(value:number,min:number,max:number)=>Math.max(min,Math.min(max,value));
+export function AnimationTimeline({layer,layers,time,duration,onSeek,onSelectLayer,onEdit}:Props){
+  const [property,setProperty]=useState<AnimatableProperty>("opacity");
+  const [selection,setSelection]=useState<{layerId:string;keys:string[];anchor:string}>({layerId:"",keys:[],anchor:""});
+  const [batchOffset,setBatchOffset]=useState("0.25");
+  const [zoom,setZoom]=useState(1);
+  const [windowStart,setWindowStart]=useState(0);
+  const [snap,setSnap]=useState<TimelineSnap>(0);
+  const [trackMode,setTrackMode]=useState<"selected"|"all">("selected");
+  const [boxMode,setBoxMode]=useState(false);
+  const span=duration/zoom;
+  const start=clamp(windowStart,0,Math.max(0,duration-span));
+  const window:TimelineWindow={start,end:start+span};
+  const zoomTo=(next:number)=>{
+    const ratio=clamp(next,1,8);
+    const nextWindow=timelineWindow(duration,ratio,time,window);
+    setZoom(ratio);setWindowStart(nextWindow.start);
+  };
+  const pan=(fraction:number)=>setWindowStart(panTimeline(duration,window,fraction).start);
+  const snapTo=(at:number,refs:KeyframeRef[],width:number)=>{
+    const keys=new Set(refs.map(f=>frameKey(f.property,f.time)));
+    const neighbourTimes=(layer.keyframes??[]).filter(f=>!keys.has(frameKey(f.property,f.time))).map(f=>f.time);
+    return snapTimelineTime(at,duration,snap,neighbourTimes,window,width);
+  };
+  const drag=useRef<Drag|null>(null);
+  const suppressClick=useRef(false);
+  const suppressTrackClick=useRef(false);
+  const trackList=useRef<HTMLDivElement|null>(null);
+  const focusAfterMove=useRef<string|null>(null);
+  const boxDrag=useRef<BoxDrag|null>(null);
+  const boxCleanup=useRef<(()=>void)|null>(null);
+  const [boxVisual,setBoxVisual]=useState<BoxVisual|null>(null);
+  useEffect(()=>()=>{boxCleanup.current?.();},[]);
+  // Re-rendering a moved marker changes its React key. Restore keyboard focus
+  // to the new marker so repeated arrow presses remain usable.
+  useEffect(()=>{
+    const target=focusAfterMove.current;
+    if(!target)return;
+    focusAfterMove.current=null;
+    const buttons=trackList.current?.querySelectorAll<HTMLButtonElement>(".pm-keyframe-marker");
+    for(const button of buttons??[]){
+      if(frameKey(button.dataset.property as AnimatableProperty,Number(button.dataset.time))===target){
+        button.focus();break;
+      }
+    }
+  },[layer.keyframes]);
+  const available=ANIMATABLE_PROPERTIES.filter(p=>supportsProperty(layer,p));
+  const active=available.includes(property)?property:"opacity";
+  const getFrames=(p:AnimatableProperty)=>(layer.keyframes??[]).filter(frame=>frame.property===p).sort((a,b)=>a.time-b.time);
+  const frames=getFrames(active);
+  const liveKeys=new Set((layer.keyframes??[]).map(f=>frameKey(f.property,f.time)));
+  const selectedKeys=selection.layerId===layer.id?selection.keys.filter(key=>liveKeys.has(key)):[];
+  const selectedRefs:KeyframeRef[]=(layer.keyframes??[])
+    .filter(f=>selectedKeys.includes(frameKey(f.property,f.time)))
+    .map(f=>({property:f.property,time:f.time}));
+  const playheadSelected=frames.find(frame=>Math.abs(frame.time-time)<0.051);
+  const selected=selectedKeys.length===1
+    ?frames.find(frame=>frameKey(frame.property,frame.time)===selectedKeys[0])??playheadSelected
+    :playheadSelected;
+  const selectFrame=(p:AnimatableProperty,at:number,shift:boolean,toggle:boolean)=>{
+    const key=frameKey(p,at);
+    const previous=selection.layerId===layer.id?selection:{layerId:layer.id,keys:[],anchor:""};
+    if(shift&&previous.anchor.startsWith(p+":")){
+      const first=Number(previous.anchor.slice(p.length+1));
+      const range=getFrames(p).filter(f=>f.time>=Math.min(first,at)&&f.time<=Math.max(first,at))
+        .map(f=>frameKey(p,f.time));
+      setSelection({layerId:layer.id,keys:[...new Set([...previous.keys,...range])],anchor:previous.anchor});
+    }else if(toggle){
+      setSelection({layerId:layer.id,keys:previous.keys.includes(key)?previous.keys.filter(k=>k!==key):[...previous.keys,key],anchor:key});
+    }else setSelection({layerId:layer.id,keys:[key],anchor:key});
+    setProperty(p);
+  };
+  const clearSelection=()=>setSelection({layerId:layer.id,keys:[],anchor:""});
+  const applyDelta=(refs:KeyframeRef[],delta:number,useSnap=true)=>{
+    if(!Number.isFinite(delta)||!refs.length)return false;
+    // Keyboard precision nudges must not be swallowed by optional grid snapping.
+    const adjusted=!useSnap||snap===0?delta:snapTo(refs[0].time+delta,refs,400)-refs[0].time;
+    const changed=moveKeyframes(layer,refs,adjusted,duration);
+    if(changed===layer)return false;
+    onEdit(l=>moveKeyframes(l,refs,adjusted,duration));
+    setSelection({layerId:layer.id,keys:refs.map(f=>frameKey(f.property,Math.round((f.time+adjusted)*100)/100)),anchor:frameKey(refs[0].property,Math.round((refs[0].time+adjusted)*100)/100)});
+    return true;
+  };
+  const bounds=propertyBounds(active);
+  const currentValue=sampleProperty(layer,active,time);
+  const playhead=timelineFraction(time,window)*100;
+  const playheadVisible=playhead>=0&&playhead<=100;
+  const move=(p:AnimatableProperty,from:number,to:number,useSnap=true)=>{
+    if(!Number.isFinite(to)||to<0||to>duration||to>60)return false;
+    const snapped=useSnap?snapTo(to,[{property:p,time:from}],400):Math.round(to*100)/100;
+    // Validate atomically before seeking or changing selection; collisions are no-ops.
+    if(moveKeyframe(layer,p,from,snapped,duration)===layer)return false;
+    onEdit(l=>moveKeyframe(l,p,from,snapped,duration));
+    const previousKey=frameKey(p,from),nextKey=frameKey(p,snapped);
+    setSelection(previous=>previous.layerId!==layer.id||!previous.keys.includes(previousKey)
+      ?previous:{...previous,keys:previous.keys.map(key=>key===previousKey?nextKey:key),
+        anchor:previous.anchor===previousKey?nextKey:previous.anchor});
+    setProperty(p);onSeek(snapped);
+    return true;
+  };
+  const setFrameEase=(frame:LayerKeyframe,ease:KeyframeEase)=>{
+    const next:LayerKeyframe=ease==="bezier"
+      ?{...frame,ease,bezier:frame.bezier??DEFAULT_BEZIER}
+      :{property:frame.property,time:frame.time,value:frame.value,ease};
+    onEdit(l=>upsertKeyframe(l,next));
+  };
+  const add=()=>{
+    const at=snapTo(time,[],400);
+    const frame:LayerKeyframe={property:active,time:at,
+      value:Number(currentValue.toFixed(4)),ease:"ease-in-out"};
+    onEdit(l=>upsertKeyframe(l,frame));
+    if(at!==time)onSeek(at);
+  };
+  const setValue=(raw:number)=>{
+    if(!Number.isFinite(raw)||raw<bounds.min||raw>bounds.max)return;
+    const frame:LayerKeyframe=selected
+      ?{...selected,value:raw}:{property:active,time:Math.round(time*100)/100,value:raw,ease:"ease-in-out"};
+    onEdit(l=>upsertKeyframe(l,frame));
+  };
+  // Graph samples the *visible* Timeline viewport, not the entire document.
+  const points=Array.from({length:81},(_,index)=>{
+    const at=window.start+(window.end-window.start)*index/80;
+    const value=sampleProperty(layer,active,at);
+    return (index/80*640).toFixed(1)+","+(8+(1-(value-bounds.min)/(bounds.max-bounds.min))*110).toFixed(1);
+  }).join(" ");
+  const finishBox=(event:{pointerId:number;clientX:number;clientY:number})=>{
+    const dragState=boxDrag.current;
+    if(!dragState||dragState.pointerId!==event.pointerId)return;
+    boxDrag.current=null;setBoxVisual(null);
+    if(Math.hypot(event.clientX-dragState.startX,event.clientY-dragState.startY)<5)return;
+    suppressTrackClick.current=true;
+    const rows=(trackList.current?Array.from(trackList.current.querySelectorAll<HTMLElement>(".pm-multitrack-row")):[])
+      .map((element,index)=>({property:available[index],top:element.getBoundingClientRect().top,bottom:element.getBoundingClientRect().bottom}));
+    const refs=keyframesInBox(layer.keyframes??[],
+      timeAtPointer(dragState.startX,dragState.rect.left,dragState.rect.width,window),
+      timeAtPointer(event.clientX,dragState.rect.left,dragState.rect.width,window),
+      dragState.startY,event.clientY,rows);
+    const domKeys=trackList.current?Array.from(trackList.current.querySelectorAll<HTMLButtonElement>(".pm-keyframe-marker"))
+      .filter(marker=>{
+        const rect=marker.getBoundingClientRect();
+        const x=rect.left+rect.width/2,y=rect.top+rect.height/2;
+        return x>=Math.min(dragState.startX,event.clientX)-2&&x<=Math.max(dragState.startX,event.clientX)+2
+          &&y>=Math.min(dragState.startY,event.clientY)-2&&y<=Math.max(dragState.startY,event.clientY)+2;
+      }).map(marker=>frameKey(marker.dataset.property as AnimatableProperty,Number(marker.dataset.time))):[];
+    const selectedNow=[...new Set([...refs.map(f=>frameKey(f.property,f.time)),...domKeys])];
+    const previouslySelected=dragState.extend&&selection.layerId===layer.id?selection.keys:[];
+    const next=[...new Set([...previouslySelected,...selectedNow])];
+    setSelection({layerId:layer.id,keys:next,anchor:next[0]??""});
+  };
+  return <div className="pm-animation-editor" aria-label="Keyframe Animation Editor">
+    <div className="pm-animation-heading"><span><KeyRound size={14}/> ADVANCED KEYFRAME ANIMATION</span>
+      <small>{layer.title} · {frames.length} markers</small>
+    </div>
+    <div className="pm-timeline-toolbar" role="group" aria-label="Professional Timeline controls">
+      <div className="pm-timeline-mode" role="group" aria-label="Layer track view">
+        <button type="button" aria-label="Selected layer tracks" aria-pressed={trackMode==="selected"}
+          onClick={()=>setTrackMode("selected")}>Selected layer</button>
+        <button type="button" aria-label="All layer tracks" aria-pressed={trackMode==="all"}
+          onClick={()=>setTrackMode("all")}>All layers ({layers.length})</button>
+      </div>
+      <div className="pm-timeline-zoom" role="group" aria-label="Timeline zoom controls">
+        <button type="button" aria-label="Pan timeline left" disabled={start===0} onClick={()=>pan(-.5)}>←</button>
+        <button type="button" aria-label="Zoom timeline out" disabled={zoom===1} onClick={()=>zoomTo(zoom/2)}>−</button>
+        <output aria-label="Timeline zoom level">{zoom}×</output>
+        <button type="button" aria-label="Zoom timeline in" disabled={zoom===8} onClick={()=>zoomTo(zoom*2)}>+</button>
+        <button type="button" aria-label="Fit entire timeline" onClick={()=>{setZoom(1);setWindowStart(0);}}>Fit</button>
+        <button type="button" aria-label="Pan timeline right" disabled={window.end>=duration} onClick={()=>pan(.5)}>→</button>
+      </div>
+      <button type="button" className="pm-box-mode-button" aria-label="Toggle box selection tool"
+        aria-pressed={boxMode} onClick={()=>setBoxMode(v=>!v)}>Box select</button>
+      <label className="pm-timeline-snap">Snap
+        <select aria-label="Keyframe snapping" value={snap} onChange={e=>setSnap(Number(e.target.value) as TimelineSnap)}>
+          <option value={0}>Off</option><option value={0.1}>0.1s</option>
+          <option value={0.25}>0.25s</option><option value={0.5}>0.5s</option><option value={1}>1s</option>
+        </select>
+      </label>
+      <output className="pm-timeline-visible" aria-label="Visible timeline range">{window.start.toFixed(2)}–{window.end.toFixed(2)}s</output>
+    </div>
+    <div className="pm-animation-layout">
+      <section className="pm-animation-track-column" aria-label="Timeline tracks">
+        <div className="pm-animation-section-title"><span>PROPERTY TRACKS</span><small>{available.length} channels · {layer.keyframes?.length??0} keys</small></div>
+    {trackMode==="all"?
+      <TimelineLayerOverview layers={layers} selectedLayerId={layer.id} window={window}
+        onSelectLayer={onSelectLayer} onSeek={onSeek}/>:
+    <div className={"pm-multitrack"+(boxMode?" pm-box-mode":"")} aria-label="Animation property tracks" ref={trackList}>
+      {available.map(p=>{
+        const trackFrames=getFrames(p);
+        return <div className={"pm-multitrack-row"+(p===active?" is-active":"")} key={p}>
+          <button type="button" className="pm-multitrack-label" aria-pressed={p===active}
+            onClick={()=>setProperty(p)} title={names[p]}>{names[p]}</button>
+          <div className="pm-animation-track" aria-label={"Keyframe track for "+names[p]}
+            onClick={e=>{
+              if(suppressTrackClick.current){suppressTrackClick.current=false;return;}
+              if((e.target as HTMLElement).closest("button"))return;
+              const bounds=e.currentTarget.getBoundingClientRect();
+              if(bounds.width>0){setProperty(p);onSeek(timeAtPointer(e.clientX,bounds.left,bounds.width,window));}
+            }}
+            onPointerDown={e=>{
+              if(e.button!==0||(!boxMode&&(e.target as HTMLElement).closest("button")))return;
+              boxCleanup.current?.();
+              const state:BoxDrag={pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,
+                rect:e.currentTarget.getBoundingClientRect(),extend:e.shiftKey||e.ctrlKey||e.metaKey};
+              boxDrag.current=state;
+              const moveGlobal=(pointer:globalThis.PointerEvent)=>{
+                if(pointer.pointerId!==state.pointerId||!trackList.current)return;
+                if(Math.hypot(pointer.clientX-state.startX,pointer.clientY-state.startY)<5)return;
+                const rect=trackList.current.getBoundingClientRect();
+                const x1=clamp(state.startX-state.rect.left,0,state.rect.width)+state.rect.left-rect.left;
+                const x2=clamp(pointer.clientX-state.rect.left,0,state.rect.width)+state.rect.left-rect.left;
+                const y1=state.startY-rect.top+trackList.current.scrollTop;
+                const y2=pointer.clientY-rect.top+trackList.current.scrollTop;
+                setBoxVisual({left:Math.min(x1,x2),top:Math.min(y1,y2),
+                  width:Math.abs(x2-x1),height:Math.abs(y2-y1)});
+              };
+              const release=(pointer:globalThis.PointerEvent)=>{
+                if(pointer.pointerId!==state.pointerId)return;
+                if(pointer.type==="pointerup")finishBox(pointer);
+                else{boxDrag.current=null;setBoxVisual(null);}
+                boxCleanup.current?.();
+              };
+              globalThis.window.addEventListener("pointermove",moveGlobal);
+              globalThis.window.addEventListener("pointerup",release);
+              globalThis.window.addEventListener("pointercancel",release);
+              boxCleanup.current=()=>{
+                globalThis.window.removeEventListener("pointermove",moveGlobal);
+                globalThis.window.removeEventListener("pointerup",release);
+                globalThis.window.removeEventListener("pointercancel",release);
+                boxCleanup.current=null;
+              };
+              e.currentTarget.setPointerCapture(e.pointerId);
+            }}
+            onPointerUp={finishBox}
+            onPointerCancel={()=>{boxDrag.current=null;setBoxVisual(null);boxCleanup.current?.();}}> 
+            {playheadVisible&&<div className="pm-animation-track-fill" style={{width:playhead+"%"}}/>}
+            {playheadVisible&&<div className="pm-animation-playhead" style={{left:playhead+"%"}}/>}
+            {trackFrames.filter(frame=>timelineFraction(frame.time,window)>=0&&timelineFraction(frame.time,window)<=1).map((frame,index)=><button key={frame.time+":"+index} type="button"
+              data-property={p} data-time={frame.time}
+              style={{left:(timelineFraction(frame.time,window)*100)+"%"}} className={"pm-keyframe-marker"+(selectedKeys.includes(frameKey(p,frame.time))?" selected":"")}
+              aria-label={"Seek to "+names[p]+" keyframe at "+frame.time.toFixed(2)+" seconds"}
+              aria-pressed={selectedKeys.includes(frameKey(p,frame.time))}
+              title={frame.time+"s · "+frame.value+" · "+frame.ease}
+              onPointerDown={e=>{
+                if(e.button!==0)return;
+                const rect=e.currentTarget.parentElement?.getBoundingClientRect();
+                if(!rect||rect.width<=0)return;
+                suppressClick.current=false;
+                drag.current={pointerId:e.pointerId,property:p,from:frame.time,startX:e.clientX,left:rect.left,width:rect.width,
+                  refs:selectedKeys.includes(frameKey(p,frame.time))&&selectedRefs.length>1
+                    ?selectedRefs:[{property:p,time:frame.time}]};
+                e.currentTarget.setPointerCapture(e.pointerId);
+              }}
+              onPointerUp={e=>{
+                const current=drag.current;
+                if(!current||current.pointerId!==e.pointerId)return;
+                drag.current=null;
+                if(Math.abs(e.clientX-current.startX)<4)return;
+                suppressClick.current=true;
+                const to=timeAtPointer(e.clientX,current.left,current.width,window);
+                if(current.refs.length>1)applyDelta(current.refs,Math.round((to-current.from)*100)/100);
+                else move(current.property,current.from,to);
+              }}
+              onPointerCancel={()=>{drag.current=null;}}
+              onClick={e=>{
+                if(suppressClick.current){suppressClick.current=false;e.preventDefault();return;}
+                selectFrame(p,frame.time,e.shiftKey,e.ctrlKey||e.metaKey);
+                if(!e.ctrlKey&&!e.metaKey)onSeek(frame.time);
+              }}
+              onKeyDown={e=>{
+                if(e.key==="ArrowLeft"||e.key==="ArrowRight"){
+                  e.preventDefault();
+                  const delta=(e.key==="ArrowRight"?1:-1)*(e.shiftKey?0.1:0.01);
+                  const group=selectedKeys.includes(frameKey(p,frame.time))&&selectedRefs.length>1;
+                  const changed=group
+                    ?applyDelta(selectedRefs,delta,false)
+                    :move(p,frame.time,clamp(frame.time+delta,0,duration),false);
+                  if(changed)focusAfterMove.current=frameKey(p,Math.round((frame.time+delta)*100)/100);
+                }else if(e.key==="Delete"||e.key==="Backspace"){
+                  e.preventDefault();
+                  if(selectedKeys.includes(frameKey(p,frame.time))&&selectedRefs.length>1){
+                    onEdit(l=>deleteKeyframes(l,selectedRefs));clearSelection();
+                  }else{
+                    onEdit(l=>deleteKeyframe(l,p,frame.time));
+                    setSelection(previous=>previous.layerId!==layer.id?previous:{
+                      ...previous,keys:previous.keys.filter(key=>key!==frameKey(p,frame.time)),
+                      anchor:previous.anchor===frameKey(p,frame.time)?"":previous.anchor});
+                  }
+                }
+              }}/>)}
+          </div>
+        </div>;
+      })}
+      {boxVisual&&<div className="pm-timeline-selection-box" aria-hidden="true" style={boxVisual}/>}
+    </div>}
+    <div className="pm-animation-ruler"><span>{window.start.toFixed(2)}s</span><span>{((window.start+window.end)/2).toFixed(2)}s</span><span>{window.end.toFixed(2)}s</span></div>
+      </section>
+      <section className="pm-animation-graph-column" aria-label="Graph inspector">
+    {selected?.ease==="bezier"&&<BezierCurveEditor frame={selected}
+      onChange={bezier=>onEdit(l=>upsertKeyframe(l,{...selected,ease:"bezier",bezier}))}/>}
+    <div className="pm-animation-graph-label"><span>GRAPH EDITOR</span><small>Value · {names[active]} · {window.start.toFixed(2)}–{window.end.toFixed(2)}s</small></div>
+    <svg className="pm-animation-graph" role="img" aria-label={"Interpolation graph for "+names[active]}
+      viewBox="0 0 640 128" preserveAspectRatio="none">
+      <path d="M0 8H640 M0 63H640 M0 118H640" stroke="#6f8dae44" strokeWidth="1" fill="none"/>
+      <polyline points={points} fill="none" stroke="#6de7cf" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+      {frames.filter(frame=>timelineFraction(frame.time,window)>=0&&timelineFraction(frame.time,window)<=1)
+        .map(frame=><circle key={frame.time} cx={timelineFraction(frame.time,window)*640}
+        cy={8+(1-(frame.value-bounds.min)/(bounds.max-bounds.min))*110} r="5.5" fill="#bce9ff" stroke="#376e97" strokeWidth="2"/>)}
+      {playheadVisible&&<path d={"M"+(playhead/100*640)+" 0V128"} stroke="#d2e5ff9c" strokeWidth="1" strokeDasharray="5 4"/>}
+    </svg>
+      </section>
+    </div>
+    <div className="pm-animation-control-row">
+      <label>Property<select aria-label="Animated property" value={active} onChange={e=>setProperty(e.target.value as AnimatableProperty)}>
+        {available.map(p=><option key={p} value={p}>{names[p]}</option>)}
+      </select></label>
+      <label>Value<input type="number" aria-label="Animated value" min={bounds.min} max={bounds.max}
+        step={bounds.step} value={Number(currentValue.toFixed(4))}
+        onChange={e=>setValue(e.target.valueAsNumber)}/></label>
+      <label>Easing<select aria-label="Keyframe easing" value={selected?.ease??"ease-in-out"}
+        disabled={!selected} onChange={e=>{
+          if(!selected)return;
+          const ease=e.target.value as KeyframeEase;
+          setFrameEase(selected,ease);
+        }}>{EASES.map(ease=><option key={ease} value={ease}>{ease}</option>)}</select></label>
+    </div>
+    <div className="pm-animation-controls">
+      <button type="button" onClick={add} disabled={!Number.isFinite(currentValue)||!Number.isFinite(time)}
+        aria-label="Add keyframe at playhead"><Plus size={14}/> {selected?"Update keyframe":"Add keyframe"}</button>
+      <button type="button" aria-label="Delete keyframe at playhead" disabled={!selected}
+        onClick={()=>onEdit(l=>deleteKeyframe(l,active,selected!.time))}><Trash2 size={14}/> Remove</button>
+      {selected&&<label className="pm-keyframe-time-label">Keyframe time
+        <input type="number" key={active+":"+selected.time} aria-label="Keyframe time" min={0}
+          max={duration} step={0.01} defaultValue={selected.time}
+          onBlur={e=>move(active,selected.time,e.target.valueAsNumber)}
+          onKeyDown={e=>{if(e.key==="Enter")e.currentTarget.blur();}}/>
+      </label>}
+      <small>{time.toFixed(2)}s / {duration.toFixed(2)}s</small>
+    </div>
+    <div className="pm-animation-batch" role="group" aria-label="Multi-keyframe selection">
+      <span>{selectedRefs.length} selected</span>
+      <button type="button" aria-label="Select all keyframes in current track" disabled={!frames.length}
+        onClick={()=>setSelection({layerId:layer.id,keys:frames.map(f=>frameKey(f.property,f.time)),anchor:frameKey(active,frames[0].time)})}>Select track</button>
+      <button type="button" aria-label="Clear keyframe selection" disabled={!selectedRefs.length} onClick={clearSelection}>Clear</button>
+      <label>Shift (s)<input type="number" aria-label="Keyframe group shift" step="0.01"
+        value={batchOffset} onChange={e=>setBatchOffset(e.target.value)}/></label>
+      <button type="button" aria-label="Move selected keyframes" disabled={!selectedRefs.length}
+        onClick={()=>applyDelta(selectedRefs,Number(batchOffset))}>Move selected</button>
+      <button type="button" aria-label="Delete selected keyframes" disabled={!selectedRefs.length}
+        onClick={()=>{onEdit(l=>deleteKeyframes(l,selectedRefs));clearSelection();}}>Delete selected</button>
+    </div>
+    <p className="pm-animation-help">Zoom and pan synchronize Timeline and Graph · drag across rows for box selection · Ctrl/Cmd-click toggles · Shift-click extends · Arrow keys nudge selected markers by 0.01s (Shift: 0.1s), Delete removes them · Snap applies to pointer edits; keyboard precision bypasses it. All layers is a read-only overview.</p>
+  </div>;
+}

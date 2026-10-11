@@ -124,8 +124,8 @@ test("desktop studio uses viewport height without header overlap or page scrolli
     return {
       pageHeight: document.documentElement.scrollHeight,
       innerHeight: window.innerHeight,
-      headerVisible: getComputedStyle(document.querySelector(".topbar")!).display !== "none",
-      footerVisible: getComputedStyle(document.querySelector("footer")!).display !== "none",
+      headerVisible: (() => { const el=document.querySelector(".topbar"); return el!==null&&getComputedStyle(el).display!=="none"; })(),
+      footerVisible: (() => { const el=document.querySelector("footer"); return el!==null&&getComputedStyle(el).display!=="none"; })(),
       projectBarTop: bar.top,
       viewportHeight: viewport.height,
       inspectorBottom: inspector.bottom,

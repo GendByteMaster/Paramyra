@@ -28,7 +28,8 @@ export function duplicateLayer(doc: MathDocument, id: string, newId: string): Ma
   return { ...doc, layers: [
     ...doc.layers.slice(0, index + 1),
     { ...source, id: newId, title: (source.title + " copy").slice(0, 120), params: { ...source.params }, offset: { ...source.offset },
-      ...(source.kind === "formula" ? { formula: { ...source.formula } } : {}) },
+      ...(source.kind === "formula" ? { formula: { ...source.formula } } : {}),
+      ...(source.keyframes ? {keyframes:source.keyframes.map(frame=>({...frame}))} : {}) },
     ...doc.layers.slice(index + 1),
   ] };
 }

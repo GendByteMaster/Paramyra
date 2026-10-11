@@ -1,0 +1,310 @@
+/*
+ * Shared Paramyra application workspace design contract.
+ * This file is intentionally loaded AFTER Studio and Node Graph styles.
+ * The two editors own different content, but not different chrome/geometry.
+ *
+ * Breakpoints:
+ *   >= 960px, >= 680px high: one viewport, independently scrolling panels
+ *   small/narrow: accessible document scrolling (no nested page scroll traps)
+ */
+.pm-editor-shell {
+  --editor-gutter: 8px;
+  --editor-radius: 13px;
+  --editor-outer-pad: 8px;
+  --editor-header-height: 72px;
+  --editor-panel-header-height: 96px;
+  --editor-viewport-header-height: 56px;
+  --editor-bg: #070c14;
+  --editor-panel-bg: linear-gradient(155deg, #111a28, #0b121d 50%, #0c1522);
+  --editor-heading-bg: #111b2a;
+  --editor-header-bg: linear-gradient(120deg, #162236, #101925 68%);
+  --editor-stroke: rgba(165, 190, 230, .16);
+  --editor-muted: #91a7c6;
+  --editor-left: 260px;
+  --editor-right: 350px;
+  box-sizing: border-box;
+  color: #e9f0fc;
+}
+.pm-editor-shell, .pm-editor-shell * { box-sizing: border-box; }
+.pm-editor-shell.pm-workspace,
+.pm-editor-shell.pm-ng-root {
+  width: calc(100% - 16px);
+  max-width: none;
+  margin: var(--editor-outer-pad) auto 0;
+}
+.pm-editor-shell .pm-editor-topbar {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  min-height: var(--editor-header-height);
+  margin: 0;
+  padding: 8px 13px;
+  gap: 12px;
+  min-width: 0;
+  border: 1px solid var(--editor-stroke);
+  border-radius: var(--editor-radius);
+  background: var(--editor-header-bg);
+  box-shadow: inset 0 1px #e4f0ff09, 0 14px 50px #0003;
+}
+.pm-editor-shell .pm-editor-pane-layout {
+  gap: var(--editor-gutter);
+  min-height: 0;
+  min-width: 0;
+}
+.pm-editor-shell .pm-editor-panel {
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--editor-stroke);
+  border-radius: var(--editor-radius);
+  overflow: hidden;
+  background: var(--editor-panel-bg);
+  box-shadow: inset 0 1px #eef4ff04;
+}
+.pm-editor-shell .pm-editor-panel-heading {
+  flex: 0 0 var(--editor-panel-header-height);
+  height: var(--editor-panel-header-height);
+  min-height: var(--editor-panel-header-height);
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--editor-stroke);
+  overflow: hidden;
+}
+.pm-editor-shell .pm-editor-viewport-heading {
+  flex: 0 0 auto;
+  min-height: var(--editor-viewport-header-height);
+  height: var(--editor-viewport-header-height);
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--editor-stroke);
+  background: var(--editor-heading-bg);
+}
+.pm-editor-shell .pm-editor-content-scroll {
+  min-height: 0;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  overflow-y: auto;
+}
+.pm-editor-shell .pm-editor-statusbar {
+  flex: 0 0 auto;
+  min-height: 24px;
+  margin: 0;
+  padding: 4px 8px 0;
+  border: 0;
+  background: transparent;
+  font-size: 10px;
+}
+.pm-editor-shell .pm-project-actions,
+.pm-editor-shell .pm-ng-actions {
+  min-width: 0;
+  gap: 7px;
+}
+.pm-editor-shell .pm-project-name { gap: 3px; }
+.pm-editor-shell .pm-project-name > .pm-label { line-height: 1.25; }
+.pm-editor-shell .pm-project-name > strong { line-height: 1.2; }
+.pm-editor-shell .pm-project-name h1,
+.pm-editor-shell .pm-ng-title h1 {
+  font-size: 15px;
+  line-height: 1.3;
+  letter-spacing: -.025em;
+}
+.pm-editor-shell .pm-sidebar-heading h2,
+.pm-editor-shell .pm-inspector-top h2,
+.pm-editor-shell .pm-ng-pane-header h2 {
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+.pm-editor-shell .pm-sidebar-heading p,
+.pm-editor-shell .pm-inspector-top p,
+.pm-editor-shell .pm-ng-pane-header p {
+  font-size: 11px;
+  color: var(--editor-muted);
+}
+.pm-editor-shell .pm-ng-pane-header { display: block; }
+.pm-editor-shell .pm-ng-library,
+.pm-editor-shell .pm-ng-inspector,
+.pm-editor-shell .pm-sidebar,
+.pm-editor-shell .pm-inspector { display: flex; flex-direction: column; }
+.pm-editor-shell .pm-ng-center { display: flex; flex-direction: column; }
+.pm-editor-shell .pm-ng-inspector-scroll { display: flex; flex-direction: column; }
+.pm-editor-shell .pm-ng-canvasbar { flex-shrink: 0; }
+.pm-editor-shell .pm-ng-board { flex: 1 1 0; min-height: 0; }
+.pm-editor-shell .pm-ng-playhead,
+.pm-editor-shell .pm-ng-footer,
+.pm-editor-shell .pm-ng-commandbar { flex-shrink: 0; }
+.pm-editor-shell .pm-ng-playhead-duration { color: var(--editor-muted); font: 10px ui-monospace, Menlo, Consolas, monospace; white-space: nowrap; }
+.pm-editor-shell .pm-ng-playhead output { min-width: 52px; }
+
+/* Both desktop editors use the same width tiers and identical pane tracks. */
+@media (min-width: 1600px) {
+  .pm-editor-shell { --editor-left: 290px; --editor-right: 380px; }
+}
+@media (min-width: 960px) and (max-width: 1279px) {
+  .pm-editor-shell { --editor-left: 210px; --editor-right: 300px; }
+}
+@media (min-width: 960px) {
+  .pm-editor-shell .pm-editor-pane-layout,
+  .pm-editor-shell .pm-editor-pane-layout.pm-grid,
+  .pm-editor-shell .pm-editor-pane-layout.pm-ng-layout {
+    display: grid;
+    grid-template-columns: var(--editor-left) minmax(0, 1fr) var(--editor-right);
+    min-width: 0;
+    gap: var(--editor-gutter);
+    align-items: stretch;
+  }
+  .pm-editor-shell .pm-editor-pane-layout:is(.pm-no-library, .no-library) {
+    grid-template-columns: minmax(0, 1fr) var(--editor-right);
+  }
+  .pm-editor-shell .pm-editor-pane-layout:is(.pm-no-inspector, .no-inspector) {
+    grid-template-columns: var(--editor-left) minmax(0, 1fr);
+  }
+  .pm-editor-shell .pm-editor-pane-layout:is(.pm-no-library, .no-library):is(.pm-no-inspector, .no-inspector) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pm-editor-shell .pm-editor-pane-layout.pm-animation-focus {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .pm-editor-shell .pm-editor-pane-layout > :is(.pm-ng-center, .pm-ng-library, .pm-ng-inspector) {
+    order: 0;
+    flex: initial;
+    min-height: 0;
+    max-height: none;
+  }
+  .pm-editor-shell .pm-ng-projectbar { flex-wrap: nowrap; }
+  .pm-editor-shell .pm-ng-actions { flex: 1 1 auto; width: auto; justify-content: flex-end; overflow-x: auto; scrollbar-width: thin; }
+  .pm-editor-shell .pm-project-actions { overflow-x: auto; scrollbar-width: thin; }
+  .pm-editor-shell .pm-ng-inspector-scroll { display: flex; flex-direction: column; }
+}
+@media (min-width: 960px) and (min-height: 680px) {
+  html:has(.pm-editor-shell),
+  body:has(.pm-editor-shell) {
+    height: 100%;
+    overflow: hidden;
+  }
+  body:has(.pm-editor-shell) #main-content {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .pm-editor-shell.pm-workspace,
+  .pm-editor-shell.pm-ng-root {
+    --editor-outer-pad: 8px;
+    width: calc(100% - 16px);
+    height: calc(100dvh - 12px);
+    min-height: 0;
+    margin: 6px auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--editor-gutter);
+    overflow: hidden;
+  }
+  .pm-editor-shell .pm-editor-pane-layout,
+  .pm-editor-shell .pm-editor-pane-layout.pm-grid,
+  .pm-editor-shell .pm-editor-pane-layout.pm-ng-layout {
+    display: grid;
+    grid-template-columns: var(--editor-left) minmax(0, 1fr) var(--editor-right);
+    flex: 1 1 0;
+    height: auto;
+    min-height: 0;
+    overflow: hidden;
+    gap: var(--editor-gutter);
+    align-items: stretch;
+  }
+  .pm-editor-shell .pm-editor-pane-layout:is(.pm-no-library, .no-library) {
+    grid-template-columns: minmax(0, 1fr) var(--editor-right);
+  }
+  .pm-editor-shell .pm-editor-pane-layout:is(.pm-no-inspector, .no-inspector) {
+    grid-template-columns: var(--editor-left) minmax(0, 1fr);
+  }
+  .pm-editor-shell .pm-editor-pane-layout:is(.pm-no-library, .no-library):is(.pm-no-inspector, .no-inspector) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pm-editor-shell .pm-editor-pane-layout.pm-animation-focus {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .pm-editor-shell .pm-editor-pane-layout > :is(.pm-ng-center, .pm-ng-library, .pm-ng-inspector) {
+    order: 0;
+    flex: initial;
+    min-height: 0;
+    max-height: none;
+  }
+  .pm-editor-shell .pm-ng-projectbar { flex-wrap: nowrap; }
+  .pm-editor-shell .pm-ng-actions { flex: 1 1 auto; width: auto; justify-content: flex-end; overflow-x: auto; scrollbar-width: thin; }
+  .pm-editor-shell .pm-project-actions { overflow-x: auto; scrollbar-width: thin; }
+  .pm-editor-shell .pm-ng-board { height: auto; min-height: 0; flex: 1 1 0; }
+  .pm-editor-shell .pm-ng-library-scroll,
+  .pm-editor-shell .pm-ng-inspector-scroll { overflow-y: auto; }
+  .pm-editor-shell .pm-ng-inspector-scroll { display: flex; flex-direction: column; }
+}
+
+/* Compact screens: both editors become document-scroll layouts.
+   Preserves Studio's accessible mobile drawer and Graph's canvas gestures. */
+@media (max-width: 959px), (max-height: 679px) {
+  html:has(.pm-editor-shell),
+  body:has(.pm-editor-shell) {
+    height: auto;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  body:has(.pm-editor-shell) #main-content {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+  .pm-editor-shell.pm-workspace,
+  .pm-editor-shell.pm-ng-root {
+    width: calc(100% - 12px);
+    height: auto;
+    min-height: 0;
+    margin: 6px auto;
+    display: flex;
+    flex-direction: column;
+    gap: var(--editor-gutter);
+    overflow: visible;
+  }
+}
+@media (max-width: 959px) {
+  .pm-editor-shell .pm-editor-pane-layout.pm-ng-layout {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    height: auto;
+    overflow: visible;
+    gap: var(--editor-gutter);
+  }
+  .pm-editor-shell .pm-ng-center,
+  .pm-editor-shell .pm-ng-inspector,
+  .pm-editor-shell .pm-ng-library {
+    flex: none;
+    min-height: 0;
+    max-height: none;
+  }
+  .pm-editor-shell .pm-ng-board {
+    flex: none;
+    min-height: 380px;
+    height: min(60dvh, 540px);
+  }
+  .pm-editor-shell .pm-ng-inspector-scroll {
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+  }
+  .pm-editor-shell .pm-ng-library-scroll { overflow: visible; }
+  .pm-editor-shell .pm-ng-projectbar { flex-wrap: wrap; }
+  .pm-editor-shell .pm-ng-actions { flex: 1 1 100%; width: 100%; overflow-x: auto; justify-content: flex-start; }
+}
+.pm-editor-shell.pm-ng-root.pm-ng-fullscreen,
+.pm-editor-shell.pm-workspace:fullscreen {
+  width: 100vw;
+  height: 100dvh;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+  gap: 0;
+}
+.pm-editor-shell.pm-ng-root.pm-ng-fullscreen .pm-editor-pane-layout {
+  flex: 1 1 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.pm-editor-shell.pm-ng-root.pm-ng-fullscreen .pm-ng-board { flex: 1 1 0; height: auto; min-height: 0; }

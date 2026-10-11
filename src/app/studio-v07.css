@@ -264,3 +264,545 @@
 @media(min-width:761px) and (max-height:850px) {
   .pm-calculator-window { --pm-calculator-top:clamp(12px,5vh,48px); }
 }
+
+
+/* Calculator Pro v0.9.2 — actionable history, scientific keypad and window docking. */
+.pm-calculator-topline {flex-wrap:wrap;}
+.pm-calc-header-controls {display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.pm-calc-unit,.pm-calc-history-trigger {
+  display:inline-flex;gap:5px;align-items:center;justify-content:center;
+  min-height:30px;padding:5px 8px;border-radius:8px;
+  border:1px solid #77b9e363;background:#19364f;color:#d5edff;
+  font-size:11px;font-weight:700;
+}
+.pm-calc-unit[aria-pressed=true] {background:#33627a;color:#fff;}
+.pm-calc-key.pm-calc-equals {background:linear-gradient(135deg,#74b9ec,#68d4c4);color:#081726;border-color:#a1ecdf;}
+.pm-calc-key.pm-calc-equals:disabled {opacity:.36;}
+.pm-calc-result-label {display:flex;justify-content:space-between;}
+.pm-calc-result-label small {color:#8bbfe4;font-size:10px;}
+.pm-calc-actions {grid-template-columns:repeat(2,minmax(0,1fr));}
+.pm-calc-actions .pm-calc-plot {background:#205c65;border-color:#65b9ac7c;color:#e5fff7;}
+.pm-calc-action-message {font-size:11px;color:#9dd9c5;margin:0;}
+.pm-calc-history {min-width:0;border:1px solid #88b9e14a;border-radius:12px;padding:10px;background:#0e2235;}
+.pm-calc-history-heading {display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;font-size:11px;}
+.pm-calc-history-heading button {display:flex;align-items:center;gap:5px;font-size:10px;background:none;border:0;color:#d7a6a6;}
+.pm-calc-history-items {display:grid;gap:5px;max-height:165px;overflow:auto;overscroll-behavior:contain;}
+.pm-calc-history-items button {
+ display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:7px;
+ min-height:32px;background:#182e45;border:1px solid #749aca33;border-radius:8px;
+ text-align:left;color:#d5ecff;padding:6px 8px;font-size:10px;
+}
+.pm-calc-history-items code {overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.pm-calc-history-items strong {font-size:11px;color:#a6e5d7;}
+.pm-calc-history-items small {font-size:9px;color:#85aacd;}
+.pm-calculator-window.is-docked-left:not(.is-maximized) {
+ left:10px!important;top:10px!important;max-height:calc(100dvh - 20px);
+}
+.pm-calculator-window.is-docked-right:not(.is-maximized) {
+ left:auto!important;right:10px!important;top:10px!important;max-height:calc(100dvh - 20px);
+}
+.pm-calc-window-control[aria-pressed=true] {background:#325c78;border-color:#6db4dc7b;color:#fff;}
+.pm-calculator-window {min-width:340px;min-height:0;}
+.pm-calculator-resize {
+ position:absolute;right:0;bottom:0;width:23px;height:23px;
+ cursor:nwse-resize;touch-action:none;
+ background:linear-gradient(135deg,transparent 55%,#82bde085 55%,#82bde085 60%,transparent 60%,transparent 73%,#82bde085 73%,#82bde085 78%,transparent 78%);
+ z-index:3;border-bottom-right-radius:14px;
+}
+.pm-calculator-resize:focus-visible {outline:2px solid #9bd8ff;outline-offset:-2px;}
+.pm-calculator-window.is-maximized .pm-calculator-resize,
+.pm-calculator-window.is-docked-left .pm-calculator-resize,
+.pm-calculator-window.is-docked-right .pm-calculator-resize {display:none;}
+@media(max-width:760px) {
+ .pm-calculator-resize,.pm-calc-dock {display:none;}
+ .pm-calculator-window {min-width:0;}
+ .pm-calc-window-content .pm-calc-key {min-height:43px;}
+ .pm-calc-header-controls {gap:4px;}
+ .pm-calc-header-controls button {min-height:34px;}
+ .pm-calc-window-titlebar {padding:8px 10px;}
+}
+
+@media(max-width:760px) {
+  .pm-calculator-window.is-docked-left:not(.is-maximized),
+  .pm-calculator-window.is-docked-right:not(.is-maximized) {
+    left:50%!important;right:auto!important;top:auto!important;
+    bottom:max(7px,env(safe-area-inset-bottom))!important;
+    transform:translateX(-50%);max-height:calc(100dvh - 14px);
+  }
+}
+
+/* Short desktop screens: keep Plot and copy controls inside the initial window view. */
+@media(min-width:761px) and (max-height:850px) {
+  .pm-calculator-window { --pm-calculator-top:10px; }
+  .pm-calc-window-titlebar {min-height:48px;padding:6px 10px;}
+  .pm-calc-window-content {padding:8px 12px 5px;}
+  .pm-calc-window-content .pm-calculator {gap:7px;}
+  .pm-calc-window-content .pm-calc-key {min-height:36px;}
+  .pm-calc-keypad {gap:4px;}
+  .pm-calc-window-content .pm-formula-expression {min-height:36px;padding:6px 8px;}
+  .pm-calc-eval-inputs input {min-height:30px;padding:4px 7px;}
+  .pm-calc-eval-inputs label {gap:3px;}
+  .pm-calculator-display {min-height:66px;padding:9px;}
+  .pm-calc-actions {gap:6px;}
+  .pm-calc-actions button {min-height:31px;padding:4px 7px;}
+  .pm-calc-window-footer {padding:5px 12px;}
+  .pm-calc-reference summary {min-height:24px;padding:3px;}
+  .pm-calc-header-controls button {min-height:27px;padding:3px 5px;}
+}
+
+/* Paramyra v1.0 Animation Studio: keyframes + curve graph + frame export */
+.pm-workspace {position:relative;}
+.pm-export-launch {background:#193b48;border-color:#69c9c850;color:#d8fbef;}
+.pm-export-launch[aria-expanded=true] {background:#1b5b62;color:#fff;}
+.pm-export-panel {
+  position:absolute;z-index:90;top:75px;right:10px;max-width:calc(100vw - 20px);
+  display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;padding:15px;
+  border:1px solid #a2cafa5e;border-radius:14px;background:#111f31;
+  box-shadow:0 24px 70px #000a;
+}
+.pm-export-panel label {display:grid;gap:6px;font-size:10px;color:#abc7e7;}
+.pm-export-panel select {border:1px solid #aac7ec4f;border-radius:8px;background:#162942;
+  color:#ecf5ff;min-height:35px;padding:6px 8px;}
+.pm-export-panel button {display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  min-height:35px;border-radius:8px;padding:7px 12px;border:1px solid #76b8f270;background:#234566;
+  color:#edf8ff;font-size:11px;font-weight:700;}
+.pm-export-panel .pm-export-close {padding:7px 10px;background:#2b3345;}
+.pm-animation-surface {max-height:min(350px,42dvh);overflow-y:auto;overscroll-behavior:contain;}
+.pm-animation-editor {display:grid;gap:10px;padding:12px 15px;background:#0b1522;}
+.pm-animation-heading {display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:9px;}
+.pm-animation-heading span {display:flex;align-items:center;gap:7px;font-size:10px;letter-spacing:.1em;font-weight:800;color:#9bcaf4;}
+.pm-animation-heading small,.pm-animation-controls small,.pm-animation-graph-label small {font-size:10px;color:#829ab9;}
+.pm-animation-control-row {display:grid;grid-template-columns:1fr 90px minmax(110px,1fr);gap:9px;}
+.pm-animation-control-row label {display:grid;gap:5px;color:#a7bbd5;font-size:10px;min-width:0;}
+.pm-animation-control-row select,.pm-animation-control-row input {
+  width:100%;min-width:0;min-height:34px;background:#16283d;border:1px solid #91b9e84c;
+  border-radius:8px;color:#e3f2ff;padding:6px 8px;font-size:12px;
+}
+.pm-animation-controls {display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+.pm-animation-controls button {display:inline-flex;align-items:center;gap:5px;border-radius:8px;
+  border:1px solid #8abaf060;background:#1c3d58;color:#dfedff;min-height:32px;
+  padding:6px 10px;font-size:11px;font-weight:650;}
+.pm-animation-controls button:disabled {opacity:.42;cursor:not-allowed;}
+.pm-animation-controls small {margin-left:auto;font-variant-numeric:tabular-nums;}
+.pm-animation-track {height:31px;border:1px solid #84aada55;background:linear-gradient(90deg,#1d293e,#172c38);
+  position:relative;margin:7px 7px 0;border-radius:8px;}
+.pm-animation-track-fill {height:100%;border-radius:8px;background:#4aa6a92c;pointer-events:none;}
+.pm-animation-playhead {position:absolute;top:-3px;bottom:-3px;width:2px;transform:translateX(-50%);
+  background:#a4f4dd;pointer-events:none;z-index:1;}
+.pm-keyframe-marker {position:absolute;top:50%;width:17px;height:17px;transform:translate(-50%,-50%) rotate(45deg);
+  border-radius:3px;border:2px solid #a5e6ed;background:#286e85;cursor:pointer;z-index:2;}
+.pm-keyframe-marker.selected {background:#b6ffda;border-color:#e1ffef;}
+.pm-keyframe-marker:focus-visible {outline:2px solid white;outline-offset:3px;}
+.pm-animation-ruler {display:flex;justify-content:space-between;margin:0 7px;color:#6c8dab;font:10px ui-monospace,monospace;}
+.pm-animation-graph-label {display:flex;justify-content:space-between;gap:8px;color:#99c4e9;font-size:10px;
+  font-weight:750;letter-spacing:.07em;margin-top:2px;}
+.pm-animation-graph {width:100%;height:92px;border:1px solid #709bc63b;border-radius:9px;
+  background:linear-gradient(120deg,#0c1a2c,#11283c);overflow:visible;}
+.pm-animation-help {margin:0;color:#8ca5c0;font-size:10px;line-height:1.5;}
+.pm-animation-editor select:focus-visible,.pm-animation-editor input:focus-visible,
+.pm-export-panel button:focus-visible {outline:2px solid #91e9f8;outline-offset:2px;}
+@media(max-width:760px) {
+  .pm-export-panel {position:fixed;left:8px;right:8px;top:80px;}
+  .pm-animation-surface {max-height:none;}
+  .pm-animation-control-row {grid-template-columns:1fr 75px 1fr;gap:6px;}
+  .pm-animation-editor {padding:12px;}
+  .pm-animation-graph {height:110px;}
+  .pm-tabs {flex-wrap:wrap;gap:3px;}
+}
+
+/* v1.0 M2 — multi-property tracks and precise keyframe manipulation */
+.pm-multitrack {display:grid;gap:4px;max-height:228px;overflow-y:auto;overscroll-behavior:contain;padding:4px 0;scrollbar-width:thin;}
+.pm-multitrack-row {display:grid;grid-template-columns:minmax(90px,133px) minmax(0,1fr);align-items:center;gap:4px;min-width:0;padding:2px 4px;border-radius:8px;}
+.pm-multitrack-row.is-active {background:#38607a33;}
+.pm-multitrack-label {border:0;background:transparent;text-align:left;font-size:10px;color:#a7c4de;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:8px 6px;border-radius:6px;cursor:pointer;}
+.pm-multitrack-label[aria-pressed=true] {color:#abf3e2;font-weight:800;}
+.pm-multitrack-label:focus-visible {outline:2px solid #91e9f8;}
+.pm-multitrack .pm-animation-track {margin:0 9px;height:29px;min-width:0;}
+.pm-keyframe-marker {touch-action:none;user-select:none;}
+.pm-keyframe-time-label {display:flex;align-items:center;gap:7px;font-size:10px;color:#a7bbd5;}
+.pm-keyframe-time-label input {width:70px;min-height:32px;padding:5px 7px;border:1px solid #91b9e84c;border-radius:7px;background:#16283d;color:#e3f2ff;font-size:11px;}
+@media(max-width:760px) {
+  .pm-multitrack-row {grid-template-columns:minmax(84px,106px) minmax(0,1fr);}
+  .pm-multitrack-label {font-size:9px;padding:10px 4px;}
+  .pm-multitrack .pm-animation-track {margin:0 10px;}
+  .pm-keyframe-marker {width:19px;height:19px;}
+}
+
+/* Animation Workspace v1.0 — responsive editor split, keyboard-resizable dock and focus mode. */
+.pm-grid.pm-animation-focus {grid-template-columns:minmax(0,1fr)!important;}
+.pm-grid.pm-animation-focus > .pm-sidebar,
+.pm-grid.pm-animation-focus > .pm-inspector,
+.pm-grid.pm-animation-focus > .pm-library-backdrop {display:none!important;}
+.pm-center.pm-animation-workspace {
+  --pm-editor-height:390px;
+  grid-template-rows:minmax(210px,1fr) minmax(290px,var(--pm-editor-height));
+  min-height:0;
+}
+.pm-center.pm-animation-workspace .pm-details {
+  position:relative;display:flex;flex-direction:column;
+  min-height:0;max-height:none;overflow:hidden;
+  border-color:#5597a96b;
+  box-shadow:0 -10px 36px #03101c1f,inset 0 1px #c0ffff1c;
+}
+.pm-center.pm-animation-workspace .pm-details-header {min-height:43px;padding:6px 13px 5px;border-bottom:1px solid #70b3c631;}
+.pm-animation-header-actions {display:flex;align-items:center;gap:7px;}
+.pm-animation-header-actions button {display:inline-flex;gap:5px;align-items:center;justify-content:center;
+  min-height:30px;padding:5px 9px;border:1px solid #8bb4d546;border-radius:8px;
+  color:#c4ddef;background:#193149;font-size:10px;font-weight:690;cursor:pointer;}
+.pm-animation-header-actions button[aria-pressed=true] {color:#d0fff4;background:#1c595d;border-color:#71d7c672;}
+.pm-animation-header-actions button.pm-icon-btn {min-width:30px;padding:5px;}
+.pm-animation-open[aria-pressed=true] {color:#baffea;background:#245451;border-color:#71d7c672;}
+.pm-animation-resizer {height:10px;min-height:10px;display:grid;place-items:center;cursor:row-resize;
+  touch-action:none;user-select:none;background:#14273c;border-bottom:1px solid #527c9f3b;}
+.pm-animation-resizer span {display:block;width:72px;height:3px;border-radius:5px;background:#89bbd1a1;}
+.pm-animation-resizer:hover,.pm-animation-resizer:focus-visible {background:#234967;outline:2px solid #8ac9e3;outline-offset:-2px;}
+.pm-center.pm-animation-workspace .pm-animation-surface {
+  min-height:0;max-height:none;flex:1 1 auto;overflow:auto;
+  scrollbar-width:thin;scrollbar-color:#456786 transparent;
+}
+.pm-center.pm-animation-workspace .pm-tabs {padding-top:4px;padding-bottom:4px;}
+.pm-center.pm-animation-workspace .pm-animation-editor {min-height:100%;gap:13px;}
+.pm-center.pm-animation-workspace .pm-animation-graph {height:156px;}
+.pm-center.pm-animation-workspace .pm-multitrack {max-height:none;overflow:visible;}
+.pm-center.pm-animation-workspace .pm-animation-control-row {grid-template-columns:minmax(170px,1.5fr) minmax(85px,.45fr) minmax(120px,.8fr);}
+.pm-center.pm-animation-workspace .pm-animation-track {background:linear-gradient(90deg,#1b2a3f,#112b3a);border-color:#81a9ca45;}
+.pm-center.pm-animation-workspace .pm-multitrack-row.is-active {background:#39587f38;}
+.pm-center.pm-animation-workspace .pm-animation-heading span {font-size:11px;letter-spacing:.08em;}
+.pm-center.pm-animation-workspace .pm-animation-help {font-size:11px;}
+.pm-center.pm-animation-workspace button:focus-visible {outline:2px solid #a8eddf;outline-offset:2px;}
+@media(min-width:1100px) {
+  .pm-center.pm-animation-workspace .pm-animation-layout {display:grid;grid-template-columns:minmax(0,1.2fr) minmax(270px,.85fr);gap:17px;align-items:start;}
+  .pm-center.pm-animation-workspace .pm-animation-graph {height:206px;}
+  .pm-center.pm-animation-workspace .pm-animation-editor {padding:14px 18px;}
+  .pm-center.pm-animation-workspace .pm-animation-graph-label {margin:0 0 8px;}
+}
+@media(min-width:960px) and (min-height:680px) {
+  .pm-center.pm-animation-workspace {grid-template-rows:minmax(190px,1fr) minmax(290px,var(--pm-editor-height));}
+  .pm-center.pm-animation-workspace .pm-details {max-height:none;}
+}
+@media(max-width:959px) {
+  .pm-center.pm-animation-workspace {grid-template-rows:auto auto;}
+  .pm-center.pm-animation-workspace .pm-details {height:auto;max-height:none;}
+  .pm-center.pm-animation-workspace .pm-animation-surface {overflow:visible;max-height:none;}
+  .pm-animation-resizer {display:none;}
+}
+@media(max-width:760px) {
+  /* Keep primary tools clickable. Previously an overflowing, unwrapped toolbar caused mobile E2E timeouts. */
+  .pm-projectbar {max-width:100%;min-width:0;}
+  .pm-project-actions {width:100%;max-width:100%;min-width:0;flex-wrap:wrap;justify-content:flex-start;gap:7px;}
+  .pm-project-actions > button,.pm-project-actions > label {flex-shrink:0;}
+  .pm-project-actions .pm-toolbar-rule {display:none;}
+  .pm-workspace {max-width:100vw;}
+  .pm-animation-header-actions {gap:4px;}
+  .pm-animation-header-actions button {padding:5px 7px;}
+  .pm-center.pm-animation-workspace .pm-animation-control-row {grid-template-columns:minmax(0,1fr) minmax(74px,.5fr);}
+  .pm-center.pm-animation-workspace .pm-animation-control-row label:last-child {grid-column:1/-1;}
+  .pm-center.pm-animation-workspace .pm-animation-graph {height:150px;}
+  .pm-center.pm-animation-workspace .pm-animation-editor {padding:12px;}
+}
+
+.pm-animation-section-title {display:flex;align-items:center;justify-content:space-between;gap:9px;margin:0 0 8px;
+  color:#a3c9eb;font-size:10px;letter-spacing:.08em;font-weight:760;}
+.pm-animation-section-title small {font-size:10px;font-weight:550;color:#8099b6;letter-spacing:0;}
+.pm-animation-track-column,.pm-animation-graph-column {min-width:0;}
+.pm-animation-track-column {padding:10px 11px 12px;border:1px solid #668bb745;border-radius:12px;background:#0d2033;}
+.pm-animation-graph-column {padding:12px;border:1px solid #6a96b84a;border-radius:12px;background:#0d1d2c;}
+.pm-animation-graph-column .pm-animation-graph {display:block;width:100%;}
+.pm-animation-track {cursor:crosshair;}
+.pm-keyframe-marker {cursor:ew-resize;}
+@media(max-width:1099px) {
+  .pm-animation-layout {display:grid;gap:12px;}
+}
+@media(max-width:760px) {
+  .pm-animation-track-column,.pm-animation-graph-column {padding:9px;}
+}
+
+/* v1.0 M2.2 — Bezier easing and accessible multi-keyframe tools */
+.pm-animation-batch {display:flex;align-items:center;flex-wrap:wrap;gap:7px;
+  padding:9px 10px;border:1px solid #4d82976b;border-radius:10px;background:#102c3b;}
+.pm-animation-batch span {color:#b9f2e4;font-size:10px;font-weight:760;margin-right:6px;}
+.pm-animation-batch button,.pm-bezier-reset {min-height:32px;padding:6px 10px;border:1px solid #8abaf060;
+  border-radius:8px;background:#1c3d58;color:#dfedff;font-size:11px;cursor:pointer;}
+.pm-animation-batch button:disabled {opacity:.4;cursor:not-allowed;}
+.pm-animation-batch label {display:flex;align-items:center;gap:5px;color:#a9c7db;font-size:10px;}
+.pm-animation-batch input,.pm-bezier-fields input {min-width:0;width:70px;height:32px;
+  background:#152b41;border:1px solid #91b9e84c;border-radius:7px;padding:5px 7px;
+  color:#e1f4ff;font:11px ui-monospace,monospace;}
+.pm-animation-editor .pm-keyframe-marker.selected {background:#c4f2ac;border-color:#f4ffe9;
+  box-shadow:0 0 0 4px #80d8b333,0 0 12px #74ecab55;}
+.pm-bezier-editor {display:grid;gap:10px;margin-bottom:13px;padding:10px;
+  background:#10283a;border:1px solid #5d9aaa6c;border-radius:11px;}
+.pm-bezier-plane {height:150px;width:100%;border-radius:8px;background:
+  linear-gradient(0deg,transparent 49.5%,#648ab220 50%,transparent 50.5%),
+  linear-gradient(90deg,transparent 49.5%,#648ab220 50%,transparent 50.5%),#0b1b2b;
+  overflow:visible;}
+.pm-bezier-axes {stroke:#99aecb70;fill:none;stroke-width:1.5;}
+.pm-bezier-diagonal {stroke:#759db544;stroke-dasharray:4 4;fill:none;}
+.pm-bezier-guide {stroke:#8caee099;stroke-width:1.4;fill:none;stroke-dasharray:4 3;}
+.pm-bezier-line {stroke:#6ee9d2;stroke-width:3;fill:none;}
+.pm-bezier-endpoint {fill:#e0f8f2;}
+.pm-bezier-handle {fill:#b4ddff;stroke:#294e73;stroke-width:2.5;cursor:grab;touch-action:none;}
+.pm-bezier-handle-2 {fill:#b1f6d2;}
+.pm-bezier-handle:active {cursor:grabbing;}
+.pm-bezier-handle:focus-visible {stroke:#fff;stroke-width:4;outline:none;}
+.pm-bezier-fields {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;}
+.pm-bezier-fields label {display:grid;gap:5px;color:#a9c7e2;font-size:10px;font-weight:700;}
+.pm-bezier-fields input {width:100%;min-height:34px;}
+.pm-bezier-reset {justify-self:start;}
+.pm-bezier-editor button:focus-visible,.pm-animation-batch button:focus-visible,
+.pm-animation-batch input:focus-visible,.pm-bezier-fields input:focus-visible {outline:2px solid #a8eddf;outline-offset:2px;}
+@media(max-width:760px) {
+ .pm-animation-batch {padding:8px;gap:6px;}
+ .pm-bezier-plane {height:170px;}
+ .pm-bezier-editor {padding:9px;}
+}
+
+/* v1.0 M2.3 — Professional Timeline: viewport, snapping, multitrack overview and box selection */
+.pm-timeline-toolbar {display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding:9px;
+  background:#101f30;border:1px solid #6289af55;border-radius:11px;}
+.pm-timeline-mode,.pm-timeline-zoom {display:flex;align-items:center;gap:3px;padding:3px;border-radius:9px;
+  background:#091a2b;border:1px solid #709abb3b;}
+.pm-timeline-mode button,.pm-timeline-zoom button {min-height:30px;padding:5px 9px;border-radius:7px;border:0;
+  color:#a7bdd8;background:transparent;font-size:11px;font-weight:650;white-space:nowrap;}
+.pm-timeline-mode button[aria-pressed=true] {background:#1c5b67;color:#d9fff7;}
+.pm-timeline-zoom button:not(:disabled):hover,.pm-timeline-mode button:hover {background:#294b6a;}
+.pm-timeline-zoom button:disabled {opacity:.3;cursor:not-allowed;}
+.pm-timeline-zoom output {min-width:36px;text-align:center;color:#b6f8e6;font:700 11px ui-monospace,monospace;}
+.pm-timeline-snap {display:flex;align-items:center;gap:6px;font-size:11px;color:#b4c9df;}
+.pm-timeline-snap select {min-height:34px;border:1px solid #709db463;background:#152b42;border-radius:7px;
+  color:#dbedff;padding:5px 8px;font-size:11px;}
+.pm-timeline-visible {color:#8db1c7;font:10px ui-monospace,monospace;margin-left:auto;}
+.pm-multitrack {position:relative;isolation:isolate;}
+.pm-multitrack-row {position:relative;}
+.pm-multitrack-row .pm-animation-track {touch-action:pan-y;}
+.pm-timeline-selection-box {position:absolute;z-index:5;pointer-events:none;border:1px solid #a0f1df;
+  background:#65bdbb3e;border-radius:4px;box-shadow:inset 0 0 0 1px #baffda29;}
+.pm-overview {display:grid;gap:9px;}
+.pm-overview p {font-size:10px;color:#98adc5;line-height:1.5;margin:0 0 5px;}
+.pm-overview-layer {padding:8px;border:1px solid #709abb3c;border-radius:10px;background:#101e30;display:grid;gap:5px;}
+.pm-overview-layer.is-current {border-color:#63cfba88;background:#102937;}
+.pm-overview-layer-title {display:flex;align-items:center;gap:8px;width:100%;text-align:left;
+  background:transparent;border:0;border-radius:7px;padding:7px 6px;color:#c5d9f3;font-size:11px;font-weight:730;}
+.pm-overview-layer-title:focus-visible {outline:2px solid #91e9f8;}
+.pm-overview-layer-title span:nth-child(2) {flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pm-overview-layer-title small {color:#90a8c3;font-size:10px;white-space:nowrap;}
+.pm-overview-layer-color {width:9px;height:9px;border-radius:50%;flex:none;}
+.pm-overview-empty {color:#859bb7;font-size:10px;padding:7px 10px;}
+.pm-overview-row {display:grid;grid-template-columns:minmax(70px,110px) minmax(0,1fr);align-items:center;gap:9px;}
+.pm-overview-row >span {padding:0 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#aec4e0;font-size:10px;}
+.pm-overview-track {height:28px;min-width:0;margin:0 8px;position:relative;border-radius:7px;
+  border:1px solid #789dbe3a;background:#0c1b2d;}
+.pm-overview-key {position:absolute;top:50%;width:14px;height:14px;transform:translate(-50%,-50%) rotate(45deg);
+  border-radius:3px;border:2px solid #9debd9;background:#286e85;cursor:pointer;}
+.pm-overview-key:focus-visible {outline:2px solid white;outline-offset:3px;}
+@media(max-width:760px) {
+  .pm-timeline-toolbar {gap:6px;padding:7px;}
+  .pm-timeline-mode button,.pm-timeline-zoom button {min-height:34px;padding:6px 8px;}
+  .pm-timeline-visible {width:100%;margin:0;}
+  .pm-overview-row {grid-template-columns:80px minmax(0,1fr);gap:5px;}
+}
+
+.pm-box-mode-button {min-height:34px;padding:6px 10px;border:1px solid #81adcc7a;border-radius:8px;
+  background:#142a42;color:#c1d9ef;font-size:11px;font-weight:650;}
+.pm-box-mode-button[aria-pressed=true] {background:#205a58;border-color:#88e8d5;color:#e0fff8;}
+.pm-box-mode-button:focus-visible {outline:2px solid #adf7e8;outline-offset:2px;}
+.pm-multitrack.pm-box-mode .pm-keyframe-marker {pointer-events:none;}
+.pm-multitrack.pm-box-mode .pm-animation-track {touch-action:none;cursor:crosshair;}
+
+/* v1.0 M2.4 — Canvas / Timeline split and reliable scroll ownership.
+   This block intentionally overrides the earlier M1/M2 fixed panel limits. */
+@media (min-width:960px) and (min-height:680px) {
+  .pm-center.pm-animation-workspace {
+    grid-template-rows:minmax(0,1fr) minmax(0,var(--pm-editor-height));
+    min-height:0;overflow:hidden;
+  }
+  .pm-center.pm-animation-workspace .pm-viewport-panel {
+    min-height:0;overflow:hidden;
+  }
+  .pm-center.pm-animation-workspace .pm-canvas-area {
+    min-height:0;flex:1 1 0;overflow:hidden;
+  }
+  .pm-center.pm-animation-workspace .pm-canvas-surface,
+  .pm-center.pm-animation-workspace .pm-canvas-surface .scene-frame {
+    min-height:0;height:100%;
+  }
+  .pm-center.pm-animation-workspace .pm-details {
+    min-height:0;height:100%;max-height:none;
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  .pm-center.pm-animation-workspace .pm-animation-surface {
+    min-height:0;max-height:none;flex:1 1 0;
+    overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
+    scrollbar-gutter:stable;
+  }
+}
+.pm-center.pm-animation-workspace .pm-animation-editor {
+  display:grid;align-content:start;gap:14px;
+  min-width:0;min-height:100%;padding:14px 16px 19px;
+}
+.pm-animation-surface {container-type:inline-size;}
+.pm-center.pm-animation-workspace .pm-animation-layout {
+  display:grid;grid-template-columns:minmax(0,1fr);gap:14px;
+  align-items:start;
+}
+@container (min-width:880px) {
+  .pm-center.pm-animation-workspace .pm-animation-layout {
+    grid-template-columns:minmax(0,1.15fr) minmax(290px,.85fr);
+  }
+}
+.pm-center.pm-animation-workspace .pm-animation-heading span {
+  font-size:12px;letter-spacing:.06em;
+}
+.pm-center.pm-animation-workspace .pm-animation-heading small {
+  font-size:11px;color:#bed0e6;
+}
+.pm-center.pm-animation-workspace .pm-animation-control-row label {
+  font-size:12px;gap:7px;color:#d0e2f5;
+}
+.pm-center.pm-animation-workspace .pm-animation-control-row select,
+.pm-center.pm-animation-workspace .pm-animation-control-row input {
+  min-height:39px;font-size:13px;
+}
+.pm-center.pm-animation-workspace .pm-animation-controls button,
+.pm-center.pm-animation-workspace .pm-animation-batch button {
+  min-height:36px;font-size:12px;
+}
+.pm-center.pm-animation-workspace .pm-timeline-toolbar {
+  position:sticky;top:0;z-index:20;isolation:isolate;
+  min-height:48px;padding:8px 10px;gap:10px;
+  background:#15273bf7;border-color:#86b3da80;
+  box-shadow:0 5px 16px #041020ae;
+  backdrop-filter:blur(14px);
+}
+.pm-center.pm-animation-workspace .pm-timeline-toolbar button,
+.pm-center.pm-animation-workspace .pm-timeline-snap select {
+  min-height:37px;font-size:12px;
+}
+.pm-center.pm-animation-workspace .pm-multitrack {
+  /* All seven ordinary property tracks fit together; nested scrolling only
+     activates on unusually long/custom lists, not during box selection. */
+  max-height:clamp(340px,42dvh,460px);
+  overflow-y:auto;overflow-x:hidden;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;scrollbar-color:#668da8 #112338;
+  padding:3px 6px 6px 2px;
+}
+.pm-center.pm-animation-workspace .pm-overview {
+  /* All seven ordinary property tracks fit together; nested scrolling only
+     activates on unusually long/custom lists, not during box selection. */
+  max-height:clamp(340px,42dvh,460px);
+  overflow-y:auto;overflow-x:hidden;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;scrollbar-color:#668da8 #112338;
+}
+.pm-center.pm-animation-workspace .pm-multitrack-row {
+  min-height:42px;
+  grid-template-columns:minmax(100px,136px) minmax(0,1fr);
+}
+.pm-center.pm-animation-workspace .pm-multitrack-label {font-size:12px;min-height:38px;}
+.pm-center.pm-animation-workspace .pm-multitrack .pm-animation-track {
+  height:33px;min-height:33px;
+}
+.pm-center.pm-animation-workspace .pm-animation-section-title {
+  font-size:11px;color:#cee6ff;
+}
+.pm-center.pm-animation-workspace .pm-animation-graph {
+  min-height:160px;height:clamp(160px,22dvh,240px);
+}
+.pm-center.pm-animation-workspace .pm-animation-ruler {
+  padding:5px 2px;font-size:11px;color:#a2c0d8;
+}
+.pm-center.pm-animation-workspace .pm-animation-help {
+  font-size:12px;line-height:1.6;color:#a9c1d6;
+}
+.pm-center.pm-animation-workspace .pm-details-header,
+.pm-center.pm-animation-workspace .pm-timeline,
+.pm-center.pm-animation-workspace .pm-tabs {
+  flex:none;
+}
+.pm-center.pm-animation-workspace .pm-animation-resizer {
+  height:12px;min-height:12px;
+}
+.pm-center.pm-animation-workspace .pm-animation-resizer span {
+  width:96px;height:4px;background:#94cfe0bc;
+}
+.pm-center.pm-animation-workspace .pm-animation-header-actions button {
+  min-height:35px;font-size:11px;
+}
+.pm-value-comparison {
+  display:grid;gap:6px;padding:13px 14px;
+  border-bottom:1px solid var(--pm-stroke);
+  background:linear-gradient(135deg,#11293a,#0c1928);
+}
+.pm-value-comparison-heading {display:flex;justify-content:space-between;align-items:center;gap:9px;}
+.pm-value-comparison-heading div {display:grid;gap:3px;}
+.pm-value-comparison-heading strong {font-size:13px;color:#e3f8fa;}
+.pm-value-comparison-heading small {font-size:11px;color:#afcadd;}
+.pm-value-comparison-heading button {background:#1d5a63;border:1px solid #83d5cf75;color:#d6fff5;
+  border-radius:8px;padding:8px 9px;min-height:36px;font-size:11px;font-weight:700;white-space:nowrap;}
+.pm-value-comparison-labels,.pm-value-comparison-row {
+  display:grid;grid-template-columns:minmax(0,1.3fr) minmax(45px,.7fr) minmax(67px,.85fr);
+  align-items:center;gap:7px;min-width:0;
+}
+.pm-value-comparison-labels {font-size:9px;letter-spacing:.08em;color:#94aec6;font-weight:760;margin-top:7px;}
+.pm-value-comparison-labels>span:not(:first-child) {text-align:right;}
+.pm-value-comparison-row {
+  padding:6px 0;border-top:1px solid #9ec2df20;
+  font-size:11px;color:#c5daee;
+}
+.pm-value-comparison-row>span:first-child {display:flex;align-items:center;min-width:0;gap:4px;flex-wrap:wrap;}
+.pm-value-comparison-row em {font-style:normal;font-size:9px;color:#9af6dc;font-weight:770;}
+.pm-value-comparison-row output {font:12px ui-monospace,monospace;text-align:right;color:#a5b8cd;}
+.pm-value-comparison-row output[data-differs=true] {color:#9cf3d8;font-weight:800;}
+.pm-value-comparison-row[data-animated=true] {border-top-color:#70c2bc56;}
+.pm-value-comparison p {font-size:10px;line-height:1.5;color:#a7bbce;margin:7px 0 0;}
+.pm-value-comparison button:focus-visible {outline:2px solid #c1ffeb;outline-offset:3px;}
+@media(max-width:959px) {
+  .pm-center.pm-animation-workspace .pm-animation-surface {
+    max-height:none;overflow:visible;container-type:normal;
+  }
+  .pm-center.pm-animation-workspace .pm-animation-layout {grid-template-columns:minmax(0,1fr);}
+  .pm-center.pm-animation-workspace .pm-timeline-toolbar {position:relative;}
+}
+@media(max-width:760px) {
+  .pm-center.pm-animation-workspace .pm-animation-editor {padding:11px;gap:12px;}
+  .pm-center.pm-animation-workspace .pm-multitrack-row {grid-template-columns:minmax(83px,108px) minmax(0,1fr);}
+  .pm-center.pm-animation-workspace .pm-multitrack-label {font-size:11px;}
+  .pm-center.pm-animation-workspace .pm-animation-graph {height:170px;}
+  .pm-center.pm-animation-workspace .pm-multitrack,
+  .pm-center.pm-animation-workspace .pm-overview {max-height:280px;}
+}
+@media(prefers-reduced-motion:reduce) {
+  .pm-center.pm-animation-workspace .pm-timeline-toolbar {backdrop-filter:none;}
+}
+
+/* Timeline JSX order now matches visual reading and keyboard navigation order. */
+.pm-center.pm-animation-workspace .pm-animation-track-column,
+.pm-center.pm-animation-workspace .pm-animation-graph-column {min-height:0;}
+
+/* Sticky-toolbar occlusion protection for pointer gestures and keyboard focus.
+   The scroll owner must reserve enough space when a focused control scrolls in. */
+@media(min-width:960px) {
+  .pm-center.pm-animation-workspace .pm-animation-surface {scroll-padding-top:88px;}
+  .pm-center.pm-animation-workspace .pm-animation-layout,
+  .pm-center.pm-animation-workspace .pm-bezier-editor,
+  .pm-center.pm-animation-workspace .pm-bezier-plane,
+  .pm-center.pm-animation-workspace .pm-multitrack {
+    scroll-margin-top:70px;
+  }
+  /* Individual keyframe rows MUST NOT each reserve a sticky-header gap:
+     scrolling one row would otherwise evict adjacent rows from the viewport
+     and make cross-property marquee selection impossible on short desktops. */
+  .pm-center.pm-animation-workspace .pm-multitrack-row,
+  .pm-center.pm-animation-workspace .pm-animation-track {scroll-margin-top:0;}
+}
+.pm-bezier-handle {stroke-width:2.5;}
+
+
+/* M3.1: live graph is a rendering projection, never an unsaved Inspector mutation. */
+.pm-graph-live-badge {display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:8px;border:1px solid #6edec26b;background:#24645730;color:#9af4d7;font-size:10px;font-weight:750;white-space:nowrap}
+.pm-graph-live-badge.is-error {border-color:#df7880b0;color:#ffb6c0;background:#812e3930}
+.pm-live-inspector-status {border:1px solid #7abcc74f;background:#1b3c4980;border-radius:12px;padding:12px 14px;margin:12px 10px;color:#ceeae9}
+.pm-live-inspector-status strong {display:flex;gap:7px;align-items:center;font-size:12px}
+.pm-live-inspector-status p {font-size:11px;line-height:1.5;color:#a9c9d6;margin:8px 0}
+.pm-live-inspector-status a {font-size:11px;font-weight:700;color:#a9d7ff}

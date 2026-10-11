@@ -2,11 +2,12 @@
  * Bounded, expression-only mathematical parser. No code execution or dynamic imports.
  * Grammar: numeric literals, variables, parentheses and arithmetic operators.
  */
-export type MathEnv = Readonly<{ x: number; u: number; theta: number; t: number; a: number; b: number; c: number }>;
+export type MathEnv = Readonly<{ x: number; u: number; theta: number; t: number; a: number; b: number; c: number; ans?: number }>;
 type Ast =
   | { type: "number"; value: number }
   | { type: "variable"; name: keyof MathEnv }
   | { type: "unary"; sign: "-" | "+"; node: Ast }
+  | { type: "postfix"; op: "!" | "%"; node: Ast }
   | { type: "binary"; op: "+" | "-" | "*" | "/" | "^"; left: Ast; right: Ast }
   | { type: "call"; name: keyof typeof FUNCTIONS; node: Ast };
 type Token = { type: "number" | "id" | "symbol" | "end"; value: string; pos: number };
@@ -16,7 +17,7 @@ const FUNCTIONS = {
   abs: Math.abs, sqrt: Math.sqrt, exp: Math.exp,
   ln: Math.log, log: Math.log10, floor: Math.floor, ceil: Math.ceil,
 } as const;
-const VARIABLES = new Set(["x", "u", "theta", "t", "a", "b", "c"]);
+const VARIABLES = new Set(["x", "u", "theta", "t", "a", "b", "c", "ans"]);
 const PRECEDENCE: Readonly<Record<string, number>> = { "+": 1, "-": 1, "*": 2, "/": 2, "^": 3 };
 const MAX_SOURCE = 160;
 const MAX_TOKENS = 100;
@@ -46,7 +47,7 @@ function tokenize(source: string): Token[] {
       if (id) {
         out.push({ type: "id", value: id[0], pos: start });
         i += id[0].length;
-      } else if ("+-*/^(),".includes(source[i])) {
+      } else if ("+-*/^(),!%".includes(source[i])) {
         out.push({ type: "symbol", value: source[i], pos: start });
         i++;
       } else {
@@ -84,6 +85,11 @@ class Parser {
     let left = this.prefix(depth);
     while (this.current().type === "symbol") {
       const token = this.current();
+      if ((token.value === "!" || token.value === "%") && minPrecedence <= 4) {
+        this.take();
+        left = this.node({type:"postfix",op:token.value as "!" | "%",node:left});
+        continue;
+      }
       const precedence = PRECEDENCE[token.value];
       if (!precedence || precedence < minPrecedence) break;
       this.take();
@@ -141,14 +147,31 @@ export function compileExpression(source: string, variables: readonly string[]):
   return ast;
 }
 
-function evaluate(ast: Ast, env: MathEnv): number {
+export type MathEvaluationOptions = Readonly<{angleUnit?: "rad" | "deg"}>;
+function evaluate(ast: Ast, env: MathEnv, angleUnit: "rad" | "deg"): number {
   switch (ast.type) {
     case "number": return ast.value;
-    case "variable": return env[ast.name];
-    case "unary": return ast.sign === "-" ? -evaluate(ast.node, env) : evaluate(ast.node, env);
-    case "call": return FUNCTIONS[ast.name](evaluate(ast.node, env));
+    case "variable": return env[ast.name] ?? NaN;
+    case "unary": return ast.sign === "-" ? -evaluate(ast.node, env, angleUnit) : evaluate(ast.node, env, angleUnit);
+    case "postfix": {
+      const value = evaluate(ast.node, env, angleUnit);
+      if (ast.op === "%") return value / 100;
+      // 10! already exceeds the existing 1e6 numeric budget.
+      if (!Number.isInteger(value) || value < 0 || value > 9) return NaN;
+      let result = 1;
+      for (let n = 2; n <= value; n++) result *= n;
+      return result;
+    }
+    case "call": {
+      const raw = evaluate(ast.node, env, angleUnit);
+      const trig = ast.name === "sin" || ast.name === "cos" || ast.name === "tan";
+      const inverse = ast.name === "asin" || ast.name === "acos" || ast.name === "atan";
+      const input = angleUnit === "deg" && trig ? raw * Math.PI / 180 : raw;
+      const result = FUNCTIONS[ast.name](input);
+      return angleUnit === "deg" && inverse ? result * 180 / Math.PI : result;
+    }
     case "binary": {
-      const lhs = evaluate(ast.left, env), rhs = evaluate(ast.right, env);
+      const lhs = evaluate(ast.left, env, angleUnit), rhs = evaluate(ast.right, env, angleUnit);
       switch (ast.op) {
         case "+": return lhs + rhs;
         case "-": return lhs - rhs;
@@ -160,9 +183,9 @@ function evaluate(ast: Ast, env: MathEnv): number {
   }
 }
 
-export function evaluateExpression(source: string, variables: readonly string[], env: MathEnv): number {
+export function evaluateExpression(source: string, variables: readonly string[], env: MathEnv, options: MathEvaluationOptions = {}): number {
   try {
-    const output = evaluate(compileExpression(source, variables), env);
+    const output = evaluate(compileExpression(source, variables), env, options.angleUnit === "deg" ? "deg" : "rad");
     return Number.isFinite(output) && Math.abs(output) <= MAX_VALUE ? output : NaN;
   } catch { return NaN; } // domain errors and invalid intermediate values become gaps
 }
