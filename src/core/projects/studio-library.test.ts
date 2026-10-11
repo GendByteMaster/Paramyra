@@ -1,7 +1,7 @@
 import { describe,expect,it } from "vitest";
-import { documentFromScene } from "@/core/document/schema";
-import { initialGraph, updateGraphNode } from "@/core/graph/model";
-import { presetFor } from "@/core/scenes/presets";
+import { documentFromScene } from "../document/schema";
+import { initialGraph, updateGraphNode } from "../graph/model";
+import { presetFor } from "../scenes/presets";
 import {
   PROJECT_LIBRARY_KEY, STUDIO_SCENE_KEY, MAX_STUDIO_PROJECTS,
   activeProject, createProject, duplicateProject, parseStudioLibrary,
