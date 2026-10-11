@@ -96,4 +96,26 @@ describe("Studio project library",()=>{
     expect(replaceActiveScene(lib,{bad:true} as never,1)).toBeNull();
     expect(replaceActiveGraph(lib,{bad:true} as never,1)).toBeNull();
   });
+  it("reconciles direct legacy document edits made before Studio reload",()=>{
+    const {store}=seed();
+    const initial=readStudioLibrary(store);
+    expect(persistStudioLibrary(initial,store)).toBe(true);
+    const external={...activeProject(initial).scene,layers:[
+      {...activeProject(initial).scene.layers[0],keyframes:[
+        {property:"opacity" as const,time:2,value:.5,ease:"linear" as const},
+      ]},
+    ]};
+    store.setItem(STUDIO_SCENE_KEY,JSON.stringify(external));
+    const loaded=readStudioLibrary(store);
+    expect(activeProject(loaded).scene.layers[0].keyframes).toHaveLength(1);
+    expect(writeActiveGraph(initialGraph(),store,123)).not.toBeNull();
+    expect(JSON.parse(store.getItem(STUDIO_SCENE_KEY)!)).toEqual(external);
+  });
+  it("never materializes a legacy scene mirror just because a graph was edited",()=>{
+    const {store}=memory();
+    expect(store.getItem(STUDIO_SCENE_KEY)).toBeNull();
+    expect(writeActiveGraph(initialGraph(),store,1)).not.toBeNull();
+    expect(store.getItem(STUDIO_SCENE_KEY)).toBeNull();
+  });
+
 });
