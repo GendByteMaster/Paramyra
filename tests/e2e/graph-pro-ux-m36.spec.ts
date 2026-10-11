@@ -26,13 +26,18 @@ test("Right-click canvas opens graph node palette near pointer and closes on Esc
   await expect(page.getByText("5 NODES",{exact:true})).toBeVisible();
 });
 
-test("Library HTML drag/drop creates a node via React Flow coordinates and does not alter Studio",async({page})=>{
+test("Library drag/drop on desktop and tap fallback on touch preserve Studio state",async({page},testInfo)=>{
   await page.goto("/studio/graph");
   const before=await page.evaluate(()=>localStorage.getItem("paramyra.document.v3"));
   const source=page.getByRole("complementary",{name:"Node library"}).getByRole("button",{name:/Number.*Fixed numeric input/});
   await expect(source).toHaveAttribute("draggable","true");
-  const target=page.locator(".react-flow__pane");
-  await source.dragTo(target,{targetPosition:{x:130,y:130}});
+  if(testInfo.project.name==="mobile-chromium"){
+    // HTML Drag and Drop is not a mobile touch API. Keep the accessible tap-to-add fallback.
+    await source.click();
+  } else {
+    const target=page.locator(".react-flow__pane");
+    await source.dragTo(target,{targetPosition:{x:130,y:130}});
+  }
   await expect(page.getByText("6 NODES",{exact:true})).toBeVisible();
   const persisted=await page.evaluate(()=>JSON.parse(localStorage.getItem("paramyra.nodegraph.v3")!));
   expect(persisted.nodes).toHaveLength(6);
