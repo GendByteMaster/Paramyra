@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ChangeEvent, type CSSProperties } from "react";
 import Link from "next/link";
-import { ArrowLeft, Calculator, Image as ImageIcon, Check, ChevronDown, ChevronUp, CircleDot, Copy, Download, Eye, EyeOff, FileJson2, GitBranch, Grid3X3, Info, Layers3, Maximize2, Minimize2, Minus, Move, MousePointer2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Pause, Play, Plus, Redo2, RotateCcw, Search, SlidersHorizontal, Trash2, Undo2, Upload, Waves } from "lucide-react";
+import { ArrowLeft, Calculator, Image as ImageIcon, Check, ChevronDown, ChevronUp, CircleDot, Copy, Download, Eye, EyeOff, FileJson2, GitBranch, Grid3X3, Info, Layers3, Maximize2, Minimize2, Minus, Move, MousePointer2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Pause, Play, Plus, FolderOpen, Redo2, RotateCcw, Search, SlidersHorizontal, Trash2, Undo2, Upload, Waves } from "lucide-react";
 import { SceneCanvas } from "./scene-canvas";
 import { SceneGlyph } from "./scene-glyph";
 import { FormulaEditor } from "./formula-editor";
@@ -13,7 +13,10 @@ import { EditorModeSwitch, EditorPanelHeader } from "./editor-ui";
 import { compileGraph, resolveLiveScene, validateLiveGraphRange } from "@/core/graph/live";
 import { readSessionPlayhead, writeSessionPlayhead } from "@/core/animation/playhead-session";
 import { readStoredGraph } from "@/core/graph/storage";
-import { readStudioHandoff, saveStudioHandoffDraft, clearStudioHandoff, STUDIO_DOCUMENT_KEY } from "@/core/playground/session";
+import { initialGraph } from "@/core/graph/model";
+import { StudioProjectLibrary } from "./studio-project-library";
+import { readStudioLibrary, activeProject, persistStudioLibrary, createProject, duplicateProject, renameProject, removeProject, selectProject, writeActiveScene, type StudioLibrary } from "@/core/projects/studio-library";
+import { readStudioHandoff, saveStudioHandoffDraft, clearStudioHandoff } from "@/core/playground/session";
 import { GRAPH_KEY, PREVIOUS_GRAPH_KEY, LEGACY_GRAPH_KEY } from "@/core/graph/model";
 import { savePng, saveSvg, type ExportBackground, type ExportSize } from "@/core/rendering/export";
 import { defaultFormula, validateFormula } from "@/core/math/formula";
@@ -26,8 +29,6 @@ import { initializeHistory, commitDocument, undoDocument, redoDocument } from "@
 import type { SceneKind, SceneParams } from "@/core/scenes/schema";
 
 const DOCUMENT_KEY = "paramyra.document.v3";
-const PREVIOUS_DOCUMENT_KEY = "paramyra.document.v2";
-const LEGACY_KEY = "paramyra.scene.v1";
 const PRESET_KEY = "paramyra.presets.v3";
 const PREVIOUS_PRESET_KEY = "paramyra.presets.v2";
 type Key = keyof SceneParams;
@@ -43,15 +44,9 @@ function loadDoc(kind?: SceneKind): MathDocument {
   const transfer=readStudioHandoff();
   if(transfer)return transfer.document;
   if (kind) return documentFromScene(presetFor(kind));
-  for (const key of [DOCUMENT_KEY, PREVIOUS_DOCUMENT_KEY, LEGACY_KEY]) {
-    try {
-      const saved = localStorage.getItem(key);
-      const parsed = saved && parseDocument(JSON.parse(saved));
-      if (parsed) return parsed;
-    } catch { /* Storage unavailable, malformed JSON, or unsupported version. */ }
-  }
-  return documentFromScene(presetFor("lissajous"));
-}
+  return activeProject(readStudioLibrary(localStorage)).scene;
+  /* The original v2/v1 fallback remains in the library migration layer. */
+} 
 function loadPresets(): MathDocument[] {
   try {
     const json = localStorage.getItem(PRESET_KEY) ?? localStorage.getItem(PREVIOUS_PRESET_KEY);
@@ -90,6 +85,8 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
   const last=useRef({key:"",at:0});
   const dragGroup=useRef<string|null>(null);
   const [transferToken,setTransferToken]=useState(()=>readStudioHandoff()?.token??null);
+  const [projectLibrary,setProjectLibrary]=useState<StudioLibrary>(()=>readStudioLibrary(localStorage));
+  const [projectLibraryOpen,setProjectLibraryOpen]=useState(false);
   const [history,setHistory]=useState(()=>initializeHistory(loadDoc(initialKind)));
   const doc=history.present;
   const [nodeGraph,setNodeGraph]=useState(readStoredGraph);
@@ -184,26 +181,69 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
   },[transferToken]);
   useEffect(()=>{
     if(transferToken){
-      // Handoff work is entirely isolated until the user explicitly saves it.
       saveStudioHandoffDraft(transferToken,doc);
       return;
     }
-    try{localStorage.setItem(DOCUMENT_KEY,JSON.stringify(doc));}
-    catch{/* Explicit JSON export remains available. */}
+    const next=writeActiveScene(doc,localStorage,Date.now());
+    if(next)setProjectLibrary(next);
+    else setNotice("Project storage unavailable. Export JSON to protect your changes.");
   },[doc,transferToken]);
+  const openProject=(next:StudioLibrary)=>{
+    if(!persistStudioLibrary(next,localStorage)){
+      setNotice("Unable to change projects. Export JSON or free browser storage.");
+      return false;
+    }
+    setProjectLibrary(next);
+    const selectedProject=activeProject(next);
+    setHistory(initializeHistory(selectedProject.scene));
+    setSelected(selectedProject.scene.layers[0].id);
+    setNodeGraph(selectedProject.graph);
+    last.current.key="";
+    setProjectLibraryOpen(false);
+    setNotice("Opened "+selectedProject.name+".");
+    return true;
+  };
+  const newProject=()=>{
+    const id=crypto.randomUUID();
+    const scene={...documentFromScene(presetFor("lissajous")),id,title:"Untitled Project"};
+    const next=createProject(projectLibrary,id,scene,initialGraph(),Date.now());
+    if(!next)return setNotice("Project limit reached (20) or invalid project.");
+    openProject(next);
+  };
+  const duplicateSaved=(id:string)=>{
+    const next=duplicateProject(projectLibrary,id,crypto.randomUUID(),Date.now());
+    if(!next)return setNotice("Unable to duplicate this project.");
+    openProject(next);
+  };
+  const renameSaved=(id:string,name:string)=>{
+    const next=renameProject(projectLibrary,id,name,Date.now());
+    if(!next)return setNotice("Use a valid project name (1–120 characters).");
+    if(id===projectLibrary.activeId){
+      if(!persistStudioLibrary(next,localStorage))return setNotice("Rename failed: browser storage unavailable.");
+      setHistory(h=>({...h,present:{...h.present,title:name.trim()}}));
+    } else if(!persistStudioLibrary(next,localStorage))return setNotice("Rename failed: browser storage unavailable.");
+    setProjectLibrary(next);
+    setNotice("Project renamed.");
+  };
+  const deleteSaved=(id:string)=>{
+    const project=projectLibrary.projects.find(p=>p.id===id);
+    if(!project)return;
+    if(!window.confirm("Delete project “"+project.name+"”? This cannot be undone."))return;
+    const next=removeProject(projectLibrary,id);
+    if(!next)return setNotice("Keep at least one Studio project.");
+    openProject(next);
+  };
   const savePlaygroundDraftToStudio=()=>{
     if(!transferToken)return;
-    const existing=localStorage.getItem(STUDIO_DOCUMENT_KEY);
-    if(existing&&!window.confirm("Save this experiment as the active Studio project? This replaces the current saved Studio scene."))return;
-    try{
-      localStorage.setItem(STUDIO_DOCUMENT_KEY,JSON.stringify(doc));
-      clearStudioHandoff(transferToken);
-      setTransferToken(null);
-      window.history.replaceState(null,"","/studio");
-      setNotice("Experiment saved to Studio. Your graph was not modified.");
-    }catch{
-      setNotice("Unable to save to Studio. Your isolated draft is still available in this tab.");
-    }
+    const id=doc.id;
+    const next=createProject(projectLibrary,id,doc,initialGraph(),Date.now());
+    if(!next)return setNotice("Cannot create the Studio project. Check the 20-project limit.");
+    if(!persistStudioLibrary(next,localStorage))
+      return setNotice("Unable to save to the project library. Your isolated draft remains available.");
+    clearStudioHandoff(transferToken);
+    setProjectLibrary(next);setNodeGraph(initialGraph());setTransferToken(null);
+    window.history.replaceState(null,"","/studio");
+    setNotice("Experiment saved as a new Studio project. Previous projects were preserved.");
   };
 
   const commit=(fn:(d:MathDocument)=>MathDocument,key="")=>{
@@ -360,7 +400,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
 
   return <div className="pm-workspace pm-editor-shell" data-mode={mode} ref={root}>
     {transferToken&&<div className="pm-studio-transfer" role="status">
-      <div><strong>Playground experiment · Unsaved Studio draft</strong><span>Your previous Studio project is untouched until you save this experiment.</span></div>
+      <div><strong>Playground experiment · Unsaved Studio draft</strong><span>Save creates a new project in your library. Existing projects remain untouched.</span></div>
       <div className="pm-studio-transfer-actions">
         <button type="button" onClick={savePlaygroundDraftToStudio}>Save to Studio</button>
         <button type="button" onClick={()=>{if(transferToken)clearStudioHandoff(transferToken);window.location.assign("/studio");}}>Discard draft</button>
@@ -378,6 +418,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
       </div>
       <div className="pm-project-actions">
         {mode==="studio"?<EditorModeSwitch active="studio" liveGraph={nodeGraph.binding.enabled}/>:<Link className="pm-action pm-action-quiet" href="/studio/graph" aria-label="Open Node Graph Workspace"><GitBranch size={15}/> Node Graph{nodeGraph.binding.enabled?" · LIVE":""}</Link>}
+        <button type="button" className="pm-action pm-project-library-launch" disabled={!!transferToken} onClick={()=>setProjectLibraryOpen(true)} aria-label="Open project library" aria-haspopup="dialog" aria-expanded={projectLibraryOpen}><FolderOpen size={15}/> Projects</button>
         <button type="button" className="pm-icon-btn" aria-label="Undo" disabled={!history.past.length} onClick={undo}><Undo2 size={17}/></button>
         <button type="button" className="pm-icon-btn" aria-label="Redo" disabled={!history.future.length} onClick={redo}><Redo2 size={17}/></button>
         <span className="pm-toolbar-rule"/>
@@ -394,6 +435,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
         <button type="button" className="pm-action pm-action-primary" onClick={download}><Download size={15}/> Export JSON</button>
       </div>
     </header>
+    {projectLibraryOpen&&<StudioProjectLibrary library={projectLibrary} onClose={()=>setProjectLibraryOpen(false)} onSelect={id=>{const next=selectProject(projectLibrary,id);if(next)openProject(next);}} onNew={newProject} onDuplicate={duplicateSaved} onRename={renameSaved} onDelete={deleteSaved}/>}
     {exportOpen&&<div className="pm-export-panel" role="group" aria-label="Image export options">
       <span className="pm-label">FRAME EXPORT</span>
       <label>Resolution<select aria-label="Export resolution" value={exportSize} onChange={e=>setExportSize(e.target.value as "1280x720"|"1920x1080")}>
