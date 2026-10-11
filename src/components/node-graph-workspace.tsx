@@ -14,6 +14,7 @@ import { copyGraphSelection,parseGraphSelection,pasteGraphSelection,deleteGraphS
   moveGraphSelection,groupGraphNodes,ungroupGraphNodes,renameGraphGroup,type GraphSelection } from "@/core/graph/workspace";
 import { GraphReactFlowCanvas } from "./graph-react-flow";
 import { GraphCoursework } from "./graph-coursework";
+import {DurableWorkspaceGate,DurableStatus} from "./durable-workspace-gate";
 import { EditorModeSwitch, EditorPanelHeader } from "./editor-ui";
 import { compileGraph, resolveLiveScene, validateLiveGraphRange } from "@/core/graph/live";
 import { readSessionPlayhead, writeSessionPlayhead } from "@/core/animation/playhead-session";
@@ -62,7 +63,7 @@ function readDocument(): MathDocument {
 export function NodeGraphClient() {
   const hydrated = useSyncExternalStore(sync, client, server);
   if (!hydrated) return <div className="shell section" role="status">Opening Node Graph Workspace…</div>;
-  return <GraphWorkspace />;
+  return <DurableWorkspaceGate><GraphWorkspace /></DurableWorkspaceGate>;
 }
 function GraphWorkspace() {
   const [history, setHistory] = useState(() => initializeGraphHistory(readStoredGraph()));
@@ -332,6 +333,7 @@ function GraphWorkspace() {
   const connectedOutput = graph.nodes.filter(node=>node.kind==="output").length;
 
   return <div className={"pm-ng-root pm-editor-shell"+(fullscreen?" pm-ng-fullscreen":"")} ref={rootRef} aria-label="Node Graph Workspace">
+    <DurableStatus/>
     <header className="pm-ng-projectbar pm-editor-topbar">
       <div className="pm-ng-identity">
         <Link href="/studio" aria-label="Back to Studio" className="pm-ng-icon"><ArrowLeft size={17}/></Link>

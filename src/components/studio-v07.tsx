@@ -15,6 +15,7 @@ import { readSessionPlayhead, writeSessionPlayhead } from "@/core/animation/play
 import { readStoredGraph } from "@/core/graph/storage";
 import { initialGraph } from "@/core/graph/model";
 import { StudioProjectLibrary } from "./studio-project-library";
+import {DurableWorkspaceGate,DurableStatus} from "./durable-workspace-gate";
 import { readStudioLibrary, activeProject, persistStudioLibrary, createProject, duplicateProject, renameProject, removeProject, selectProject, writeActiveScene, type StudioLibrary } from "@/core/projects/studio-library";
 import { readStudioHandoff, saveStudioHandoffDraft, clearStudioHandoff } from "@/core/playground/session";
 import { GRAPH_KEY, PREVIOUS_GRAPH_KEY, LEGACY_GRAPH_KEY } from "@/core/graph/model";
@@ -76,7 +77,7 @@ const server=()=>false;
 export function StudioClient(props:{initialKind?:SceneKind;mode?:"studio"|"playground"}) {
   const ready=useSyncExternalStore(noSubscribe,client,server);
   if(!ready)return <div className="shell section" role="status">Loading workspace…</div>;
-  return <StudioWorkspace {...props}/>;
+  return <DurableWorkspaceGate><StudioWorkspace {...props}/></DurableWorkspaceGate>;
 }
 function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mode?:"studio"|"playground"}) {
   const root=useRef<HTMLDivElement>(null);
@@ -408,6 +409,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
         <button type="button" onClick={()=>{if(transferToken)clearStudioHandoff(transferToken);window.location.assign("/studio");}}>Discard draft</button>
       </div>
     </div>}
+    <DurableStatus/>
     <header className="pm-projectbar pm-editor-topbar" role="toolbar" aria-label="Workspace toolbar">
       <div className="pm-project-identity">
         <Link href="/explore" className="pm-icon-btn" aria-label="Back to Explore"><ArrowLeft size={16}/></Link>
