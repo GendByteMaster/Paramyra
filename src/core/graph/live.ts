@@ -107,3 +107,88 @@ export function resolveLiveScene(doc: MathDocument,time:number,compiled:Compiled
     error:null,driven,blocked,
   };
 }
+
+/** Conservative closed interval of all values reached by a graph during the scene. */
+type Range = Readonly<{ min: number; max: number }>;
+const finiteRange = (min: number, max: number): Range => {
+  if (!Number.isFinite(min) || !Number.isFinite(max) || min < -1_000_000 || max > 1_000_000)
+    throw Error("Graph can exceed safe numeric bounds over the timeline.");
+  return {min,max};
+};
+function sineRange(input: Range): Range {
+  const {min,max}=input;
+  if (max-min >= 2*Math.PI) return {min:-1,max:1};
+  let lo=Math.min(Math.sin(min),Math.sin(max)),hi=Math.max(Math.sin(min),Math.sin(max));
+  // All sine extrema are at PI/2 + k*PI; at most two occur within a period.
+  const start=Math.ceil((min-Math.PI/2)/Math.PI);
+  const end=Math.floor((max-Math.PI/2)/Math.PI);
+  for(let k=start;k<=end;k++){
+    const value=k%2===0?1:-1;
+    lo=Math.min(lo,value);hi=Math.max(hi,value);
+  }
+  return {min:lo,max:hi};
+}
+
+/**
+ * Prove that every non-keyframed Live Graph output remains inside its target's
+ * schema bounds for the full document duration. This intentionally fails closed:
+ * checking only the current time permits visually discontinuous fallback frames.
+ * Interval operations may conservatively reject a graph with correlated inputs.
+ */
+export function validateLiveGraphRange(doc:MathDocument,compiled:CompiledGraph|null):string|null {
+  if(!compiled)return "Unable to compile the graph.";
+  if(!Number.isFinite(doc.duration)||doc.duration<=0||doc.duration>60)return "Invalid scene duration.";
+  const target=doc.layers.find(layer=>layer.id===compiled.graph.binding.layerId);
+  if(!target)return "Select a valid Studio target layer for Live Graph.";
+  const cache=new Map<string,Range>();
+  const visiting=new Set<string>();
+  const visit=(id:string):Range=>{
+    const existing=cache.get(id);
+    if(existing)return existing;
+    if(visiting.has(id))throw Error("Graph contains a cycle.");
+    const node=compiled.nodes.get(id);
+    if(!node)throw Error("Graph contains a missing node.");
+    visiting.add(id);
+    const input=(port:GraphPort)=>{
+      const source=compiled.sources.get(id+":"+port);
+      if(!source)throw Error(node.title+": connect the "+port+" input.");
+      return visit(source);
+    };
+    let range:Range;
+    switch(node.kind){
+      case "constant":range=finiteRange(node.value??0,node.value??0);break;
+      case "time":range={min:0,max:doc.duration};break;
+      case "add":{
+        const a=input("a"),b=input("b");
+        range=finiteRange(a.min+b.min,a.max+b.max);break;
+      }
+      case "multiply":{
+        const a=input("a"),b=input("b");
+        const values=[a.min*b.min,a.min*b.max,a.max*b.min,a.max*b.max];
+        range=finiteRange(Math.min(...values),Math.max(...values));break;
+      }
+      case "sine":range=sineRange(input("in"));break;
+      case "output":range=input("in");break;
+    }
+    visiting.delete(id);
+    cache.set(id,range);
+    return range;
+  };
+  try {
+    for(const node of compiled.outputs){
+      const property=node.property!;
+      if(!supportsProperty(target,property))
+        return property+" requires a Formula layer.";
+      // Keyframe precedence is absolute: a blocked channel is not graph-driven.
+      if(target.keyframes?.some(frame=>frame.property===property))continue;
+      const range=visit(node.id);
+      const bounds=propertyBounds(property);
+      const tolerance=1e-9;
+      if(range.min<bounds.min-tolerance||range.max>bounds.max+tolerance)
+        return `${property} can reach ${range.min.toFixed(2)}…${range.max.toFixed(2)} during 0…${doc.duration}s, outside ${bounds.min}…${bounds.max}. Reduce the input amplitude or disable Live Graph.`;
+    }
+    return null;
+  }catch(error){
+    return error instanceof Error?error.message:"Unable to verify Live Graph values.";
+  }
+}
