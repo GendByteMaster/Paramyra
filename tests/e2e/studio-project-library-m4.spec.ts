@@ -51,9 +51,9 @@ test("Switching Studio projects restores distinct Node Graph values",async({page
   await page.goto("/studio/graph");
   await expect(page.getByRole("article",{name:"Amplitude node"})).toBeVisible();
   await page.getByRole("article",{name:"Amplitude node"}).click();
-  await page.getByRole("spinbutton",{name:"Number"}).fill("9");
-  await page.getByRole("spinbutton",{name:"Number"}).blur();
-  await expect(page.getByText("9.0000",{exact:true}).first()).toBeVisible();
+  await page.getByRole("spinbutton",{name:"Constant value"}).fill("9");
+  await page.getByRole("spinbutton",{name:"Constant value"}).blur();
+  await expect(page.getByRole("spinbutton",{name:"Constant value"})).toHaveValue("9");
 
   await page.goto("/studio");
   await page.getByRole("button",{name:"Open project library"}).click();
@@ -61,13 +61,13 @@ test("Switching Studio projects restores distinct Node Graph values",async({page
   await page.goto("/studio/graph");
   await expect(page.getByRole("article",{name:"Amplitude node"})).toBeVisible();
   await page.getByRole("article",{name:"Amplitude node"}).click();
-  await expect(page.getByRole("spinbutton",{name:"Number"})).toHaveValue("1");
+  await expect(page.getByRole("spinbutton",{name:"Constant value"})).toHaveValue("1");
   await page.goto("/studio");
   await page.getByRole("button",{name:"Open project library"}).click();
   await page.getByRole("dialog",{name:"Studio project library"}).getByRole("button",{name:"Open",exact:true}).click();
   await page.goto("/studio/graph");
   await page.getByRole("article",{name:"Amplitude node"}).click();
-  await expect(page.getByRole("spinbutton",{name:"Number"})).toHaveValue("9");
+  await expect(page.getByRole("spinbutton",{name:"Constant value"})).toHaveValue("9");
 });
 
 test("Project Library is accessible on compact mobile widths",async({page})=>{
