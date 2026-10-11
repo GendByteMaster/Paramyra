@@ -94,3 +94,19 @@ test("Coursework report draft survives reload but does not overwrite scene data"
   await expect(page.getByRole("textbox",{name:"Methodology"})).toHaveValue("Time-dependent numerical investigation");
   expect(await page.evaluate(()=>localStorage.getItem("paramyra.document.v3"))).toBe(scene);
 });
+
+test("Previously generated Russian draft title migrates to English without rewriting user notes",async({page})=>{
+  await page.goto("/studio/graph");
+  await page.evaluate(()=>{
+    const graph=JSON.parse(localStorage.getItem("paramyra.nodegraph.v3")!);
+    localStorage.setItem("paramyra.graph.coursework.v1."+graph.id,JSON.stringify({
+      version:1,institution:"School of Engineering",student:"Example Student",supervisor:"",
+      title:"Исследование математической модели «"+graph.title+"»",
+      objective:"Preserve my original research objective",method:"",conclusion:""
+    }));
+  });
+  await page.getByRole("button",{name:"Open coursework mode"}).click();
+  await expect(page.getByRole("textbox",{name:"Coursework title"})).toHaveValue("Mathematical modelling study: Sine motion");
+  await expect(page.getByRole("textbox",{name:"Research objective"})).toHaveValue("Preserve my original research objective");
+  await expect(page.getByRole("textbox",{name:"Institution"})).toHaveValue("School of Engineering");
+});
