@@ -8,7 +8,8 @@ import {
   Copy, ClipboardPaste, Group, Ungroup, Maximize2, Minimize2, FileArchive, ListTree, CheckSquare, BookOpen,
 } from "lucide-react";
 import { SceneCanvas } from "./scene-canvas";
-import { makeProjectBundle,parseProjectBundle,restoreProjectBundle } from "@/core/graph/project-bundle";
+import { makeProjectBundle,parseProjectBundle } from "@/core/graph/project-bundle";
+import { readStudioLibrary, activeProject, persistStudioLibrary, replaceActiveScene, replaceActiveGraph, writeActiveScene, writeActiveGraph, PROJECT_LIBRARY_KEY } from "@/core/projects/studio-library";
 import { copyGraphSelection,parseGraphSelection,pasteGraphSelection,deleteGraphSelection,
   moveGraphSelection,groupGraphNodes,ungroupGraphNodes,renameGraphGroup,type GraphSelection } from "@/core/graph/workspace";
 import { GraphReactFlowCanvas } from "./graph-react-flow";
@@ -16,7 +17,7 @@ import { GraphCoursework } from "./graph-coursework";
 import { EditorModeSwitch, EditorPanelHeader } from "./editor-ui";
 import { compileGraph, resolveLiveScene, validateLiveGraphRange } from "@/core/graph/live";
 import { readSessionPlayhead, writeSessionPlayhead } from "@/core/animation/playhead-session";
-import { persistGraph, readStoredGraph } from "@/core/graph/storage";
+import { readStoredGraph } from "@/core/graph/storage";
 import { commitGraph, initializeGraphHistory, redoGraph, undoGraph } from "@/core/graph/history";
 import { documentFromScene, parseDocument, type MathDocument } from "@/core/document/schema";
 import { presetFor } from "@/core/scenes/presets";
@@ -100,12 +101,19 @@ function GraphWorkspace() {
   const evaluation = useMemo(() => evaluateGraph(graph, time), [graph, time]);
 
   useEffect(() => {
-    persistGraph(graph);
+    if(!writeActiveGraph(graph,localStorage,Date.now()))
+      setNotice("Unable to save Node Graph to this project. Export JSON for backup.");
   }, [graph]);
   useEffect(()=>writeSessionPlayhead(time,documentModel.duration),[time,documentModel.duration]);
   useEffect(() => {
     const listener = (event: StorageEvent) => {
       if (event.key === DOC_KEY) setDocumentModel(readDocument());
+      if(event.key===PROJECT_LIBRARY_KEY){
+        const project=activeProject(readStudioLibrary(localStorage));
+        setDocumentModel(project.scene);
+        setHistory(initializeGraphHistory(project.graph));
+        setSelectedId("");setSelectedIds([]);setSelectedGroupId(null);setEdgeId(null);
+      }
     };
     window.addEventListener("storage", listener);
     return () => window.removeEventListener("storage", listener);
@@ -263,11 +271,10 @@ function GraphWorkspace() {
     if (graph.binding.enabled) return setNotice("Disable Live Graph before baking static values.");
     if (result.error) return setNotice("Not applied: "+result.error);
     if (result.document === current) return setNotice("No outputs to apply.");
-    try {
-      localStorage.setItem(DOC_KEY,JSON.stringify(result.document));
+    if(writeActiveScene(result.document,localStorage,Date.now())){
       setDocumentModel(result.document);
-      setNotice("Applied static graph outputs to the Studio document. Open Studio to see the saved result.");
-    } catch { setNotice("Local storage is unavailable; no Studio changes were saved."); }
+      setNotice("Applied graph outputs to the active Studio project.");
+    } else setNotice("Could not save to the active project. Export JSON for backup.");
   };
   const exportProject=()=>{
     const bundle=makeProjectBundle(readDocument(),graph);
@@ -284,7 +291,10 @@ function GraphWorkspace() {
     try{
       const bundle=parseProjectBundle(JSON.parse(await file.text()));
       if(!bundle)return setNotice("Project rejected: invalid scene, graph, or live target.");
-      if(!restoreProjectBundle(bundle,localStorage))
+      const current=readStudioLibrary(localStorage);
+      const staged=replaceActiveScene(current,bundle.scene,Date.now());
+      const next=staged&&replaceActiveGraph(staged,bundle.graph,Date.now());
+      if(!next||!persistStudioLibrary(next,localStorage))
         return setNotice("Unable to save the project. Previous scene was preserved where storage permits.");
       setDocumentModel(bundle.scene);
       setHistory(initializeGraphHistory(bundle.graph));
