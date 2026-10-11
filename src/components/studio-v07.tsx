@@ -15,8 +15,9 @@ import { readSessionPlayhead, writeSessionPlayhead } from "@/core/animation/play
 import { readStoredGraph } from "@/core/graph/storage";
 import { initialGraph } from "@/core/graph/model";
 import { StudioProjectLibrary } from "./studio-project-library";
+import {durableModeEnabled,currentDurableProject,queueDurableMutation,liveProjectId} from "@/core/projects/durable-session";
 import {DurableWorkspaceGate,DurableStatus} from "./durable-workspace-gate";
-import { readStudioLibrary, activeProject, persistStudioLibrary, createProject, duplicateProject, renameProject, removeProject, selectProject, writeActiveScene, type StudioLibrary } from "@/core/projects/studio-library";
+import { readStudioLibrary, activeProject, persistStudioLibrary, createProject, duplicateProject, renameProject, removeProject, selectProject, replaceActiveScene, writeActiveScene, type StudioLibrary } from "@/core/projects/studio-library";
 import { readStudioHandoff, saveStudioHandoffDraft, clearStudioHandoff } from "@/core/playground/session";
 import { GRAPH_KEY, PREVIOUS_GRAPH_KEY, LEGACY_GRAPH_KEY } from "@/core/graph/model";
 import { savePng, saveSvg, type ExportBackground, type ExportSize } from "@/core/rendering/export";
@@ -185,13 +186,28 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
       saveStudioHandoffDraft(transferToken,doc);
       return;
     }
-    writeActiveScene(doc,localStorage,Date.now(),projectLibrary.activeId);
+    if(durableModeEnabled()){
+      const current=currentDurableProject();
+      if(current && JSON.stringify(current.scene)===JSON.stringify(doc))return;
+      void queueDurableMutation(library=>replaceActiveScene(library,doc,Date.now()),projectLibrary.activeId);
+    }else writeActiveScene(doc,localStorage,Date.now(),projectLibrary.activeId);
   },[doc,transferToken,projectLibrary.activeId]);
-  const openProject=(next:StudioLibrary)=>{
-    if(!persistStudioLibrary(next,localStorage)){
-      setNotice("Unable to change projects. Export JSON or free browser storage.");
-      return false;
+  const saveProjectChange=async(change:(current:StudioLibrary)=>StudioLibrary|null):Promise<StudioLibrary|null>=>{
+    if(durableModeEnabled()){
+      const currentId=liveProjectId();
+      if(!currentId){setNotice("Transactional storage is not ready.");return null;}
+      const result=await queueDurableMutation(change,currentId);
+      if(result.status!=="saved"){setNotice("Could not save the project: "+result.status+". Export JSON before refreshing.");return null;}
+      return result.record.library;
     }
+    const current=readStudioLibrary(localStorage);
+    const next=change(current);
+    if(!next||!persistStudioLibrary(next,localStorage))return null;
+    return next;
+  };
+  const openProject=async(change:(current:StudioLibrary)=>StudioLibrary|null)=>{
+    const next=await saveProjectChange(change);
+    if(!next){setNotice("Unable to change projects. Export JSON or check browser storage.");return false;}
     setProjectLibrary(next);
     const selectedProject=activeProject(next);
     setHistory(initializeHistory(selectedProject.scene));
@@ -206,47 +222,52 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
   const newProject=()=>{
     const id=crypto.randomUUID();
     const scene={...documentFromScene(presetFor("lissajous")),id,title:"Untitled Project"};
-    const next=createProject(projectLibrary,id,scene,initialGraph(),Date.now());
-    if(!next)return setNotice("Project limit reached (20) or invalid project.");
-    openProject(next);
+    void openProject(library=>createProject(library,id,scene,initialGraph(),Date.now()));
   };
   const duplicateSaved=(id:string)=>{
-    const next=duplicateProject(projectLibrary,id,crypto.randomUUID(),Date.now());
-    if(!next)return setNotice("Unable to duplicate this project.");
-    openProject(next);
+    const newId=crypto.randomUUID();
+    void openProject(library=>duplicateProject(library,id,newId,Date.now()));
   };
   const renameSaved=(id:string,name:string)=>{
-    const next=renameProject(projectLibrary,id,name,Date.now());
-    if(!next)return setNotice("Use a valid project name (1–120 characters).");
-    if(id===projectLibrary.activeId){
-      if(!persistStudioLibrary(next,localStorage))return setNotice("Rename failed: browser storage unavailable.");
-      setHistory(initializeHistory({...doc,title:name.trim()}));
-    } else if(!persistStudioLibrary(next,localStorage))return setNotice("Rename failed: browser storage unavailable.");
-    setProjectLibrary(next);
-    setNotice("Project renamed.");
+    void (async()=>{
+      const next=await saveProjectChange(library=>renameProject(library,id,name,Date.now()));
+      if(!next){setNotice("Rename failed: check the project name and browser storage.");return;}
+      if(id===next.activeId)setHistory(initializeHistory(activeProject(next).scene));
+      setProjectLibrary(next);
+      setNotice("Project renamed.");
+    })();
   };
   const deleteSaved=(id:string)=>{
     const project=projectLibrary.projects.find(p=>p.id===id);
     if(!project)return;
     if(!window.confirm("Delete project “"+project.name+"”? This cannot be undone."))return;
-    const next=removeProject(projectLibrary,id);
-    if(!next)return setNotice("Keep at least one Studio project.");
-    if(projectLibrary.activeId===id){openProject(next);return;}
-    if(!persistStudioLibrary(next,localStorage))return setNotice("Unable to delete project: storage unavailable.");
-    setProjectLibrary(next);
-    setNotice("Project deleted.");
+    void (async()=>{
+      const wasActive=projectLibrary.activeId===id;
+      const next=await saveProjectChange(library=>removeProject(library,id));
+      if(!next){setNotice("Unable to delete project: storage unavailable.");return;}
+      setProjectLibrary(next);
+      if(wasActive){
+        const selectedProject=activeProject(next);
+        setHistory(initializeHistory(selectedProject.scene));
+        setSelected(selectedProject.scene.layers[0].id);
+        setNodeGraph(selectedProject.graph);
+        setPlaying(false);setTime(0);setSeekVersion(v=>v+1);
+        setProjectLibraryOpen(false);
+      }
+      setNotice("Project deleted.");
+    })();
   };
   const savePlaygroundDraftToStudio=()=>{
     if(!transferToken)return;
     const id=doc.id;
-    const next=createProject(projectLibrary,id,doc,initialGraph(),Date.now());
-    if(!next)return setNotice("Cannot create the Studio project. Check the 20-project limit.");
-    if(!persistStudioLibrary(next,localStorage))
-      return setNotice("Unable to save to the project library. Your isolated draft remains available.");
-    clearStudioHandoff(transferToken);
-    setProjectLibrary(next);setNodeGraph(initialGraph());setTransferToken(null);
-    window.history.replaceState(null,"","/studio");
-    setNotice("Experiment saved as a new Studio project. Previous projects were preserved.");
+    void (async()=>{
+      const next=await saveProjectChange(library=>createProject(library,id,doc,initialGraph(),Date.now()));
+      if(!next){setNotice("Unable to save transfer draft. Your isolated draft remains available.");return;}
+      clearStudioHandoff(transferToken);
+      setProjectLibrary(next);setNodeGraph(initialGraph());setTransferToken(null);
+      window.history.replaceState(null,"","/studio");
+      setNotice("Experiment saved as a new Studio project. Previous projects were preserved.");
+    })();
   };
 
   const commit=(fn:(d:MathDocument)=>MathDocument,key="")=>{
@@ -422,7 +443,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
       </div>
       <div className="pm-project-actions">
         {mode==="studio"?<EditorModeSwitch active="studio" liveGraph={nodeGraph.binding.enabled}/>:<Link className="pm-action pm-action-quiet" href="/studio/graph" aria-label="Open Node Graph Workspace"><GitBranch size={15}/> Node Graph{nodeGraph.binding.enabled?" · LIVE":""}</Link>}
-        <button type="button" className="pm-action pm-project-library-launch" disabled={!!transferToken} onClick={()=>{setProjectLibrary(readStudioLibrary(localStorage));setProjectLibraryOpen(true);}} aria-label="Open project library" aria-haspopup="dialog" aria-expanded={projectLibraryOpen}><FolderOpen size={15}/> Projects</button>
+        <button type="button" className="pm-action pm-project-library-launch" disabled={!!transferToken} onClick={()=>{setProjectLibrary(durableModeEnabled()?currentDurableProject()?readStudioLibrary(localStorage):projectLibrary:readStudioLibrary(localStorage));setProjectLibraryOpen(true);}} aria-label="Open project library" aria-haspopup="dialog" aria-expanded={projectLibraryOpen}><FolderOpen size={15}/> Projects</button>
         <button type="button" className="pm-icon-btn" aria-label="Undo" disabled={!history.past.length} onClick={undo}><Undo2 size={17}/></button>
         <button type="button" className="pm-icon-btn" aria-label="Redo" disabled={!history.future.length} onClick={redo}><Redo2 size={17}/></button>
         <span className="pm-toolbar-rule"/>
@@ -439,7 +460,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
         <button type="button" className="pm-action pm-action-primary" onClick={download}><Download size={15}/> Export JSON</button>
       </div>
     </header>
-    {projectLibraryOpen&&<StudioProjectLibrary library={projectLibrary} onClose={()=>setProjectLibraryOpen(false)} onSelect={id=>{const next=selectProject(projectLibrary,id);if(next)openProject(next);}} onNew={newProject} onDuplicate={duplicateSaved} onRename={renameSaved} onDelete={deleteSaved}/>}
+    {projectLibraryOpen&&<StudioProjectLibrary library={projectLibrary} onClose={()=>setProjectLibraryOpen(false)} onSelect={id=>{void openProject(library=>selectProject(library,id));}} onNew={newProject} onDuplicate={duplicateSaved} onRename={renameSaved} onDelete={deleteSaved}/>}
     {exportOpen&&<div className="pm-export-panel" role="group" aria-label="Image export options">
       <span className="pm-label">FRAME EXPORT</span>
       <label>Resolution<select aria-label="Export resolution" value={exportSize} onChange={e=>setExportSize(e.target.value as "1280x720"|"1920x1080")}>

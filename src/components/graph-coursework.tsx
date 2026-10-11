@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { BookOpen, Download, FileText, Printer } from "lucide-react";
 import { SceneCanvas } from "./scene-canvas";
 import { courseworkFormulas, defaultCourseworkDraft, type CourseworkDraft } from "@/core/graph/coursework";
-import {activeProject,readStudioLibrary,writeActiveCoursework} from "@/core/projects/studio-library";
+import {activeProject,readStudioLibrary,replaceActiveCoursework,writeActiveCoursework} from "@/core/projects/studio-library";
+import {durableModeEnabled,queueDurableMutation} from "@/core/projects/durable-session";
 import type { NodeGraph } from "@/core/graph/model";
 import type { MathDocument } from "@/core/document/schema";
 
@@ -78,7 +79,11 @@ export function GraphCoursework({graph,scene,time,outputs,error,projectId}:Props
     // Timestamp is sampled in the input event handler, not during rendering.
     // eslint-disable-next-line react-hooks/purity
     const now=Date.now();
-    setSaved(!!projectId && !!writeActiveCoursework(next,localStorage,now,projectId));
+    if(durableModeEnabled()){
+      setSaved(false);
+      if(projectId)void queueDurableMutation(library=>replaceActiveCoursework(library,next,now),projectId)
+        .then(outcome=>setSaved(outcome.status==="saved"));
+    }else setSaved(!!projectId && !!writeActiveCoursework(next,localStorage,now,projectId));
   };
   const reportDate=useMemo(()=>new Date().toLocaleDateString("en-GB"),[]);
   const print=()=>window.print();
