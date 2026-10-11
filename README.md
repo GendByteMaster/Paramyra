@@ -5,6 +5,10 @@
 [![CI](https://github.com/GendByteMaster/Paramyra/actions/workflows/ci.yml/badge.svg)](https://github.com/GendByteMaster/Paramyra/actions/workflows/ci.yml)
 
 
+## Studio v1.0 — M4.2.2 Transactional Editor Cutover (stacked development)
+
+Studio now supports an explicit switch to IndexedDB-primary autosave with strict revision CAS across browser tabs. Project Library → Transactional IndexedDB project storage → **Enable transactional autosave**. Activation migrates the current local projects after confirmation. Studio scenes, Timeline keyframes, Graph, Coursework and Project Library edits use one serialized transactional repository. After a conflicting external revision the current tab stops saving, warns the user and supports JSON export before reloading. Existing users remain in legacy mode until they opt in. See [the M4.2.2 design and acceptance gates](docs/STUDIO_IDB_CUTOVER_M422.md).
+
 ## Studio v1.0 — M4.2.1 Transactional Project Repository (stacked preview)
 
 M4.2.1 adds a full-project, revisioned IndexedDB repository API. A user can initialize and explicitly commit a **preview snapshot** through the expandable Project Library diagnostics. The repository rejects stale revisions and stale active-project IDs, and never overwrites corrupt legacy or IndexedDB data. Import keeps original legacy records intact.

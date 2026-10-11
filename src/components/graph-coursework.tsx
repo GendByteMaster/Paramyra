@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { BookOpen, Download, FileText, Printer } from "lucide-react";
 import { SceneCanvas } from "./scene-canvas";
 import { courseworkFormulas, defaultCourseworkDraft, type CourseworkDraft } from "@/core/graph/coursework";
-import {activeProject,readStudioLibrary,writeActiveCoursework} from "@/core/projects/studio-library";
+import {activeProject,readStudioLibrary,replaceActiveCoursework,writeActiveCoursework} from "@/core/projects/studio-library";
+import {durableModeEnabled,queueDurableMutation} from "@/core/projects/durable-session";
 import type { NodeGraph } from "@/core/graph/model";
 import type { MathDocument } from "@/core/document/schema";
 
@@ -71,6 +72,7 @@ export function GraphCoursework({graph,scene,time,outputs,error,projectId}:Props
     return projectId===project.id?project.coursework:defaultCourseworkDraft(graph);
   });
   const [saved,setSaved]=useState(true);
+  const lastEdit=useRef(0);
   const formulas=useMemo(()=>courseworkFormulas(graph),[graph]);
   const update=(key:DraftKey,value:string)=>{
     const next={...draft,[key]:value};
@@ -78,10 +80,21 @@ export function GraphCoursework({graph,scene,time,outputs,error,projectId}:Props
     // Timestamp is sampled in the input event handler, not during rendering.
     // eslint-disable-next-line react-hooks/purity
     const now=Date.now();
-    setSaved(!!projectId && !!writeActiveCoursework(next,localStorage,now,projectId));
+    const edit=++lastEdit.current;
+    if(durableModeEnabled()){
+      setSaved(false);
+      if(projectId)void queueDurableMutation(library=>replaceActiveCoursework(library,next,now),projectId)
+        .then(outcome=>{if(edit===lastEdit.current)setSaved(outcome.status==="saved");});
+    }else setSaved(!!projectId && !!writeActiveCoursework(next,localStorage,now,projectId));
   };
   const reportDate=useMemo(()=>new Date().toLocaleDateString("en-GB"),[]);
   const print=()=>window.print();
+  const downloadDraft=()=>{
+    const url=URL.createObjectURL(new Blob([JSON.stringify(draft,null,2)],{type:"application/json"}));
+    const anchor=document.createElement("a");
+    anchor.href=url;anchor.download="paramyra-coursework-draft.json";
+    anchor.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+  };
 
   return <div className="pm-ng-coursework-layout" aria-label="Coursework workspace">
     <aside className="pm-ng-coursework-settings" aria-label="Coursework settings">
@@ -100,6 +113,7 @@ export function GraphCoursework({graph,scene,time,outputs,error,projectId}:Props
       </div>
       <div className="pm-ng-coursework-actions">
         <button type="button" onClick={print}><Printer size={16}/> Print / Save as PDF</button>
+        <button type="button" onClick={downloadDraft}><Download size={16}/> Download report backup</button>
         <span role="status">{saved?"Saved in this project · Included in project export":"Unable to save · Export your work before leaving"}</span>
       </div>
     </aside>

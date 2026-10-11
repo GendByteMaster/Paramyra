@@ -54,3 +54,15 @@
 .pm-project-storage-preview .pm-project-checkpoint-actions{margin:8px 0}
 .pm-project-storage-preview .pm-project-checkpoint-actions button{min-height:34px}
 @media(max-width:720px){.pm-project-storage-preview{padding:11px}}
+
+.pm-durable-status{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:8px 18px;background:#112f3b;color:#a6f3df;border-bottom:1px solid #6dc9b566;font-size:12px}
+.pm-durable-error{background:#3c2631;color:#ffe9ee;border-color:#eb949b77}
+.pm-durable-status strong{font-size:12px}
+.pm-durable-status span{flex:1}
+.pm-durable-status button,.pm-durable-gate-error button{border-radius:7px;background:#eedbdc;border:1px solid #d9a2a6;color:#35191b;padding:7px 11px;cursor:pointer}
+.pm-durable-gate-error{max-width:820px;margin:auto}
+
+.pm-durable-recovery-actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+.pm-durable-gate-error{line-height:1.55}
+.pm-durable-gate-error h2{font-size:20px}
+.pm-durable-gate-error button:focus-visible{outline:2px solid #9fd6ff;outline-offset:2px}

@@ -6,6 +6,7 @@ import {initializeLiveProjectLibrary,readLiveProjectLibrary,mutateLiveProjectLib
 import {readRecoveryCheckpoint,writeRecoveryCheckpoint,type RecoveryCheckpoint} from "@/core/projects/durable-checkpoints";
 import {parseStudioLibrary,persistStudioLibrary,PROJECT_LIBRARY_KEY} from "@/core/projects/studio-library";
 import type { StudioLibrary } from "@/core/projects/studio-library";
+import {activateDurableStorage,durableModeEnabled,liveLibrary,liveProjectId,queueDurableMutation,settleDurableWrites} from "@/core/projects/durable-session";
 
 type Props={
   library:StudioLibrary;
@@ -26,6 +27,17 @@ export function StudioProjectLibrary({library,onClose,onSelect,onNew,onDuplicate
   const [liveBusy,setLiveBusy]=useState(false);
   const [liveRecord,setLiveRecord]=useState<LiveLibraryRecord|null>(null);
   const [liveStatus,setLiveStatus]=useState("Checking transactional storage…");
+  const [activateStatus,setActivateStatus]=useState("");
+  const [activateBusy,setActivateBusy]=useState(false);
+  const activate=async()=>{
+    if(!window.confirm("Enable transactional IndexedDB autosave for Studio, Node Graph and Coursework? A validated copy of your current local projects will replace any earlier experimental preview. Keep an exported JSON backup."))return;
+    setActivateBusy(true);
+    try{
+      const result=await activateDurableStorage();
+      if(result==="enabled")window.location.reload();
+      else setActivateStatus("Activation rejected ("+result+"). Local projects were preserved; retry after resolving the issue.");
+    }finally{setActivateBusy(false);}
+  };
   useEffect(()=>{
     let active=true;
     void readLiveProjectLibrary().then(result=>{
@@ -50,7 +62,7 @@ export function StudioProjectLibrary({library,onClose,onSelect,onNew,onDuplicate
     }finally{setLiveBusy(false);}
   };
   const syncLive=async()=>{
-    if(!liveRecord)return;
+    if(!liveRecord||durableModeEnabled())return;
     setLiveBusy(true);
     try{
       const raw=localStorage.getItem(PROJECT_LIBRARY_KEY);
@@ -85,8 +97,9 @@ export function StudioProjectLibrary({library,onClose,onSelect,onNew,onDuplicate
   const saveCheckpoint=async()=>{
     setBusy(true);
     try{
+      if(durableModeEnabled())await settleDurableWrites();
       const raw=localStorage.getItem(PROJECT_LIBRARY_KEY);
-      const valid=raw?parseStudioLibrary(JSON.parse(raw)):null;
+      const valid=durableModeEnabled()?liveLibrary():raw?parseStudioLibrary(JSON.parse(raw)):null;
       if(!valid){
         setCheckpointStatus("Cannot checkpoint an invalid or missing project registry");
         return;
@@ -111,8 +124,18 @@ export function StudioProjectLibrary({library,onClose,onSelect,onNew,onDuplicate
         setCheckpointStatus("Checkpoint changed or unavailable. Close and reopen Projects before restoring.");
         return;
       }
-      // Registry and compatibility mirrors update together with best-effort rollback.
-      if(!persistStudioLibrary(newest.checkpoint.library,localStorage)){
+      if(durableModeEnabled()){
+        const id=liveProjectId();
+        if(!id){
+          setCheckpointStatus("Transactional store is unavailable; recovery data remains intact.");
+          return;
+        }
+        const outcome=await queueDurableMutation(()=>newest.checkpoint.library,id);
+        if(outcome.status!=="saved"){
+          setCheckpointStatus("Restore rejected ("+outcome.status+"); project data was not overwritten.");
+          return;
+        }
+      }else if(!persistStudioLibrary(newest.checkpoint.library,localStorage)){
         setCheckpointStatus("Restore failed; existing project data was not replaced.");
         return;
       }
@@ -175,16 +198,21 @@ export function StudioProjectLibrary({library,onClose,onSelect,onNew,onDuplicate
         </div>
         <p role="status" aria-live="polite">{checkpointStatus}</p>
       </section>
-      <details className="pm-project-storage-preview">
-        <summary><Database size={15}/> Experimental transactional project store</summary>
-        <p>Stage a complete project snapshot in IndexedDB with revision checks. Studio and Graph continue to use localStorage for live edits; this is not a storage cutover.</p>
+      {durableModeEnabled()?<section className="pm-project-storage-preview" aria-label="Transactional storage status">
+        <strong><Database size={15}/> IndexedDB autosave enabled</strong>
+        <p>Scene, Node Graph, keyframes, Coursework and Project Library changes use revisioned transactions. Conflicting tabs cannot silently overwrite saved projects.</p>
+        <p role="status" aria-live="polite">{liveStatus}</p>
+      </section>:<details className="pm-project-storage-preview">
+        <summary><Database size={15}/> Transactional IndexedDB project storage</summary>
+        <p>Optional cutover. Export JSON first. Activation migrates your current project library into IndexedDB and enables revision-controlled autosave across Studio and Node Graph.</p>
         <div className="pm-project-checkpoint-actions">
+          <button type="button" disabled={activateBusy} onClick={()=>{void activate();}}>Enable transactional autosave</button>
           <button type="button" disabled={liveBusy} onClick={()=>{void prepareLive();}}>Initialize snapshot</button>
           <button type="button" disabled={liveBusy||!liveRecord} onClick={()=>{void syncLive();}}>Commit local snapshot</button>
         </div>
-        <p role="status" aria-live="polite">{liveStatus}</p>
-      </details>
-      <p className="pm-project-dialog-note">Recovery checkpoints reject stale revisions across tabs, but regular editor localStorage writes remain last-write-wins. Export JSON for off-device backups. Scene, keyframes, Node Graph and Coursework are included in each project snapshot.</p>
+        <p role="status" aria-live="polite">{activateStatus||liveStatus}</p>
+      </details>}
+      <p className="pm-project-dialog-note">Export JSON for off-device backups. In transactional mode IndexedDB is the project authority; localStorage remains a read-compatible cache for older integrations. Recovery checkpoints and live snapshots are separate.</p>
     </section>
   </div>;
 }

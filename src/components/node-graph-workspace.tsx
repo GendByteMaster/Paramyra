@@ -14,6 +14,8 @@ import { copyGraphSelection,parseGraphSelection,pasteGraphSelection,deleteGraphS
   moveGraphSelection,groupGraphNodes,ungroupGraphNodes,renameGraphGroup,type GraphSelection } from "@/core/graph/workspace";
 import { GraphReactFlowCanvas } from "./graph-react-flow";
 import { GraphCoursework } from "./graph-coursework";
+import {durableModeEnabled,currentDurableProject,queueDurableMutation} from "@/core/projects/durable-session";
+import {DurableWorkspaceGate,DurableStatus} from "./durable-workspace-gate";
 import { EditorModeSwitch, EditorPanelHeader } from "./editor-ui";
 import { compileGraph, resolveLiveScene, validateLiveGraphRange } from "@/core/graph/live";
 import { readSessionPlayhead, writeSessionPlayhead } from "@/core/animation/playhead-session";
@@ -62,7 +64,7 @@ function readDocument(): MathDocument {
 export function NodeGraphClient() {
   const hydrated = useSyncExternalStore(sync, client, server);
   if (!hydrated) return <div className="shell section" role="status">Opening Node Graph Workspace…</div>;
-  return <GraphWorkspace />;
+  return <DurableWorkspaceGate><GraphWorkspace /></DurableWorkspaceGate>;
 }
 function GraphWorkspace() {
   const [history, setHistory] = useState(() => initializeGraphHistory(readStoredGraph()));
@@ -102,11 +104,16 @@ function GraphWorkspace() {
   const evaluation = useMemo(() => evaluateGraph(graph, time), [graph, time]);
 
   useEffect(() => {
-    writeActiveGraph(graph,localStorage,Date.now(),projectId);
+    if(durableModeEnabled()){
+      const active=currentDurableProject();
+      if(active && JSON.stringify(active.graph)===JSON.stringify(graph))return;
+      void queueDurableMutation(library=>replaceActiveGraph(library,graph,Date.now()),projectId);
+    }else writeActiveGraph(graph,localStorage,Date.now(),projectId);
   }, [graph,projectId]);
   useEffect(()=>writeSessionPlayhead(time,documentModel.duration),[time,documentModel.duration]);
   useEffect(() => {
     const listener = (event: StorageEvent) => {
+      if(durableModeEnabled())return;
       if (event.key === DOC_KEY) setDocumentModel(readDocument());
       if(event.key===PROJECT_LIBRARY_KEY){
         const project=activeProject(readStudioLibrary(localStorage));
@@ -266,14 +273,17 @@ function GraphWorkspace() {
   const move = (id:string,point:{x:number;y:number})=>{
     commit(old=>updateGraphNode(old,id,{x:point.x,y:point.y}));
   };
-  const apply=()=>{
+  const apply=async()=>{
     // Re-read the authoritative Studio document immediately before the write.
     const current=readDocument();
     const result=projectGraph(current,graph,current.layers.some(layer=>layer.id===effectiveLayer)?effectiveLayer:current.layers[0].id,time);
     if (graph.binding.enabled) return setNotice("Disable Live Graph before baking static values.");
     if (result.error) return setNotice("Not applied: "+result.error);
     if (result.document === current) return setNotice("No outputs to apply.");
-    if(writeActiveScene(result.document,localStorage,Date.now())){
+    const saved=durableModeEnabled()
+      ?(await queueDurableMutation(library=>replaceActiveScene(library,result.document,Date.now()),projectId)).status==="saved"
+      :!!writeActiveScene(result.document,localStorage,Date.now(),projectId);
+    if(saved){
       setDocumentModel(result.document);
       setNotice("Applied static graph outputs to the Studio document and active project.");
     } else setNotice("Could not save to the active project. Export JSON for backup.");
@@ -297,7 +307,14 @@ function GraphWorkspace() {
       const staged=replaceActiveScene(current,bundle.scene,Date.now());
       const stagedGraph=staged&&replaceActiveGraph(staged,bundle.graph,Date.now());
        const next=stagedGraph&&replaceActiveCoursework(stagedGraph,bundle.coursework,Date.now());
-      if(!next||!persistStudioLibrary(next,localStorage))
+      const saved=next?(durableModeEnabled()
+        ?(await queueDurableMutation(library=>{
+          const scene=replaceActiveScene(library,bundle.scene,Date.now());
+          const graph=scene&&replaceActiveGraph(scene,bundle.graph,Date.now());
+          return graph&&replaceActiveCoursework(graph,bundle.coursework,Date.now());
+        },projectId)).status==="saved"
+        :persistStudioLibrary(next,localStorage)):false;
+      if(!saved)
         return setNotice("Unable to save the project. Previous scene was preserved where storage permits.");
       setDocumentModel(bundle.scene);
       setHistory(initializeGraphHistory(bundle.graph));
@@ -332,6 +349,7 @@ function GraphWorkspace() {
   const connectedOutput = graph.nodes.filter(node=>node.kind==="output").length;
 
   return <div className={"pm-ng-root pm-editor-shell"+(fullscreen?" pm-ng-fullscreen":"")} ref={rootRef} aria-label="Node Graph Workspace">
+    <DurableStatus/>
     <header className="pm-ng-projectbar pm-editor-topbar">
       <div className="pm-ng-identity">
         <Link href="/studio" aria-label="Back to Studio" className="pm-ng-icon"><ArrowLeft size={17}/></Link>
