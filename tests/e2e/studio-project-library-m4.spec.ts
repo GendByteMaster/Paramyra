@@ -40,6 +40,9 @@ test("Studio project library renames, duplicates and deletes without corrupting 
   await expect(modal.getByText("Wave Research")).toBeVisible();
   page.once("dialog",dialog=>dialog.accept());
   await modal.getByRole("button",{name:"Delete project Wave Research"}).click();
+  // Deleting the active project switches to the preserved original and closes the dialog.
+  await expect(modal).toHaveCount(0);
+  await page.getByRole("button",{name:"Open project library"}).click();
   await expect(modal.getByText("Wave Research")).toHaveCount(0);
   await expect(modal.getByText("1 / 20 projects")).toBeVisible();
   await expect(modal.getByRole("button",{name:"Delete project Lissajous Curves"})).toBeDisabled();
