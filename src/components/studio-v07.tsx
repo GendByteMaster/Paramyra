@@ -9,6 +9,7 @@ import { FormulaEditor } from "./formula-editor";
 import { CalculatorWindow } from "./calculator-window";
 import { AnimationTimeline } from "./animation-timeline";
 import { AnimationValueComparison } from "./animation-value-comparison";
+import { EditorModeSwitch, EditorPanelHeader } from "./editor-ui";
 import { compileGraph, resolveLiveScene } from "@/core/graph/live";
 import { readStoredGraph } from "@/core/graph/storage";
 import { GRAPH_KEY, PREVIOUS_GRAPH_KEY, LEGACY_GRAPH_KEY } from "@/core/graph/model";
@@ -339,7 +340,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
         <span className="pm-local-label"><span className="live-indicator"/> LOCAL</span>
       </div>
       <div className="pm-project-actions">
-        <Link className="pm-action pm-action-quiet" href="/studio/graph" aria-label="Open Node Graph Workspace"><GitBranch size={15}/> Node Graph{nodeGraph.binding.enabled?" · LIVE":""}</Link>
+        {mode==="studio"?<EditorModeSwitch active="studio" liveGraph={nodeGraph.binding.enabled}/>:<Link className="pm-action pm-action-quiet" href="/studio/graph" aria-label="Open Node Graph Workspace"><GitBranch size={15}/> Node Graph{nodeGraph.binding.enabled?" · LIVE":""}</Link>}
         <button type="button" className="pm-icon-btn" aria-label="Undo" disabled={!history.past.length} onClick={undo}><Undo2 size={17}/></button>
         <button type="button" className="pm-icon-btn" aria-label="Redo" disabled={!history.future.length} onClick={redo}><Redo2 size={17}/></button>
         <span className="pm-toolbar-rule"/>
@@ -371,7 +372,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
     <div className={"pm-grid pm-editor-pane-layout"+(!libraryOpen?" pm-no-library":"")+(!inspectorOpen?" pm-no-inspector":"")+(animationFocus&&detailsOpen&&detailsTab==="animation"?" pm-animation-focus":"")}>
       {libraryOpen&&<button type="button" className="pm-library-backdrop" aria-label="Close scene library" onClick={()=>setLibraryOpen(false)}/>}
       {libraryOpen&&<aside className="pm-sidebar pm-editor-panel" aria-label="Scene library">
-        <header className="pm-sidebar-heading pm-editor-panel-heading"><span className="pm-sidebar-mark"><Layers3 size={18}/></span><div><span className="pm-label">LIBRARY</span><h2>Scene Library</h2><p>Models, layers and presets</p></div></header>
+        <EditorPanelHeader className="pm-sidebar-heading" eyebrow="LIBRARY" title="Scene Library" description="Models, layers and presets" icon={<Layers3 size={18}/>}/>
         <div className="pm-library-search"><Search size={16}/><input type="search" aria-label="Search mathematical scenes" placeholder="Search scenes..." value={filter} onChange={e=>setFilter(e.target.value)}/></div>
         <div className="pm-library-group-heading"><span>MATHEMATICAL FORMS</span><span>{filtered.length} / {presets.length}</span></div>
         <div className="pm-library-list pm-editor-content-scroll">
@@ -405,7 +406,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
       </aside>}
       <div ref={centerRef} className={"pm-center"+(detailsOpen&&detailsTab==="animation"?" pm-animation-workspace":"")} style={detailsOpen&&detailsTab==="animation"?({"--pm-editor-height":animationPanelHeight+"px"} as CSSProperties):undefined}>
         <section className="pm-viewport-panel pm-editor-panel" aria-label="Visualization preview">
-          <div className="pm-viewport-toolbar pm-editor-viewport-heading"><div className="pm-viewport-heading"><span className="pm-blue-dot"/><div><strong>{doc.title}</strong><small>Canvas 2D · {doc.layers.length} layers</small></div></div>
+          <div className="pm-viewport-toolbar pm-editor-viewport-heading"><div className="pm-viewport-heading pm-editor-viewport-title"><span className="pm-blue-dot"/><div><strong>{doc.title}</strong><small>Canvas 2D · {doc.layers.length} layers</small></div></div>
             <div className="pm-viewport-tools"><span className="pm-live" data-state={playing?"playing":"paused"}><span className="live-indicator"/>{playing?"LIVE":"PAUSED"}</span>
             {nodeGraph.binding.enabled&&<span className={liveAtPlayhead.error?"pm-graph-live-badge is-error":"pm-graph-live-badge"} role="status">
               <GitBranch size={13}/>{liveAtPlayhead.error?"GRAPH ERROR":"GRAPH LINKED"}
@@ -497,7 +498,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
         {!detailsOpen&&<button type="button" className="pm-detail-reopen" onClick={()=>setDetailsOpen(true)}><ChevronUp size={16}/> Show scene details</button>}
       </div>
       {inspectorOpen&&<aside className="pm-inspector pm-editor-panel" aria-label="Scene inspector">
-        <header className="pm-inspector-top pm-editor-panel-heading"><span className="pm-sidebar-mark"><SlidersHorizontal size={18}/></span><div><span className="pm-label">PROPERTIES</span><h2>Inspector</h2><p>Selected mathematical layer</p></div></header>
+        <EditorPanelHeader className="pm-inspector-top" eyebrow="PROPERTIES" title="Inspector" description="Selected mathematical layer" icon={<SlidersHorizontal size={18}/>}/>
         <div className="pm-inspector-scroll pm-editor-content-scroll">
           <section className="pm-inspector-section"><div className="pm-inspector-sectionhead"><span>01 / LAYER</span><Layers3 size={16}/></div>
             <div className="field"><label htmlFor="layer-title">Layer name</label><input id="layer-title" className="pm-textfield" value={layer.title} maxLength={120} onChange={e=>{if(e.target.value)commit(d=>updateLayer(d,layer.id,l=>({...l,title:e.target.value})),"title:"+layer.id);}}/></div>
