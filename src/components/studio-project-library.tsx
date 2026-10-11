@@ -43,7 +43,7 @@ export function StudioProjectLibrary({library,onClose,onSelect,onNew,onDuplicate
               <button type="submit" aria-label={"Save name for "+project.name}><Save size={14}/></button>
               <button type="button" onClick={()=>setEditing(null)} aria-label="Cancel rename"><X size={14}/></button>
             </form>:<strong>{project.name}</strong>}
-            <small>{project.scene.layers.length} layer{project.scene.layers.length===1?"":"s"} · {project.graph.nodes.length} nodes</small>
+            <small>{project.scene.layers.length} layer{project.scene.layers.length===1?"":"s"} · {project.graph.nodes.length} nodes · {project.scene.layers.reduce((count,layer)=>count+(layer.keyframes?.length??0),0)} keyframes · Coursework</small>
           </div>
           <div className="pm-project-entry-actions">
             {project.id===library.activeId?<span className="pm-project-active">ACTIVE</span>:<button type="button" onClick={()=>onSelect(project.id)}>Open</button>}
@@ -53,7 +53,7 @@ export function StudioProjectLibrary({library,onClose,onSelect,onNew,onDuplicate
           </div>
         </article>)}
       </div>
-      <p className="pm-project-dialog-note">Browser storage is not a cloud backup. Cross-tab edits use last-write-wins. Node Graph is part of each project snapshot.</p>
+      <p className="pm-project-dialog-note">Browser storage is not a cloud backup. Cross-tab edits use last-write-wins. Scene, keyframes, Node Graph and Coursework are included in each project snapshot.</p>
     </section>
   </div>;
 }

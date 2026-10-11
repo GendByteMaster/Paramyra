@@ -15,7 +15,10 @@ export const courseworkSchema = z.object({
 export type CourseworkDraft = z.infer<typeof courseworkSchema>;
 export const COURSEWORK_PREFIX = "paramyra.graph.coursework.v1.";
 const PREFIX = COURSEWORK_PREFIX;
-export const parseCourseworkDraft = (value:unknown):CourseworkDraft|null => courseworkSchema.safeParse(value).data ?? null;
+export const parseCourseworkDraft = (value:unknown):CourseworkDraft|null => {
+  const result=courseworkSchema.safeParse(value);
+  return result.success?result.data:null;
+};
 
 
 export function defaultCourseworkDraft(graph: NodeGraph): CourseworkDraft {
