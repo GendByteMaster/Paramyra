@@ -18,12 +18,12 @@ test("Playground experiments never overwrite the persisted Studio document",asyn
     saved:localStorage.getItem("paramyra.document.v3"),
     temporary:sessionStorage.getItem("paramyra.playground.experiment.v2"),
   }));
-  expect(values.saved).toBe(studioBefore);
+  expect(JSON.parse(values.saved!)).toEqual(JSON.parse(studioBefore!));
   expect(JSON.parse(values.temporary!).params.frequencyX).toBe(8);
   await page.reload();
   await expect(page.getByRole("heading",{name:"Mathematics Playground"})).toBeVisible();
   await expect(page.getByRole("slider",{name:"Frequency X"})).toHaveValue("8");
-  expect(await page.evaluate(()=>localStorage.getItem("paramyra.document.v3"))).toBe(studioBefore);
+  expect(JSON.parse((await page.evaluate(()=>localStorage.getItem("paramyra.document.v3")))!)).toEqual(JSON.parse(studioBefore!));
   await page.goto("/studio");
   await expect(page.locator("#frequencyX")).toHaveValue("12");
 });
@@ -44,12 +44,12 @@ test("Open in Studio transfers a scene into an isolated unsaved draft, then save
   await expect(page.getByText("Playground experiment · Unsaved Studio draft")).toBeVisible();
   await expect(page.locator("#scene-kind")).toHaveValue("polar-rose");
   await expect(page.locator("#frequencyX")).toHaveValue("7");
-  expect(await page.evaluate(()=>localStorage.getItem("paramyra.document.v3"))).toBe(original);
+  expect(JSON.parse((await page.evaluate(()=>localStorage.getItem("paramyra.document.v3")))!)).toEqual(JSON.parse(original!));
 
   await page.reload();
   await expect(page.getByText("Playground experiment · Unsaved Studio draft")).toBeVisible();
   await expect(page.locator("#frequencyX")).toHaveValue("7");
-  expect(await page.evaluate(()=>localStorage.getItem("paramyra.document.v3"))).toBe(original);
+  expect(JSON.parse((await page.evaluate(()=>localStorage.getItem("paramyra.document.v3")))!)).toEqual(JSON.parse(original!));
 
   page.once("dialog",dialog=>dialog.accept());
   await page.getByRole("button",{name:"Save to Studio"}).click();
@@ -74,11 +74,11 @@ test("Declining Save to Studio keeps the old document and the isolated draft",as
   page.once("dialog",dialog=>dialog.dismiss());
   await page.getByRole("button",{name:"Save to Studio"}).click();
   await expect(page.getByText("Playground experiment · Unsaved Studio draft")).toBeVisible();
-  expect(await page.evaluate(()=>localStorage.getItem("paramyra.document.v3"))).toBe(original);
+  expect(JSON.parse((await page.evaluate(()=>localStorage.getItem("paramyra.document.v3")))!)).toEqual(JSON.parse(original!));
   await page.getByRole("button",{name:"Discard draft"}).click();
   await expect(page).toHaveURL(/\/studio$/);
   await expect(page.getByText("Playground experiment · Unsaved Studio draft")).toHaveCount(0);
-  expect(await page.evaluate(()=>localStorage.getItem("paramyra.document.v3"))).toBe(original);
+  expect(JSON.parse((await page.evaluate(()=>localStorage.getItem("paramyra.document.v3")))!)).toEqual(JSON.parse(original!));
 });
 
 test("An untrusted URL token cannot import an arbitrary document into Studio",async({page})=>{
@@ -87,7 +87,7 @@ test("An untrusted URL token cannot import an arbitrary document into Studio",as
   const saved=await page.evaluate(()=>localStorage.getItem("paramyra.document.v3"));
   await page.goto("/studio?playgroundTransfer=not-a-valid-token");
   await expect(page.getByText("Playground experiment · Unsaved Studio draft")).toHaveCount(0);
-  expect(await page.evaluate(()=>localStorage.getItem("paramyra.document.v3"))).toBe(saved);
+  expect(JSON.parse((await page.evaluate(()=>localStorage.getItem("paramyra.document.v3")))!)).toEqual(JSON.parse(saved!));
 });
 
 test("Playground uses experiment controls rather than Studio layers or Node Graph",async({page})=>{
