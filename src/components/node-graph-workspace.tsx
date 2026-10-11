@@ -350,7 +350,8 @@ function GraphWorkspace() {
         <button className="pm-ng-button pm-ng-primary" type="button" onClick={apply} disabled={!!projection.error||!connectedOutput||graph.binding.enabled}><Play size={15}/> Apply to Studio</button>
       </div>
     </header>
-    {courseworkMode?<GraphCoursework key={graph.id} graph={graph}
+    {courseworkMode?<GraphCoursework key={documentModel.id+":"+graph.id} graph={graph}
+      projectId={documentModel.id} allowLegacy={readStudioLibrary(localStorage).projects[0].id===documentModel.id}
       scene={graph.binding.enabled?liveScene.document:projection.document}
       time={time} outputs={evaluation.outputs} error={sceneError}/>:
     <div className={"pm-ng-layout pm-editor-pane-layout"+(!libraryOpen?" no-library":"")+(!inspectorOpen?" no-inspector":"")}>
