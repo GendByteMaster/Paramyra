@@ -118,6 +118,7 @@ test("Graph Workspace hides public navigation and footer, fills viewport, and ke
 test("Graph Workspace on compact screens scrolls the document without nested page scroll traps", async ({page}) => {
   await page.setViewportSize({width:800,height:600});
   await page.goto("/studio/graph");
+  await expect(page.locator(".pm-ng-layout")).toBeVisible();
 
   const dimensions = await page.evaluate(() => ({
     viewport: window.innerHeight,

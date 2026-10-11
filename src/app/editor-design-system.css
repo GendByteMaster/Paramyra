@@ -61,12 +61,56 @@
   box-shadow: inset 0 1px #eef4ff04;
 }
 .pm-editor-shell .pm-editor-panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
   flex: 0 0 var(--editor-panel-header-height);
   height: var(--editor-panel-header-height);
   min-height: var(--editor-panel-header-height);
-  padding: 10px 16px;
+  padding: 10px 14px;
   border-bottom: 1px solid var(--editor-stroke);
+  background: #111925;
   overflow: hidden;
+}
+.pm-editor-shell .pm-editor-panel-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 35px;
+  width: 35px;
+  height: 35px;
+  border-radius: 11px;
+  border: 1px solid rgba(190, 214, 255, .12);
+  background: rgba(178, 201, 255, .045);
+  color: #a8c7fa;
+}
+.pm-editor-shell .pm-editor-panel-heading-content {
+  display: grid;
+  gap: 3px;
+  align-content: center;
+  flex: 1;
+  min-width: 0;
+}
+.pm-editor-shell .pm-editor-panel-kicker {
+  display: block;
+  font-size: 9px;
+  line-height: 1.25;
+  font-weight: 750;
+  letter-spacing: .13em;
+  color: #94afd1;
+}
+.pm-editor-shell .pm-editor-panel-heading h2 {
+  font-size: 14px;
+  line-height: 1.25;
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: -.02em;
+}
+.pm-editor-shell .pm-editor-panel-heading p {
+  color: var(--editor-muted);
+  font-size: 11px;
+  line-height: 1.4;
+  margin: 0;
+  overflow-wrap: break-word;
 }
 .pm-editor-shell .pm-editor-viewport-heading {
   flex: 0 0 auto;
@@ -96,6 +140,81 @@
   min-width: 0;
   gap: 7px;
 }
+.pm-editor-shell .pm-editor-mode-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: 0 0 auto;
+  padding: 3px;
+  border: 1px solid var(--editor-stroke);
+  border-radius: 10px;
+  background: #0c1625;
+  white-space: nowrap;
+}
+.pm-editor-shell .pm-editor-mode-switch a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 6px 11px;
+  border-radius: 7px;
+  color: #9ab1d0;
+  font-size: 11px;
+  font-weight: 650;
+  text-decoration: none;
+}
+.pm-editor-shell .pm-editor-mode-switch a:hover {
+  color: #e9f0fc;
+  background: #203553;
+}
+.pm-editor-shell .pm-editor-mode-switch a[aria-current="page"] {
+  color: #f1f7ff;
+  background: #2c4d78;
+  box-shadow: inset 0 0 0 1px #a7ceff22;
+}
+.pm-editor-shell .pm-editor-mode-switch a:focus-visible {
+  outline: 2px solid #a6d9ff;
+  outline-offset: 2px;
+}
+.pm-editor-shell .pm-ng-title { display: grid; gap: 3px; min-width: 0; }
+.pm-editor-shell .pm-ng-title strong {
+  display: block;
+  font-size: 11px;
+  line-height: 1.2;
+  font-weight: 600;
+  color: #aabedb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pm-editor-shell .pm-local-label { flex: 0 0 auto; margin-left: 0; }
+.pm-editor-shell .pm-editor-viewport-title {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+.pm-editor-shell .pm-editor-viewport-title > div { min-width: 0; }
+.pm-editor-shell .pm-editor-viewport-title strong {
+  display: block;
+  font-size: 13px;
+  line-height: 1.25;
+  font-weight: 700;
+  color: #e9f0fc;
+}
+.pm-editor-shell .pm-editor-viewport-title small {
+  display: block;
+  margin-top: 3px;
+  font-size: 10px;
+  line-height: 1.25;
+  color: #91a7c6;
+}
+.pm-editor-shell .pm-editor-viewport-title .pm-blue-dot {
+  flex: 0 0 27px;
+  width: 27px;
+  height: 27px;
+}
 .pm-editor-shell .pm-project-name { gap: 3px; }
 .pm-editor-shell .pm-project-name > .pm-label { line-height: 1.25; }
 .pm-editor-shell .pm-project-name > strong { line-height: 1.2; }
@@ -119,7 +238,7 @@
   font-size: 11px;
   color: var(--editor-muted);
 }
-.pm-editor-shell .pm-ng-pane-header { display: block; }
+.pm-editor-shell .pm-ng-pane-header { display: flex; }
 .pm-editor-shell .pm-ng-library,
 .pm-editor-shell .pm-ng-inspector,
 .pm-editor-shell .pm-sidebar,
@@ -238,6 +357,10 @@
 
 /* Compact screens: both editors become document-scroll layouts.
    Preserves Studio's accessible mobile drawer and Graph's canvas gestures. */
+@media (max-width: 580px) {
+  .pm-editor-shell .pm-editor-mode-switch a { padding-inline: 8px; }
+  .pm-editor-shell .pm-editor-panel-heading { padding: 10px 12px; }
+}
 @media (max-width: 959px), (max-height: 679px) {
   html:has(.pm-editor-shell),
   body:has(.pm-editor-shell) {

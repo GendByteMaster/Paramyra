@@ -101,3 +101,48 @@ test("Studio and Graph use document scroll on compact screens without public sit
     expect(state.scrollHeight).toBeGreaterThan(state.viewport);
   }
 });
+
+test("Studio and Graph share real heading markup, icons, mode navigation and viewport title hierarchy", async ({page}) => {
+  await page.setViewportSize({width:1728,height:900});
+  for (const path of ["/studio","/studio/graph"]) {
+    await page.goto(path);
+
+    const headings=page.locator(".pm-editor-panel-heading");
+    await expect(headings).toHaveCount(2);
+    await expect(headings.nth(0).locator("h2")).toHaveText(path==="/studio"?"Scene Library":"Node Library");
+    await expect(headings.nth(1).locator("h2")).toHaveText("Inspector");
+    await expect(headings.nth(0).locator(".pm-editor-panel-kicker")).toHaveText("LIBRARY");
+    await expect(headings.nth(1).locator(".pm-editor-panel-kicker")).toHaveText("PROPERTIES");
+    await expect(headings.locator(".pm-editor-panel-icon")).toHaveCount(2);
+
+    const switcher=page.getByRole("navigation",{name:"Workspace modes"});
+    await expect(switcher).toBeVisible();
+    if (path==="/studio") {
+      await expect(switcher.getByRole("link",{name:"Studio"})).toHaveAttribute("aria-current","page");
+    } else {
+      await expect(switcher.getByRole("link",{name:"Node Graph"})).toHaveAttribute("aria-current","page");
+    }
+    await expect(page.locator(".pm-editor-viewport-title strong")).toHaveCount(1);
+
+    const geometric = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>(".pm-editor-panel-heading")].map(head => ({
+      height: head.getBoundingClientRect().height,
+      iconWidth: head.querySelector<HTMLElement>(".pm-editor-panel-icon")!.getBoundingClientRect().width,
+      direction: getComputedStyle(head).display,
+    })));
+    expect(geometric[0]).toEqual(geometric[1]);
+    expect(geometric[0].height).toBe(96);
+    expect(geometric[0].iconWidth).toBe(35);
+    expect(geometric[0].direction).toBe("flex");
+  }
+});
+
+test("Studio and Graph workspace tabs navigate both ways without loading the marketing chrome", async ({page}) => {
+  await page.goto("/studio");
+  await page.getByRole("link",{name:"Open Node Graph Workspace"}).click();
+  await expect(page).toHaveURL(/\/studio\/graph$/);
+  await expect(page.getByRole("navigation",{name:"Workspace modes"}).getByRole("link",{name:"Node Graph"})).toHaveAttribute("aria-current","page");
+  await page.getByRole("navigation",{name:"Workspace modes"}).getByRole("link",{name:"Studio"}).click();
+  await expect(page).toHaveURL(/\/studio$/);
+  await expect(page.getByRole("navigation",{name:"Workspace modes"}).getByRole("link",{name:"Studio"})).toHaveAttribute("aria-current","page");
+  await expect(page.locator("header.topbar")).toHaveCount(0);
+});
