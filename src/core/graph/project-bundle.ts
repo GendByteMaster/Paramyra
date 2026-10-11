@@ -1,7 +1,8 @@
 import { parseDocument, type MathDocument } from "../document/schema";
 import { supportsProperty } from "../animation/keyframes";
-import { GRAPH_KEY, parseGraph, type NodeGraph } from "./model";
+import { parseGraph, type NodeGraph } from "./model";
 import { defaultCourseworkDraft, parseCourseworkDraft, type CourseworkDraft } from "./coursework";
+import {readStudioLibrary,replaceActiveScene,replaceActiveGraph,replaceActiveCoursework,persistStudioLibrary,type ProjectStore} from "../projects/studio-library";
 
 export const SCENE_KEY="paramyra.document.v3";
 export const PROJECT_FORMAT="paramyra-project";
@@ -35,30 +36,17 @@ export function parseProjectBundle(input:unknown):ProjectBundle|null {
   return {format:PROJECT_FORMAT,version:2,scene,graph,coursework};
 }
 /**
- * localStorage is not transactional across keys/tabs. Roll back on a synchronous
- * write failure so this tab does not retain half an imported project.
- * Existing tabs are notified by storage events; concurrent writes still require
- * a future revision/CAS protocol. Never claim ACID guarantees here.
+ * Restore scene, graph, animation keyframes and Coursework as one active project
+ * snapshot, rather than writing a pair of orphan legacy mirrors. The registry
+ * commit and mirror rollback are best-effort, not multi-tab ACID transactions.
  */
-export function restoreProjectBundle(bundle:ProjectBundle,store:Pick<Storage,"getItem"|"setItem"|"removeItem">):boolean {
+export function restoreProjectBundle(bundle:ProjectBundle,store:ProjectStore):boolean {
   const validated=parseProjectBundle(bundle);
   if(!validated)return false;
-  let previousScene:string|null,previousGraph:string|null;
-  try{
-    previousScene=store.getItem(SCENE_KEY);
-    previousGraph=store.getItem(GRAPH_KEY);
-  }catch{return false;}
-  try{
-    store.setItem(GRAPH_KEY,JSON.stringify(validated.graph));
-    store.setItem(SCENE_KEY,JSON.stringify(validated.scene));
-    return true;
-  }catch{
-    try{
-      if(previousScene===null)store.removeItem(SCENE_KEY);
-      else store.setItem(SCENE_KEY,previousScene);
-      if(previousGraph===null)store.removeItem(GRAPH_KEY);
-      else store.setItem(GRAPH_KEY,previousGraph);
-    }catch{/* best effort rollback: storage may be unavailable entirely */}
-    return false;
-  }
+  const current=readStudioLibrary(store);
+  const now=Date.now();
+  const scene=replaceActiveScene(current,validated.scene,now);
+  const graph=scene&&replaceActiveGraph(scene,validated.graph,now);
+  const restored=graph&&replaceActiveCoursework(graph,validated.coursework,now);
+  return !!restored&&persistStudioLibrary(restored,store);
 }

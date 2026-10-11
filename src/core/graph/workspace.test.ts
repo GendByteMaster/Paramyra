@@ -8,6 +8,7 @@ import {copyGraphSelection,deleteGraphSelection,groupGraphNodes,moveGraphSelecti
 import {makeProjectBundle,parseProjectBundle,restoreProjectBundle,SCENE_KEY} from "./project-bundle";
 import {GRAPH_KEY} from "./model";
 import {defaultCourseworkDraft} from "./coursework";
+import {PROJECT_LIBRARY_KEY,activeProject,readStudioLibrary} from "../projects/studio-library";
 
 function ids(){let n=0;return ()=>"test-id-"+(++n);}
 describe("M3.3 Graph Workspace domain",()=>{
@@ -128,5 +129,7 @@ describe("M3.3 portable scene/graph project file",()=>{
     expect(restoreProjectBundle(bundle,normal)).toBe(true);
     expect(JSON.parse(map.get(GRAPH_KEY)!).schemaVersion).toBe(3);
     expect(JSON.parse(map.get(SCENE_KEY)!).schemaVersion).toBe(3);
+    expect(JSON.parse(map.get(PROJECT_LIBRARY_KEY)!).version).toBe(2);
+    expect(activeProject(readStudioLibrary(normal)).coursework).toEqual(bundle.coursework);
   });
 });
