@@ -89,6 +89,12 @@ export function GraphCoursework({graph,scene,time,outputs,error,projectId}:Props
   };
   const reportDate=useMemo(()=>new Date().toLocaleDateString("en-GB"),[]);
   const print=()=>window.print();
+  const downloadDraft=()=>{
+    const url=URL.createObjectURL(new Blob([JSON.stringify(draft,null,2)],{type:"application/json"}));
+    const anchor=document.createElement("a");
+    anchor.href=url;anchor.download="paramyra-coursework-draft.json";
+    anchor.click();window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+  };
 
   return <div className="pm-ng-coursework-layout" aria-label="Coursework workspace">
     <aside className="pm-ng-coursework-settings" aria-label="Coursework settings">
@@ -107,6 +113,7 @@ export function GraphCoursework({graph,scene,time,outputs,error,projectId}:Props
       </div>
       <div className="pm-ng-coursework-actions">
         <button type="button" onClick={print}><Printer size={16}/> Print / Save as PDF</button>
+        <button type="button" onClick={downloadDraft}><Download size={16}/> Download report backup</button>
         <span role="status">{saved?"Saved in this project · Included in project export":"Unable to save · Export your work before leaving"}</span>
       </div>
     </aside>
