@@ -12,6 +12,7 @@ import { makeProjectBundle,parseProjectBundle,restoreProjectBundle } from "@/cor
 import { copyGraphSelection,parseGraphSelection,pasteGraphSelection,deleteGraphSelection,
   moveGraphSelection,groupGraphNodes,ungroupGraphNodes,renameGraphGroup,type GraphSelection } from "@/core/graph/workspace";
 import { GraphReactFlowCanvas } from "./graph-react-flow";
+import { EditorModeSwitch, EditorPanelHeader } from "./editor-ui";
 import { compileGraph, resolveLiveScene } from "@/core/graph/live";
 import { persistGraph, readStoredGraph } from "@/core/graph/storage";
 import { commitGraph, initializeGraphHistory, redoGraph, undoGraph } from "@/core/graph/history";
@@ -295,13 +296,11 @@ function GraphWorkspace() {
       <div className="pm-ng-identity">
         <Link href="/studio" aria-label="Back to Studio" className="pm-ng-icon"><ArrowLeft size={17}/></Link>
         <span className="pm-ng-app-icon"><GitBranch size={21}/></span>
-        <div className="pm-ng-title"><span>PARAMYRA / WORKSPACES</span><h1>Node Graph <small>v1.0 · M3.3</small></h1></div>
+        <div className="pm-ng-title"><span>PARAMYRA / GRAPH</span><h1>Node Graph Workspace</h1><strong>{graph.title} — {graph.nodes.length} nodes</strong></div>
+        <span className="pm-local-label"><span className="live-indicator"/> LOCAL</span>
       </div>
       <div className="pm-ng-actions">
-      <nav className="pm-ng-modes" aria-label="Workspace modes">
-        <Link href="/studio"><Layers3 size={15}/> Studio</Link>
-        <Link href="/studio/graph" aria-current="page"><GitBranch size={15}/> Graph</Link>
-      </nav>
+      <EditorModeSwitch active="graph"/>
 
         <button type="button" className="pm-ng-icon" title="Undo" aria-label="Undo graph edit" disabled={!history.past.length} onClick={()=>setHistory(undoGraph)}><Undo2 size={17}/></button>
         <button type="button" className="pm-ng-icon" title="Redo" aria-label="Redo graph edit" disabled={!history.future.length} onClick={()=>setHistory(redoGraph)}><Redo2 size={17}/></button>
@@ -316,7 +315,7 @@ function GraphWorkspace() {
     </header>
     <div className={"pm-ng-layout pm-editor-pane-layout"+(!libraryOpen?" no-library":"")+(!inspectorOpen?" no-inspector":"")}>
       {libraryOpen&&<aside className="pm-ng-library pm-editor-panel" aria-label="Node library">
-        <div className="pm-ng-pane-header pm-editor-panel-heading"><span className="pm-ng-eyebrow">NODE LIBRARY</span><h2>Building blocks</h2><p>Compose mathematics with typed numeric ports.</p></div>
+        <EditorPanelHeader className="pm-ng-pane-header" eyebrow="LIBRARY" title="Node Library" description="Mathematical nodes and operators" icon={<GitBranch size={18}/>}/>
         <label className="pm-ng-search"><Search size={15}/><input type="search" aria-label="Search graph nodes" placeholder="Search nodes…" value={query} onChange={e=>setQuery(e.target.value)}/></label>
         <div className="pm-ng-library-scroll pm-editor-content-scroll">
         {categories.map(group=>{
@@ -331,8 +330,8 @@ function GraphWorkspace() {
       </aside>}
       <section className="pm-ng-center pm-editor-panel" aria-label="Graph editor">
         <div className="pm-ng-canvasbar pm-editor-viewport-heading">
-          <div><span className="pm-ng-eyebrow">GRAPH CANVAS · LOCAL</span><h2>{graph.title}</h2></div>
-          <div className="pm-ng-canvas-meta"><span>{graph.nodes.length} NODES</span><span>{graph.edges.length} LINKS</span><span className={sceneError?"pm-ng-error-dot":"pm-ng-ok-dot"}>{sceneError?"INVALID OUTPUT":graph.binding.enabled?"LIVE BINDING":"READY"}</span></div>
+          <div className="pm-editor-viewport-title"><span className="pm-blue-dot" aria-hidden="true"/><div><strong>{graph.title}</strong><small>Node canvas · {graph.nodes.length} nodes · {graph.edges.length} links</small></div></div>
+          <div className="pm-ng-canvas-meta"><span className={sceneError?"pm-ng-error-dot":"pm-ng-ok-dot"}>{sceneError?"INVALID OUTPUT":graph.binding.enabled?"LIVE BINDING":"READY"}</span></div>
         </div>
         <div className="pm-ng-commandbar" role="toolbar" aria-label="Graph editing commands">
           <span className="pm-ng-command-label"><ListTree size={15}/> GRAPH WORKSPACE</span>
@@ -373,7 +372,7 @@ function GraphWorkspace() {
         </div>
       </section>
       {inspectorOpen&&<aside className="pm-ng-inspector pm-editor-panel" aria-label="Graph inspector">
-        <div className="pm-ng-pane-header pm-editor-panel-heading"><span className="pm-ng-eyebrow">INSPECTOR</span><h2>Properties</h2><p>Configuration and deterministic output.</p></div>
+        <EditorPanelHeader className="pm-ng-pane-header" eyebrow="PROPERTIES" title="Inspector" description="Selected mathematical node" icon={<SlidersHorizontal size={18}/>}/>
         <div className="pm-ng-inspector-scroll pm-editor-content-scroll">
           {selectedGroup&&<section className="pm-ng-inspector-section" aria-label="Selected graph group">
             <h3><span>01 / GROUP</span><Group size={15}/></h3>
