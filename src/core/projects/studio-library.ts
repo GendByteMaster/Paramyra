@@ -1,6 +1,6 @@
-import { documentFromScene, parseDocument, type MathDocument } from "@/core/document/schema";
-import { initialGraph, parseGraph, GRAPH_KEY, type NodeGraph } from "@/core/graph/model";
-import { presetFor } from "@/core/scenes/presets";
+import { documentFromScene, parseDocument, type MathDocument } from "../document/schema";
+import { initialGraph, parseGraph, GRAPH_KEY, type NodeGraph } from "../graph/model";
+import { presetFor } from "../scenes/presets";
 
 export const PROJECT_LIBRARY_KEY="paramyra.studio.projects.v1";
 export const STUDIO_SCENE_KEY="paramyra.document.v3";
