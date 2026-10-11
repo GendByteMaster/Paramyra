@@ -2,7 +2,7 @@ import {describe,it,expect} from "vitest";
 import { documentFromScene, newFormulaLayer } from "../document/schema";
 import { presets } from "../scenes/presets";
 import { resolveAnimatedDocument } from "../animation/keyframes";
-import { compileGraph, evaluateCompiledGraph, resolveLiveScene } from "./live";
+import { compileGraph, evaluateCompiledGraph, resolveLiveScene, validateLiveGraphRange } from "./live";
 import { addGraphNode, connectGraph, createGraphNode, DISABLED_BINDING,
   initialGraph, parseGraph, updateGraphBinding, updateGraphNode } from "./model";
 
@@ -96,5 +96,41 @@ describe("M3.1 Live Node Graph integration",()=>{
     const samples=Array.from({length:1000},(_,index)=>resolveLiveScene(doc,index/100,compiled));
     expect(samples.every(sample=>sample.error===null)).toBe(true);
     expect(samples[123].document.layers[0].offset.x).toBeCloseTo(Math.sin(1.23));
+  });
+});
+
+describe("M3.5 Live Graph full-timeline safety",()=>{
+  it("catches amplitude 20 despite a valid output at the initial frame",()=>{
+    const doc=documentFromScene(presets[0]);
+    const big=updateGraphNode(initialGraph(),"amp",{value:20});
+    const enabled=updateGraphBinding(big,{enabled:true,layerId:doc.layers[0].id,priority:"keyframes-win"});
+    const compiled=compileGraph(enabled)!;
+    expect(evaluateCompiledGraph(compiled,0).error).toBeNull();
+    expect(resolveLiveScene(doc,0,compiled).error).toContain("outside -2…2");
+    expect(resolveLiveScene(doc,0,compiled).document).toBe(doc);
+    expect(validateLiveGraphRange(doc,compiled)).toContain("outside -2…2");
+    expect(validateLiveGraphRange(doc,compiled)).toContain("-20.00…20.00");
+  });
+  it("allows a bounded sine graph and rejects out-of-range properties",()=>{
+    const doc=documentFromScene(presets[0]);
+    expect(validateLiveGraphRange(doc,live(doc.layers[0].id))).toBeNull();
+    const safe=updateGraphNode(initialGraph(),"amp",{value:2});
+    expect(validateLiveGraphRange(doc,compileGraph(updateGraphBinding(safe,{
+      enabled:true,layerId:doc.layers[0].id,priority:"keyframes-win"
+    })))).toBeNull();
+    const large=updateGraphNode(initialGraph(),"amp",{value:2.001});
+    expect(validateLiveGraphRange(doc,compileGraph(updateGraphBinding(large,{
+      enabled:true,layerId:doc.layers[0].id,priority:"keyframes-win"
+    })))).toContain("outside -2…2");
+  });
+  it("skips the graph range check when a keyframe owns the target channel",()=>{
+    const doc=documentFromScene(presets[0]);
+    doc.layers[0]={...doc.layers[0],keyframes:[{property:"offset.x",time:0,value:0.5,ease:"linear"}]};
+    const large=updateGraphNode(initialGraph(),"amp",{value:20});
+    const compiled=compileGraph(updateGraphBinding(large,{
+      enabled:true,layerId:doc.layers[0].id,priority:"keyframes-win"
+    }))!;
+    expect(validateLiveGraphRange(doc,compiled)).toBeNull();
+    expect(resolveLiveScene(doc,Math.PI/2,compiled).blocked).toEqual(["offset.x"]);
   });
 });

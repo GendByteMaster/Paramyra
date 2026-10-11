@@ -13,7 +13,8 @@ import { copyGraphSelection,parseGraphSelection,pasteGraphSelection,deleteGraphS
   moveGraphSelection,groupGraphNodes,ungroupGraphNodes,renameGraphGroup,type GraphSelection } from "@/core/graph/workspace";
 import { GraphReactFlowCanvas } from "./graph-react-flow";
 import { EditorModeSwitch, EditorPanelHeader } from "./editor-ui";
-import { compileGraph, resolveLiveScene } from "@/core/graph/live";
+import { compileGraph, resolveLiveScene, validateLiveGraphRange } from "@/core/graph/live";
+import { readSessionPlayhead, writeSessionPlayhead } from "@/core/animation/playhead-session";
 import { persistGraph, readStoredGraph } from "@/core/graph/storage";
 import { commitGraph, initializeGraphHistory, redoGraph, undoGraph } from "@/core/graph/history";
 import { documentFromScene, parseDocument, type MathDocument } from "@/core/document/schema";
@@ -70,7 +71,7 @@ function GraphWorkspace() {
   const [selectedGroupId,setSelectedGroupId]=useState<string|null>(null);
   const [fullscreen,setFullscreen]=useState(false);
   const [layerId, setLayerId] = useState(() => readStoredGraph().binding.layerId ?? readDocument().layers[0].id);
-  const [time, setTime] = useState(0);
+  const [time, setTime] = useState(()=>readSessionPlayhead(documentModel.duration));
   const [query, setQuery] = useState("");
   const [notice, setNotice] = useState("Graph edits are local. Apply an output to commit a static value to Studio.");
   const [activeSource, setActiveSource] = useState<string | null>(null);
@@ -88,15 +89,18 @@ function GraphWorkspace() {
   const projection = useMemo(() => projectGraph(documentModel, graph, effectiveLayer, time),
     [documentModel, graph, effectiveLayer, time]);
   const compiled = useMemo(() => compileGraph(graph), [graph]);
-  const liveScene = useMemo(() => resolveLiveScene(documentModel,time,compiled),
-    [documentModel,time,compiled]);
-  const sceneError = graph.binding.enabled ? liveScene.error : projection.error;
+  const liveRangeError=useMemo(()=>graph.binding.enabled?validateLiveGraphRange(documentModel,compiled):null,
+    [documentModel,compiled,graph.binding.enabled]);
+  const liveScene = useMemo(() => resolveLiveScene(documentModel,time,liveRangeError?null:compiled),
+    [documentModel,time,compiled,liveRangeError]);
+  const sceneError = graph.binding.enabled ? liveRangeError??liveScene.error : projection.error;
   const values = projection.result.values;
   const evaluation = useMemo(() => evaluateGraph(graph, time), [graph, time]);
 
   useEffect(() => {
     persistGraph(graph);
   }, [graph]);
+  useEffect(()=>writeSessionPlayhead(time,documentModel.duration),[time,documentModel.duration]);
   useEffect(() => {
     const listener = (event: StorageEvent) => {
       if (event.key === DOC_KEY) setDocumentModel(readDocument());
@@ -198,6 +202,10 @@ function GraphWorkspace() {
     const enabled=!graph.binding.enabled;
     const next=updateGraphBinding(graph,{enabled,layerId:enabled?effectiveLayer:graph.binding.layerId,priority:"keyframes-win"});
     if(next===graph){setNotice("Unable to enable Live Graph on this layer.");return;}
+    if(enabled){
+      const invalid=validateLiveGraphRange(documentModel,compileGraph(next));
+      if(invalid){setNotice("Live Graph cannot be enabled: "+invalid);return;}
+    }
     commit(()=>next);
     setNotice(enabled?"Live Graph enabled. Timeline keyframes have priority on conflicting channels.":
       "Live Graph disabled. Studio uses base values and keyframes.");
@@ -391,7 +399,12 @@ function GraphWorkspace() {
             <label className="pm-ng-field">Name<input aria-label="Node title" maxLength={64} value={selected.title} onChange={e=>commit(old=>updateGraphNode(old,selected.id,{title:e.target.value}))}/></label>
             {selected.kind==="constant"&&<label className="pm-ng-field">Number<input type="number" aria-label="Constant value" min="-100000" max="100000" step="0.1" value={selected.value??0} onChange={e=>{
               const next=e.target.valueAsNumber;
-              if(Number.isFinite(next))commit(old=>updateGraphNode(old,selected.id,{value:next}));
+              if(Number.isFinite(next)){
+                const updated=updateGraphNode(graph,selected.id,{value:next});
+                const error=graph.binding.enabled?validateLiveGraphRange(documentModel,compileGraph(updated)):null;
+                commit(()=>error?updateGraphBinding(updated,{...updated.binding,enabled:false}):updated);
+                if(error)setNotice("Live Graph disabled: "+error);
+              }
             }}/></label>}
             {selected.kind==="output"&&<label className="pm-ng-field">Target property<select aria-label="Output property" value={selected.property} onChange={e=>{
               const next=updateGraphNode(graph,selected.id,{property:e.target.value as GraphNode["property"]});
@@ -404,9 +417,10 @@ function GraphWorkspace() {
           <section className="pm-ng-inspector-section">
             <h3><span>02 / SCENE OUTPUT</span><Layers3 size={15}/></h3>
             <div className="pm-ng-live-panel" role="group" aria-label="Live Graph binding">
-              <div className="pm-ng-live-heading"><strong>Live Graph</strong><span>{graph.binding.enabled?"ACTIVE":"OFF"}</span></div>
+              <div className="pm-ng-live-heading"><strong>Live Graph</strong><span>{graph.binding.enabled?(liveRangeError?"INVALID":"ACTIVE"):"OFF"}</span></div>
               <p>Evaluate at the Studio playhead on every animation frame. Existing keyframes win when targeting the same property.</p>
               <label className="pm-ng-live-switch"><input type="checkbox" aria-label="Enable Live Graph" checked={graph.binding.enabled} onChange={toggleLive}/> Enable real-time scene binding</label>
+              {graph.binding.enabled&&liveRangeError&&<p className="pm-ng-validation-error" role="alert">{liveRangeError}</p>}
               {graph.binding.enabled&&<p className="pm-ng-note">Binding target: {documentModel.layers.find(layer=>layer.id===graph.binding.layerId)?.title??"Missing layer"}. Graph editing is saved separately from Studio.</p>}
               {liveScene.blocked.length>0&&graph.binding.enabled&&<p className="pm-ng-note" role="status">Keyframes override: {liveScene.blocked.map(property=>names[property]).join(", ")}</p>}
             </div>
