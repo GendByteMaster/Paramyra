@@ -6,7 +6,7 @@ import {initializeLiveProjectLibrary,readLiveProjectLibrary,mutateLiveProjectLib
 import {readRecoveryCheckpoint,writeRecoveryCheckpoint,type RecoveryCheckpoint} from "@/core/projects/durable-checkpoints";
 import {parseStudioLibrary,persistStudioLibrary,PROJECT_LIBRARY_KEY} from "@/core/projects/studio-library";
 import type { StudioLibrary } from "@/core/projects/studio-library";
-import {activateDurableStorage,currentDurableProject,durableModeEnabled,liveLibrary,liveProjectId,queueDurableMutation} from "@/core/projects/durable-session";
+import {activateDurableStorage,durableModeEnabled,liveLibrary,liveProjectId,queueDurableMutation,settleDurableWrites} from "@/core/projects/durable-session";
 
 type Props={
   library:StudioLibrary;
@@ -97,6 +97,7 @@ export function StudioProjectLibrary({library,onClose,onSelect,onNew,onDuplicate
   const saveCheckpoint=async()=>{
     setBusy(true);
     try{
+      if(durableModeEnabled())await settleDurableWrites();
       const raw=localStorage.getItem(PROJECT_LIBRARY_KEY);
       const valid=durableModeEnabled()?liveLibrary():raw?parseStudioLibrary(JSON.parse(raw)):null;
       if(!valid){

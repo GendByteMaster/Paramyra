@@ -31,8 +31,12 @@ function commitMirror(record:LiveLibraryRecord){
     publish();
   }else session.mirrorWarning=false;
 }
+export async function settleDurableWrites():Promise<void>{
+  await queue;
+}
 export async function hydrateDurableSession():Promise<boolean>{
   if(!durableModeEnabled())return true;
+  await settleDurableWrites();
   const result=await readLiveProjectLibrary();
   if(result.status!=="ready"){
     fail("Transactional project storage cannot be opened ("+result.status+"). Legacy autosave is disabled to protect your work.");
@@ -68,7 +72,9 @@ export async function queueDurableMutation(
     }
     session.pending++;publish();
     try{
-      const result=await mutateLiveProjectLibrary(current.revision,expectedProjectId,update);
+      let result:CommitState;
+      try{result=await mutateLiveProjectLibrary(current.revision,expectedProjectId,update);}
+      catch{result={status:"unavailable"};}
       if(result.status!=="saved"){
         fail("Project save rejected ("+result.status+"). This tab is now read-only. Export any unsaved edits before reloading.");
         return result;
