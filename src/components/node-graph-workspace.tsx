@@ -5,13 +5,14 @@ import Link from "next/link";
 import {
   ArrowLeft, ArrowRight, Braces, Check, CircleDot, Download,
   GitBranch, Grid2X2, Layers3, Link2, Play, Plus, Redo2, Search, SlidersHorizontal, Trash2, Undo2, Upload, X,
-  Copy, ClipboardPaste, Group, Ungroup, Maximize2, Minimize2, FileArchive, ListTree, CheckSquare,
+  Copy, ClipboardPaste, Group, Ungroup, Maximize2, Minimize2, FileArchive, ListTree, CheckSquare, BookOpen,
 } from "lucide-react";
 import { SceneCanvas } from "./scene-canvas";
 import { makeProjectBundle,parseProjectBundle,restoreProjectBundle } from "@/core/graph/project-bundle";
 import { copyGraphSelection,parseGraphSelection,pasteGraphSelection,deleteGraphSelection,
   moveGraphSelection,groupGraphNodes,ungroupGraphNodes,renameGraphGroup,type GraphSelection } from "@/core/graph/workspace";
 import { GraphReactFlowCanvas } from "./graph-react-flow";
+import { GraphCoursework } from "./graph-coursework";
 import { EditorModeSwitch, EditorPanelHeader } from "./editor-ui";
 import { compileGraph, resolveLiveScene, validateLiveGraphRange } from "@/core/graph/live";
 import { readSessionPlayhead, writeSessionPlayhead } from "@/core/animation/playhead-session";
@@ -70,6 +71,7 @@ function GraphWorkspace() {
   const [selectedIds,setSelectedIds]=useState<string[]>(["product"]);
   const [selectedGroupId,setSelectedGroupId]=useState<string|null>(null);
   const [fullscreen,setFullscreen]=useState(false);
+  const [courseworkMode,setCourseworkMode]=useState(false);
   const [layerId, setLayerId] = useState(() => readStoredGraph().binding.layerId ?? readDocument().layers[0].id);
   const [time, setTime] = useState(()=>readSessionPlayhead(documentModel.duration));
   const [query, setQuery] = useState("");
@@ -326,6 +328,7 @@ function GraphWorkspace() {
       </div>
       <div className="pm-ng-actions">
       <EditorModeSwitch active="graph"/>
+        <button type="button" className={"pm-ng-coursework-tab"+(courseworkMode?" is-active":"")} aria-pressed={courseworkMode} aria-label={courseworkMode?"Return to node editor":"Open coursework mode"} onClick={()=>setCourseworkMode(v=>!v)}><BookOpen size={15}/> {courseworkMode?"Node Editor":"Курсовая"}</button>
 
         <button type="button" className="pm-ng-icon" title="Undo" aria-label="Undo graph edit" disabled={!history.past.length} onClick={()=>setHistory(undoGraph)}><Undo2 size={17}/></button>
         <button type="button" className="pm-ng-icon" title="Redo" aria-label="Redo graph edit" disabled={!history.future.length} onClick={()=>setHistory(redoGraph)}><Redo2 size={17}/></button>
@@ -338,6 +341,9 @@ function GraphWorkspace() {
         <button className="pm-ng-button pm-ng-primary" type="button" onClick={apply} disabled={!!projection.error||!connectedOutput||graph.binding.enabled}><Play size={15}/> Apply to Studio</button>
       </div>
     </header>
+    {courseworkMode?<GraphCoursework key={graph.id} graph={graph}
+      scene={graph.binding.enabled?liveScene.document:projection.document}
+      time={time} outputs={evaluation.outputs} error={sceneError}/>:
     <div className={"pm-ng-layout pm-editor-pane-layout"+(!libraryOpen?" no-library":"")+(!inspectorOpen?" no-inspector":"")}>
       {libraryOpen&&<aside className="pm-ng-library pm-editor-panel" aria-label="Node library">
         <EditorPanelHeader className="pm-ng-pane-header" eyebrow="LIBRARY" title="Node Library" description="Nodes and operators" icon={<GitBranch size={18}/>}/>
@@ -470,7 +476,7 @@ function GraphWorkspace() {
           </section>
         </div>
       </aside>}
-    </div>
+    </div>}
     <div className="pm-ng-statusbar pm-editor-statusbar"><span><span className={sceneError?"pm-ng-error-dot":"pm-ng-ok-dot"}/> PARAMYRA GRAPH ENGINE <span className="pm-ng-divider"/> LOCAL / NO EXECUTABLE CODE</span><span role="status" aria-live="polite" className="pm-ng-status-text">{notice}</span><span>{graph.nodes.length} NODES · {graph.edges.length} EDGES</span></div>
   </div>;
 }

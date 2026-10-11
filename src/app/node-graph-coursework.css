@@ -1,0 +1,188 @@
+/* M3.7 — Canvas lighting and academic coursework workspace. */
+.pm-ng-root .pm-ng-board,
+.pm-ng-root .pm-ng-reactflow-shell { position:relative; isolation:isolate; }
+.pm-ng-root .pm-ng-reactflow-shell { background:#101a29; overflow:hidden; }
+.pm-ng-root .pm-ng-reactflow {
+  background:
+    radial-gradient(ellipse 62% 65% at 48% 44%,rgba(55,94,142,.19),transparent 81%),
+    linear-gradient(155deg,#111c2b 0%,#0e1927 55%,#0c1623 100%) !important;
+}
+.pm-ng-root .pm-ng-rf-node {
+  box-shadow:0 9px 28px rgba(1,8,20,.28),0 1px 2px rgba(0,0,0,.20);
+}
+.pm-ng-root .pm-ng-quick-menu {
+  left:8px;top:8px;
+  min-width:0;
+  width:min(260px,calc(100% - 16px));
+  max-height:min(350px,calc(100% - 16px));
+  z-index:70;
+  background:#1b2a3f;
+  border-color:#8cacd16b;
+  box-shadow:0 20px 44px #010a1cb8,0 0 0 1px #8dabd71a;
+}
+.pm-ng-root .pm-ng-quick-results{max-height:min(230px,32dvh);}
+.pm-ng-root .pm-ng-rf-top-tools button.pm-ng-rf-light {
+  min-height:33px;
+  padding:7px 10px;
+  color:#cfe0f8;
+  background:#1b2b43;
+  border:1px solid #6988b355;
+}
+.pm-ng-root .pm-ng-rf-top-tools button.pm-ng-rf-light:hover { background:#2d4665; }
+.pm-ng-root .pm-ng-canvas-light {background:#e7edf5;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-reactflow {
+  background:
+    radial-gradient(ellipse 58% 64% at 50% 35%,#ffffffc9,transparent 78%),
+    linear-gradient(160deg,#f7f9fd,#e9f0f9 62%,#e0e9f4) !important;
+}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-node {
+  background:#fff;
+  border-color:#8fa9c9;
+  color:#17314e;
+  box-shadow:0 12px 30px #425a7725,0 1px 2px #273d5b30;
+}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-node-header {
+  background:#dbe8f7;
+  border-bottom-color:#a9c5e2;
+}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-node-header strong,
+.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-port-button,
+.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-port-button span {color:#15324e;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-node-subtitle,
+.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-port-button small,
+.pm-ng-root .pm-ng-canvas-light .pm-ng-node-type {color:#56708e;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-port-button{border-top-color:#d5e2f0;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-port-button:hover {background:#e4effb;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-port-output {background:#e1f2f2;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-port-button output {color:#087b7d;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-destination {background:#eee6fa;color:#60438a;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-chip {background:#ffffffed;color:#30506e;border-color:#9ab0c9;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-top-tools button {background:#f9fbff;color:#294863;border-color:#91abc9;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-top-tools button:hover {background:#e4eefb;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-top-tools button.pm-ng-rf-add {background:#25629c;color:#fff;border-color:#1d609c;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-controls.react-flow__controls {background:#f9fbff;border-color:#a2b7d4;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-controls.react-flow__controls button {background:#f2f6fc;color:#294864;border-color:#c7d5e5;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-minimap.react-flow__minimap {background:#f5f8fd;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-zoom-readable {color:#3f5976;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-quick-menu {background:#fff;color:#1d3652;border-color:#8da8c9;box-shadow:0 20px 40px #2c455b55;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-quick-menu-heading,
+.pm-ng-root .pm-ng-canvas-light .pm-ng-quick-help {color:#456787;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-quick-search {background:#f4f8fd;color:#456482;border-color:#9db8d6;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-quick-search input {color:#17324f;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-quick-results button,
+.pm-ng-root .pm-ng-canvas-light .pm-ng-quick-actions button {color:#1e3e5c;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-quick-results button:hover,
+.pm-ng-root .pm-ng-canvas-light .pm-ng-quick-actions button:hover {background:#e5effa;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-quick-actions button:last-child {color:#a33244;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-quick-menu-heading button {color:#496b8a;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-group {background:#bfd6e833;border-color:#447fb2;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-group-header {background:#daeaf8;color:#1c4769;}
+.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-group-header strong {color:#1b496c;}
+.pm-ng-coursework-tab {
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  border:1px solid #8bb3e956;border-radius:9px;min-height:35px;padding:7px 11px;
+  background:#172b43;color:#cce4ff;white-space:nowrap;font-size:11px;font-weight:700;
+}
+.pm-ng-coursework-tab:hover,.pm-ng-coursework-tab.is-active {
+  background:#315b84;color:#fff;border-color:#91c6f0aa;
+}
+.pm-ng-coursework-layout {
+  display:grid;grid-template-columns:minmax(285px,335px) minmax(0,1fr);
+  flex:1 1 0;min-height:0;min-width:0;gap:8px;
+}
+.pm-ng-coursework-settings,.pm-ng-coursework-scroll {
+  min-width:0;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+  border:1px solid rgba(165,190,230,.16);border-radius:13px;
+}
+.pm-ng-coursework-settings {display:flex;flex-direction:column;background:#121e2e;}
+.pm-ng-coursework-settings-head {
+  display:flex;align-items:center;gap:10px;padding:17px 16px;
+  background:#19273c;border-bottom:1px solid #8cacc52a;color:#9fcfff;
+}
+.pm-ng-coursework-settings-head strong{display:block;font-size:14px;color:#eaf4ff;}
+.pm-ng-coursework-settings-head span{display:block;margin-top:3px;font-size:10px;color:#9ab4ce;}
+.pm-ng-coursework-form{flex:1;overflow-y:auto;min-height:0;display:grid;align-content:start;gap:15px;padding:16px;}
+.pm-ng-coursework-form label{display:grid;gap:7px;color:#c7d9ee;font-size:11px;font-weight:650;}
+.pm-ng-coursework-form :is(input,textarea){
+  display:block;width:100%;padding:10px 11px;border-radius:9px;
+  border:1px solid #8eaaca50;background:#0c192a;
+  color:#e4f0ff;font:inherit;font-size:12px;line-height:1.5;resize:vertical;
+}
+.pm-ng-coursework-form :is(input,textarea):focus-visible{outline:2px solid #90cefb;outline-offset:1px;}
+.pm-ng-coursework-actions{display:grid;gap:8px;padding:14px 16px;border-top:1px solid #8cacc52a;}
+.pm-ng-coursework-actions button{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:10px;border:1px solid #8ed1e9a6;border-radius:9px;
+  background:linear-gradient(110deg,#83bdf4,#73d0d0);color:#072437;font-size:12px;font-weight:800;
+}
+.pm-ng-coursework-actions span{font-size:10px;text-align:center;color:#9fb4ce;}
+.pm-ng-coursework-scroll{background:#243247;padding:22px 20px 14px;}
+.pm-ng-coursework-paper{
+  margin:0 auto;max-width:840px;background:#fff;color:#192839;
+  padding:46px 54px;min-height:1050px;
+  box-shadow:0 18px 50px #0003;
+  font-family:Georgia,"Times New Roman",serif;font-size:14px;line-height:1.6;
+}
+.pm-ng-report-eyebrow {display:flex;gap:7px;align-items:center;color:#647a93;font:600 10px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:.11em;border-bottom:1px solid #d9e3ee;padding-bottom:10px;}
+.pm-ng-report-cover {display:grid;min-height:280px;align-content:center;text-align:center;gap:18px;padding:38px 5px;}
+.pm-ng-report-cover p{font-weight:650;font-size:14px;margin:0;}
+.pm-ng-report-cover small {font-size:12px;letter-spacing:.14em;font-weight:800;}
+.pm-ng-report-cover h2 {font-size:22px;line-height:1.35;margin:0;overflow-wrap:anywhere;}
+.pm-ng-report-authors {display:grid;gap:3px;justify-items:end;text-align:right;font-size:12px;}
+.pm-ng-report-date {font-size:12px;color:#617286;}
+.pm-ng-coursework-paper section{margin:28px 0;break-inside:avoid-page;}
+.pm-ng-coursework-paper section h3 {font-size:16px;margin:0 0 12px;border-bottom:1px solid #cbd9e6;padding-bottom:5px;}
+.pm-ng-coursework-paper section p {margin:7px 0 12px;white-space:pre-wrap;overflow-wrap:anywhere;}
+.pm-ng-coursework-diagram{display:block;width:100%;height:auto;background:#f5f8fc;border:1px solid #d5e1ec;border-radius:9px;margin:12px 0;}
+.pm-ng-report-formulas{display:grid;gap:6px;margin:12px 0;}
+.pm-ng-report-formulas>div{display:grid;grid-template-columns:115px minmax(0,1fr);gap:10px;background:#f1f6fa;border-radius:5px;padding:9px 11px;}
+.pm-ng-report-formulas span{font-size:12px;color:#42607d;}
+.pm-ng-report-formulas code{font-size:12px;overflow-wrap:anywhere;white-space:normal;color:#143d63;}
+.pm-ng-coursework-paper table {width:100%;border-collapse:collapse;font-size:12px;margin:16px 0;}
+.pm-ng-coursework-paper :is(th,td){border:1px solid #cedae7;padding:9px;text-align:left;}
+.pm-ng-coursework-paper th{background:#edf4fa;}
+.pm-ng-report-error{color:#9e2731;font-weight:700;}
+.pm-ng-report-scene{height:250px;background:#101a2b;border:1px solid #b7c8dc;margin-top:15px;}
+.pm-ng-report-scene canvas {width:100%;height:100%;display:block;}
+.pm-ng-report-caption{text-align:center;color:#5b6c7e;font-style:italic;font-size:12px;}
+.pm-ng-report-endnote{border-top:1px solid #d2dfe9;color:#627485;padding-top:12px;margin-top:28px;font-size:11px;text-align:center;}
+.pm-ng-coursework-hint{display:flex;align-items:center;justify-content:center;gap:7px;color:#b8cfe9;font-size:11px;padding:12px 5px;}
+@media(max-width:1100px){
+ .pm-ng-coursework-layout{grid-template-columns:285px minmax(0,1fr);}
+ .pm-ng-coursework-paper{padding:28px;}
+}
+@media(max-width:959px){
+ .pm-ng-coursework-layout{display:flex;flex-direction:column;overflow:visible;}
+ .pm-ng-coursework-settings,.pm-ng-coursework-scroll{flex:none;overflow:visible;}
+ .pm-ng-coursework-form{overflow:visible;}
+ .pm-ng-coursework-paper{padding:23px;min-height:0;}
+}
+@media(max-width:600px){
+ .pm-ng-coursework-scroll{padding:8px;}
+ .pm-ng-coursework-paper{padding:16px;}
+ .pm-ng-report-cover h2{font-size:18px;}
+ .pm-ng-coursework-paper{font-size:12px;}
+}
+@media print{
+ @page {size:A4; margin:14mm;}
+ html:has(.pm-ng-coursework-layout),body:has(.pm-ng-coursework-layout),
+ body:has(.pm-ng-coursework-layout) #main-content{overflow:visible!important;height:auto!important;min-height:0!important;background:#fff!important;}
+ body:has(.pm-ng-coursework-layout) .pm-ng-root{display:block!important;width:100%!important;height:auto!important;overflow:visible!important;margin:0!important;background:#fff!important;}
+ body:has(.pm-ng-coursework-layout) .pm-ng-projectbar,
+ body:has(.pm-ng-coursework-layout) .pm-ng-statusbar,
+ body:has(.pm-ng-coursework-layout) .pm-ng-coursework-settings,
+ body:has(.pm-ng-coursework-layout) .pm-ng-coursework-hint{display:none!important;}
+ body:has(.pm-ng-coursework-layout) .pm-ng-coursework-layout{display:block!important;height:auto!important;overflow:visible!important;}
+ body:has(.pm-ng-coursework-layout) .pm-ng-coursework-scroll{display:block!important;overflow:visible!important;padding:0!important;border:0!important;background:#fff!important;}
+ body:has(.pm-ng-coursework-layout) .pm-ng-coursework-paper{
+   margin:0!important;width:100%!important;max-width:none!important;min-height:0!important;
+   overflow:visible!important;padding:0!important;box-shadow:none!important;color:#111!important;
+   -webkit-print-color-adjust:exact;print-color-adjust:exact;
+ }
+ body:has(.pm-ng-coursework-layout) .pm-ng-report-cover{break-after:page;min-height:85vh;}
+ body:has(.pm-ng-coursework-layout) .pm-ng-report-scene{height:200px;break-inside:avoid;}
+ body:has(.pm-ng-coursework-layout) .pm-ng-coursework-paper section {break-inside:auto;}
+ body:has(.pm-ng-coursework-layout) .pm-ng-coursework-diagram,
+ body:has(.pm-ng-coursework-layout) .pm-ng-report-formulas,
+ body:has(.pm-ng-coursework-layout) .pm-ng-report-scene {break-inside:avoid;}
+}
