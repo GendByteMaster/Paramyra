@@ -3,11 +3,23 @@
 import {useEffect,useState,type ReactNode} from "react";
 import {durableModeEnabled,durableSessionSnapshot,DURABLE_MODE_KEY,DURABLE_SESSION_EVENT,hydrateDurableSession} from "@/core/projects/durable-session";
 import {parseStudioLibrary,PROJECT_LIBRARY_KEY} from "@/core/projects/studio-library";
+import {readLiveProjectLibrary} from "@/core/projects/live-repository";
 
 /** Do not mount sync autosave effects before IndexedDB hydration succeeds. */
 export function DurableWorkspaceGate({children}:{children:ReactNode}){
   const [status,setStatus]=useState<"loading"|"ready"|"failed">("loading");
   const [message,setMessage]=useState("");
+  useEffect(()=>{
+    if(!durableModeEnabled())return;
+    const warn=(event:BeforeUnloadEvent)=>{
+      if(durableSessionSnapshot().pending>0){
+        event.preventDefault();
+        event.returnValue="";
+      }
+    };
+    window.addEventListener("beforeunload",warn);
+    return()=>window.removeEventListener("beforeunload",warn);
+  },[]);
   useEffect(()=>{
     let mounted=true;
     if(!durableModeEnabled())return;
@@ -26,6 +38,13 @@ export function DurableWorkspaceGate({children}:{children:ReactNode}){
     <p>Your project data has not been overwritten. No automatic fallback to localStorage will occur.</p>
     <div className="pm-durable-recovery-actions">
       <button type="button" onClick={()=>window.location.reload()}>Try again</button>
+      <button type="button" onClick={()=>{void (async()=>{
+        const result=await readLiveProjectLibrary();
+        if(result.status!=="ready"){window.alert("No valid IndexedDB snapshot is accessible.");return;}
+        const url=URL.createObjectURL(new Blob([JSON.stringify(result.record.library,null,2)],{type:"application/json"}));
+        const a=document.createElement("a");a.href=url;a.download="paramyra-idb-projects-backup.json";a.click();
+        window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+      })();}}>Export IndexedDB projects</button>
       <button type="button" onClick={()=>{
         try{
           const raw=localStorage.getItem(PROJECT_LIBRARY_KEY);

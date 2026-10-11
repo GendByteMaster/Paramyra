@@ -36,3 +36,7 @@ This stacked milestone turns the preview `studio-library-live` IndexedDB record 
 - Critical browser scenarios: activate → edit scene → verify IDB → graph constant update → Coursework draft → reload → project CRUD snapshot; stale-tab same-project collision → rejection and no IDB revision bump.
 - Test legacy mode regression, v1 migration, checkpoint save/restore, invalid/corrupt record and failed storage startup.
 - Recheck after stacking dependency PRs #30 → #31 → #32 and base retargeting.
+
+## Additional recovery and navigation behavior
+
+The failed-hydration UI can export the valid authoritative IndexedDB snapshot **without starting an editor**, as well as the last validated local mirror. Explicit fallback to a validated local copy preserves the IndexedDB record for later recovery. A pending write triggers the browser's before-unload warning where the browser permits it; this is not an fsync guarantee on abrupt shutdown. Gallery `/studio?kind=...` launches create a new durable project and remove the query parameter only after a successful commit, rather than overriding existing Scene data. Coursework uses latest-edit receipt tracking so an older completed write does not falsely mark newer unsaved text as saved.

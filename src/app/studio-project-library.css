@@ -61,3 +61,8 @@
 .pm-durable-status span{flex:1}
 .pm-durable-status button,.pm-durable-gate-error button{border-radius:7px;background:#eedbdc;border:1px solid #d9a2a6;color:#35191b;padding:7px 11px;cursor:pointer}
 .pm-durable-gate-error{max-width:820px;margin:auto}
+
+.pm-durable-recovery-actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}
+.pm-durable-gate-error{line-height:1.55}
+.pm-durable-gate-error h2{font-size:20px}
+.pm-durable-gate-error button:focus-visible{outline:2px solid #9fd6ff;outline-offset:2px}
