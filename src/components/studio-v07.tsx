@@ -218,7 +218,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
     if(!next)return setNotice("Use a valid project name (1–120 characters).");
     if(id===projectLibrary.activeId){
       if(!persistStudioLibrary(next,localStorage))return setNotice("Rename failed: browser storage unavailable.");
-      setHistory(h=>({...h,present:{...h.present,title:name.trim()}}));
+      setHistory(initializeHistory({...doc,title:name.trim()}));
     } else if(!persistStudioLibrary(next,localStorage))return setNotice("Rename failed: browser storage unavailable.");
     setProjectLibrary(next);
     setNotice("Project renamed.");
