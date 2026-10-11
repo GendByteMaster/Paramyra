@@ -102,8 +102,8 @@ function GraphWorkspace() {
   const evaluation = useMemo(() => evaluateGraph(graph, time), [graph, time]);
 
   useEffect(() => {
-    writeActiveGraph(graph,localStorage,Date.now());
-  }, [graph]);
+    writeActiveGraph(graph,localStorage,Date.now(),projectId);
+  }, [graph,projectId]);
   useEffect(()=>writeSessionPlayhead(time,documentModel.duration),[time,documentModel.duration]);
   useEffect(() => {
     const listener = (event: StorageEvent) => {

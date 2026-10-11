@@ -173,20 +173,23 @@ export function persistStudioLibrary(library:StudioLibrary,store:ProjectStore,
   }
 }
 /** Persist one active scene without touching the other saved projects. */
-export function writeActiveScene(scene:MathDocument,store:ProjectStore,now:number):StudioLibrary|null{
+export function writeActiveScene(scene:MathDocument,store:ProjectStore,now:number,expectedProjectId?:string):StudioLibrary|null{
   const existing=readStudioLibrary(store);
+  if(expectedProjectId && existing.activeId!==expectedProjectId)return null;
   const next=replaceActiveScene(existing,scene,now);
   return next&&persistStudioLibrary(next,store,{graph:false})?next:null;
 }
-export function writeActiveGraph(graph:NodeGraph,store:ProjectStore,now:number):StudioLibrary|null{
+export function writeActiveGraph(graph:NodeGraph,store:ProjectStore,now:number,expectedProjectId?:string):StudioLibrary|null{
   const existing=readStudioLibrary(store);
+  if(expectedProjectId && existing.activeId!==expectedProjectId)return null;
   const next=replaceActiveGraph(existing,graph,now);
   return next&&persistStudioLibrary(next,store,{scene:false})?next:null;
 }
 
 /** Atomic project snapshot update at the registry level; mirrors are not changed. */
-export function writeActiveCoursework(draft:CourseworkDraft,store:ProjectStore,now:number):StudioLibrary|null{
+export function writeActiveCoursework(draft:CourseworkDraft,store:ProjectStore,now:number,expectedProjectId?:string):StudioLibrary|null{
   const current=readStudioLibrary(store);
+  if(expectedProjectId && current.activeId!==expectedProjectId)return null;
   const next=replaceActiveCoursework(current,draft,now);
   return next&&persistStudioLibrary(next,store,{scene:false,graph:false})?next:null;
 }

@@ -184,8 +184,8 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
       saveStudioHandoffDraft(transferToken,doc);
       return;
     }
-    writeActiveScene(doc,localStorage,Date.now());
-  },[doc,transferToken]);
+    writeActiveScene(doc,localStorage,Date.now(),projectLibrary.activeId);
+  },[doc,transferToken,projectLibrary.activeId]);
   const openProject=(next:StudioLibrary)=>{
     if(!persistStudioLibrary(next,localStorage)){
       setNotice("Unable to change projects. Export JSON or free browser storage.");

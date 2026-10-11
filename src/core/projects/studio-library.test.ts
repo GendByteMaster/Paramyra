@@ -157,6 +157,17 @@ describe("Studio project library",()=>{
     expect(writeActiveCoursework({...activeProject(lib).coursework,student:"A"},rejecting,2)).toBeNull();
     expect([...entries]).toEqual([...before]);
   });
+  it("rejects stale writers after a different tab changes the active project",()=>{
+    const {store}=seed();
+    const original=readStudioLibrary(store);
+    const second=createProject(original,"another",documentFromScene(presetFor("wave")),initialGraph(),1)!;
+    expect(persistStudioLibrary(second,store)).toBe(true);
+    const before=store.getItem(PROJECT_LIBRARY_KEY);
+    expect(writeActiveScene(activeProject(original).scene,store,2,original.activeId)).toBeNull();
+    expect(writeActiveGraph(initialGraph(),store,3,original.activeId)).toBeNull();
+    expect(writeActiveCoursework(activeProject(original).coursework,store,4,original.activeId)).toBeNull();
+    expect(store.getItem(PROJECT_LIBRARY_KEY)).toBe(before);
+  });
   it("reconciles direct legacy document edits made before Studio reload",()=>{
     const {store}=seed();
     const initial=readStudioLibrary(store);
