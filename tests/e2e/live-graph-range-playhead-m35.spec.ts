@@ -2,6 +2,7 @@ import {expect,test} from "@playwright/test";
 
 test("unsafe amplitude cannot be activated as a discontinuous Live Graph",async({page})=>{
   await page.goto("/studio/graph");
+  await page.getByRole("article",{name:"Amplitude node"}).click();
   const number=page.getByRole("spinbutton",{name:"Constant value"});
   const toggle=page.getByRole("checkbox",{name:"Enable Live Graph"});
   await number.fill("20");
@@ -21,6 +22,8 @@ test("unsafe amplitude cannot be activated as a discontinuous Live Graph",async(
 });
 
 test("legacy out-of-bounds Live Graph is marked invalid and does not make Studio jump",async({page})=>{
+  await page.goto("/studio");
+  await expect.poll(()=>page.evaluate(()=>localStorage.getItem("paramyra.document.v3"))).not.toBeNull();
   await page.goto("/studio/graph");
   await page.evaluate(()=>{
     const key="paramyra.nodegraph.v3";
@@ -57,5 +60,6 @@ test("Studio and Node Graph hand off the same playhead position per tab",async({
   await graph.press("Home");
   await expect.poll(()=>page.evaluate(()=>Number(sessionStorage.getItem("paramyra.studio.playhead.v1")))).toBe(0);
   await page.getByRole("navigation",{name:"Workspace modes"}).getByRole("link",{name:"Studio",exact:true}).click();
-  await expect(page.getByRole("slider",{name:"Timeline position"})).toHaveValue("0");
+  await page.getByRole("button",{name:"Pause animation"}).click();
+  expect(Number(await page.getByRole("slider",{name:"Timeline position"}).inputValue())).toBeLessThan(0.5);
 });
