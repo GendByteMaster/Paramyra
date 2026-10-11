@@ -9,7 +9,7 @@ async function durableSnapshot(page:Page){
     });
     try{return await new Promise<{
       revision:number;library:{activeId:string;projects:Array<{
-        scene:{layers:Array<{params:{frequencyX:number}}>};
+        name:string;scene:{layers:Array<{params:{frequencyX:number}}>};
         graph:{nodes:Array<{id:string;value?:number}>};
         coursework:{objective:string};
       }>};
@@ -129,8 +129,5 @@ test("M4.2.2 rejected invalid project rename does not lock valid transactional e
   await modal.getByRole("textbox",{name:"Rename Lissajous Curves"}).fill("Verified Project");
   await modal.getByRole("button",{name:"Save name for Lissajous Curves"}).click();
   await expect(modal.getByText("Verified Project")).toBeVisible();
-  await expect.poll(async()=>{
-    const snap=await durableSnapshot(page);
-    return snap.library.projects.length===1?snap.library.activeId:null;
-  }).not.toBeNull();
+  await expect.poll(async()=>(await durableSnapshot(page)).library.projects[0].name).toBe("Verified Project");
 });
