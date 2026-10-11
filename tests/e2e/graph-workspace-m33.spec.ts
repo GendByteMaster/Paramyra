@@ -138,7 +138,7 @@ test("Graph editor playhead updates scene preview without page scrolling", async
   const playhead=editor.getByRole("slider",{name:"Graph time"});
   await playhead.focus();
   await playhead.press("ArrowRight");
-  await expect(editor.getByLabel("Graph time value")).not.toContainText("0.00s /");
+  await expect(editor.getByLabel("Graph time value")).not.toHaveText("0.00s");
   await expect(page.getByLabel("Graph scene preview")).toBeVisible();
   const scroll=await page.evaluate(()=>document.documentElement.scrollHeight-window.innerHeight);
   expect(scroll).toBeLessThanOrEqual(1);
