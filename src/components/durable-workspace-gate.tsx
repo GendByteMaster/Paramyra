@@ -74,9 +74,20 @@ export function DurableStatus(){
   useEffect(()=>{
     const update=()=>setState(durableSessionSnapshot());
     window.addEventListener(DURABLE_SESSION_EVENT,update);
-    return()=>window.removeEventListener(DURABLE_SESSION_EVENT,update);
+    // If an existing legacy tab observes opt-in from a different tab,
+    // never display a false "Saved in IndexedDB" state.
+    window.addEventListener("storage",update);
+    return()=>{
+      window.removeEventListener(DURABLE_SESSION_EVENT,update);
+      window.removeEventListener("storage",update);
+    };
   },[]);
   if(!durableModeEnabled())return null;
+  if(!state.record)return <aside className="pm-durable-status pm-durable-error" role="alert">
+    <strong>Transactional storage changed in another tab</strong>
+    <span>Export unsaved JSON from this editor, then reload. This tab is not yet hydrated for IndexedDB saves.</span>
+    <button type="button" onClick={()=>window.location.reload()}>Reload protected workspace</button>
+  </aside>;
   if(state.error)return <aside className="pm-durable-status pm-durable-error" role="alert">
     <strong>Save conflict / unavailable storage</strong><span>{state.error} Export current JSON from this workspace before reloading.</span>
     <button type="button" onClick={()=>window.location.reload()}>Reload latest saved project</button>
