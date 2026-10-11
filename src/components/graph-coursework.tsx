@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { BookOpen, Download, FileText, Printer } from "lucide-react";
 import { SceneCanvas } from "./scene-canvas";
 import { courseworkFormulas, readCourseworkDraft, saveCourseworkDraft, type CourseworkDraft } from "@/core/graph/coursework";
@@ -68,12 +68,10 @@ export function GraphCoursework({graph,scene,time,outputs,error}:Props){
   const [saved,setSaved]=useState(true);
   const formulas=useMemo(()=>courseworkFormulas(graph),[graph]);
   const update=(key:DraftKey,value:string)=>{
-    setDraft(old=>({...old,[key]:value}));
-    setSaved(false);
+    const next={...draft,[key]:value};
+    setDraft(next);
+    setSaved(saveCourseworkDraft(graph.id,next));
   };
-  useEffect(()=>{
-    setSaved(saveCourseworkDraft(graph.id,draft));
-  },[graph.id,draft]);
   const reportDate=useMemo(()=>new Date().toLocaleDateString("ru-RU"),[]);
   const print=()=>window.print();
 
