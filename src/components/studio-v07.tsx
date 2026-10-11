@@ -363,7 +363,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
       <div><strong>Playground experiment · Unsaved Studio draft</strong><span>Your previous Studio project is untouched until you save this experiment.</span></div>
       <div className="pm-studio-transfer-actions">
         <button type="button" onClick={savePlaygroundDraftToStudio}>Save to Studio</button>
-        <button type="button" onClick={()=>window.location.assign("/studio")}>Discard draft</button>
+        <button type="button" onClick={()=>{if(transferToken)clearStudioHandoff(transferToken);window.location.assign("/studio");}}>Discard draft</button>
       </div>
     </div>}
     <header className="pm-projectbar pm-editor-topbar" role="toolbar" aria-label="Workspace toolbar">
