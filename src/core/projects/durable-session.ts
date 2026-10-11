@@ -63,15 +63,17 @@ export async function queueDurableMutation(
   update:(library:StudioLibrary)=>StudioLibrary|null,expectedProjectId:string,
 ):Promise<CommitState>{
   if(!durableModeEnabled())return {status:"unavailable"};
+  // Count queued work immediately. "Saved" and beforeunload checks must not
+  // become green while a user edit is waiting behind an earlier transaction.
+  session.pending++;publish();
   const operation=async():Promise<CommitState>=>{
-    if(session.error||!session.record)return {status:"unavailable"};
-    const current=session.record;
-    if(current.library.activeId!==expectedProjectId){
-      fail("The active project changed. Export your edits, then reload to resolve the conflict.");
-      return {status:"conflict"};
-    }
-    session.pending++;publish();
     try{
+      if(session.error||!session.record)return {status:"unavailable"};
+      const current=session.record;
+      if(current.library.activeId!==expectedProjectId){
+        fail("The active project changed. Export your edits, then reload to resolve the conflict.");
+        return {status:"conflict"};
+      }
       let result:CommitState;
       try{result=await mutateLiveProjectLibrary(current.revision,expectedProjectId,update);}
       catch{result={status:"unavailable"};}
