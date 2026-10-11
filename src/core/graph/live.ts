@@ -82,6 +82,10 @@ export function resolveLiveScene(doc: MathDocument,time:number,compiled:Compiled
   const layer=animated.layers.find(layer=>layer.id===layerId);
   const source=doc.layers.find(layer=>layer.id===layerId);
   if(!layer||!source)return {document:animated,error:"Live Graph target layer no longer exists.",driven:[],blocked:[]};
+  // Authoritative guard for Canvas, exports and callers outside the React workspaces.
+  // A graph unsafe at any time must not silently snap to base values between frames.
+  const rangeError=validateLiveGraphRange(doc,compiled);
+  if(rangeError)return {document:animated,error:rangeError,driven:[],blocked:[]};
   const result=evaluateCompiledGraph(compiled,time);
   if(result.error)return {document:animated,error:result.error,driven:[],blocked:[]};
 
@@ -135,7 +139,19 @@ function sineRange(input: Range): Range {
  * checking only the current time permits visually discontinuous fallback frames.
  * Interval operations may conservatively reject a graph with correlated inputs.
  */
+// MathDocument and CompiledGraph are immutable in production. Cache proofs per
+// reference so Canvas playback and exports do not reanalyze the DAG every frame.
+const fullRangeCache=new WeakMap<MathDocument,WeakMap<CompiledGraph,string|null>>();
 export function validateLiveGraphRange(doc:MathDocument,compiled:CompiledGraph|null):string|null {
+  if(!compiled)return "Unable to compile the graph.";
+  let proofs=fullRangeCache.get(doc);
+  if(!proofs){proofs=new WeakMap();fullRangeCache.set(doc,proofs);}
+  if(proofs.has(compiled))return proofs.get(compiled)!;
+  const error=analyzeLiveGraphRange(doc,compiled);
+  proofs.set(compiled,error);
+  return error;
+}
+function analyzeLiveGraphRange(doc:MathDocument,compiled:CompiledGraph|null):string|null {
   if(!compiled)return "Unable to compile the graph.";
   if(!Number.isFinite(doc.duration)||doc.duration<=0||doc.duration>60)return "Invalid scene duration.";
   const target=doc.layers.find(layer=>layer.id===compiled.graph.binding.layerId);
