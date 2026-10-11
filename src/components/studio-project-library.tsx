@@ -207,8 +207,8 @@ export function StudioProjectLibrary({library,onClose,onSelect,onNew,onDuplicate
         <p>Optional cutover. Export JSON first. Activation migrates your current project library into IndexedDB and enables revision-controlled autosave across Studio and Node Graph.</p>
         <div className="pm-project-checkpoint-actions">
           <button type="button" disabled={activateBusy} onClick={()=>{void activate();}}>Enable transactional autosave</button>
-          <button type="button" disabled={liveBusy} onClick={()=>{void prepareLive();}}>Initialize preview</button>
-          <button type="button" disabled={liveBusy||!liveRecord} onClick={()=>{void syncLive();}}>Commit preview</button>
+          <button type="button" disabled={liveBusy} onClick={()=>{void prepareLive();}}>Initialize snapshot</button>
+          <button type="button" disabled={liveBusy||!liveRecord} onClick={()=>{void syncLive();}}>Commit local snapshot</button>
         </div>
         <p role="status" aria-live="polite">{activateStatus||liveStatus}</p>
       </details>}
