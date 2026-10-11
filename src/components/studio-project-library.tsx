@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Copy, FolderOpen, Plus, Save, Trash2, X, DatabaseBackup, RotateCcw } from "lucide-react";
+import { Copy, FolderOpen, Plus, Save, Trash2, X, DatabaseBackup, RotateCcw, Database } from "lucide-react";
+import {initializeLiveProjectLibrary,readLiveProjectLibrary,mutateLiveProjectLibrary,type LiveLibraryRecord} from "@/core/projects/live-repository";
 import {readRecoveryCheckpoint,writeRecoveryCheckpoint,type RecoveryCheckpoint} from "@/core/projects/durable-checkpoints";
 import {parseStudioLibrary,persistStudioLibrary,PROJECT_LIBRARY_KEY} from "@/core/projects/studio-library";
 import type { StudioLibrary } from "@/core/projects/studio-library";
@@ -22,6 +23,52 @@ export function StudioProjectLibrary({library,onClose,onSelect,onNew,onDuplicate
   const [checkpoint,setCheckpoint]=useState<RecoveryCheckpoint|null>(null);
   const [checkpointStatus,setCheckpointStatus]=useState("Checking local recovery checkpoint…");
   const [busy,setBusy]=useState(false);
+  const [liveBusy,setLiveBusy]=useState(false);
+  const [liveRecord,setLiveRecord]=useState<LiveLibraryRecord|null>(null);
+  const [liveStatus,setLiveStatus]=useState("Checking transactional storage…");
+  useEffect(()=>{
+    let active=true;
+    void readLiveProjectLibrary().then(result=>{
+      if(!active)return;
+      if(result.status==="ready"){
+        setLiveRecord(result.record);
+        setLiveStatus("Preview snapshot · Revision "+result.record.revision);
+      }else if(result.status==="empty")setLiveStatus("No transactional snapshot initialized");
+      else if(result.status==="invalid")setLiveStatus("Unsupported durable record · Do not overwrite");
+      else setLiveStatus("Transactional storage unavailable");
+    });
+    return()=>{active=false;};
+  },[]);
+  const prepareLive=async()=>{
+    setLiveBusy(true);
+    try{
+      const result=await initializeLiveProjectLibrary(localStorage);
+      if(result.status==="ready"){
+        setLiveRecord(result.record);
+        setLiveStatus((result.created?"Initialized":"Loaded existing")+" transactional snapshot · Revision "+result.record.revision);
+      }else setLiveStatus("Cannot initialize: "+result.status+". Legacy project data was not modified.");
+    }finally{setLiveBusy(false);}
+  };
+  const syncLive=async()=>{
+    if(!liveRecord)return;
+    setLiveBusy(true);
+    try{
+      const raw=localStorage.getItem(PROJECT_LIBRARY_KEY);
+      const incoming=raw?parseStudioLibrary(JSON.parse(raw)):null;
+      if(!incoming){
+        setLiveStatus("Invalid local project registry; transactional snapshot preserved");
+        return;
+      }
+      const result=await mutateLiveProjectLibrary(liveRecord.revision,liveRecord.library.activeId,
+        ()=>incoming);
+      if(result.status==="saved"){
+        setLiveRecord(result.record);
+        setLiveStatus("Transaction committed · Revision "+result.record.revision);
+      }else if(result.status==="conflict")setLiveStatus("Conflict: transactional snapshot changed in another tab. Reopen Projects.");
+      else setLiveStatus("Transaction rejected ("+result.status+"); snapshot preserved");
+    }catch{setLiveStatus("Unable to read local project registry");}
+    finally{setLiveBusy(false);}
+  };
   useEffect(()=>{
     let mounted=true;
     void readRecoveryCheckpoint().then(result=>{
@@ -128,6 +175,15 @@ export function StudioProjectLibrary({library,onClose,onSelect,onNew,onDuplicate
         </div>
         <p role="status" aria-live="polite">{checkpointStatus}</p>
       </section>
+      <details className="pm-project-storage-preview">
+        <summary><Database size={15}/> Experimental transactional project store</summary>
+        <p>Stage a complete project snapshot in IndexedDB with revision checks. Studio and Graph continue to use localStorage for live edits; this is not a storage cutover.</p>
+        <div className="pm-project-checkpoint-actions">
+          <button type="button" disabled={liveBusy} onClick={()=>{void prepareLive();}}>Initialize snapshot</button>
+          <button type="button" disabled={liveBusy||!liveRecord} onClick={()=>{void syncLive();}}>Commit local snapshot</button>
+        </div>
+        <p role="status" aria-live="polite">{liveStatus}</p>
+      </details>
       <p className="pm-project-dialog-note">Recovery checkpoints reject stale revisions across tabs, but regular editor localStorage writes remain last-write-wins. Export JSON for off-device backups. Scene, keyframes, Node Graph and Coursework are included in each project snapshot.</p>
     </section>
   </div>;
