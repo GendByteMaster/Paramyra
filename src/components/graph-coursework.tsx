@@ -127,7 +127,7 @@ export function GraphCoursework({graph,scene,time,outputs,error}:Props){
           <p className="pm-ng-report-caption">Рисунок 2 — визуализация математической модели при t = {time.toFixed(2)} с.</p>
         </section>
         <section><h3>5. Выводы</h3><p>{draft.conclusion||"Заполните выводы в панели слева."}</p></section>
-        <footer>Paramyra Studio · Результаты вычислены локально · {reportDate}</footer>
+        <div className="pm-ng-report-endnote">Paramyra Studio · Результаты вычислены локально · {reportDate}</div>
       </div>
       <div className="pm-ng-coursework-hint"><Download size={14}/> Используйте «Печать / сохранить PDF» и выберите «Сохранить как PDF» в браузере.</div>
     </div>
