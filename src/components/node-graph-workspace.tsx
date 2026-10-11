@@ -363,7 +363,8 @@ function GraphWorkspace() {
         <div className="pm-ng-playhead" aria-label="Graph animation timeline">
           <span className="pm-ng-playhead-label"><CircleDot size={14}/> Timeline</span>
           <input type="range" aria-label="Graph time" min={0} max={documentModel.duration} step=".05" value={time} onChange={e=>setTime(e.target.valueAsNumber)}/>
-          <output aria-label="Graph time value">{time.toFixed(2)}s / {documentModel.duration.toFixed(2)}s</output>
+          <output aria-label="Graph time value">{time.toFixed(2)}s</output>
+          <span className="pm-ng-playhead-duration" aria-label="Graph duration">/ {documentModel.duration.toFixed(2)}s</span>
           <span className="pm-ng-playhead-mode">{graph.binding.enabled?"LIVE":"PREVIEW"}</span>
         </div>
         <div className="pm-ng-footer">
