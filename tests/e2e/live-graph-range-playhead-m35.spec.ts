@@ -7,7 +7,7 @@ test("unsafe amplitude cannot be activated as a discontinuous Live Graph",async(
   const toggle=page.getByRole("checkbox",{name:"Enable Live Graph"});
   await number.fill("20");
   await expect(number).toHaveValue("20");
-  await toggle.check();
+  await toggle.click(); // Rejected activations intentionally leave it unchecked.
   await expect(toggle).not.toBeChecked();
   await expect(page.getByText(/Live Graph cannot be enabled: offset.x can reach -20.00…20.00/)).toBeVisible();
 
