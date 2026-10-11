@@ -15,7 +15,7 @@ import { readSessionPlayhead, writeSessionPlayhead } from "@/core/animation/play
 import { readStoredGraph } from "@/core/graph/storage";
 import { initialGraph } from "@/core/graph/model";
 import { StudioProjectLibrary } from "./studio-project-library";
-import {durableModeEnabled,currentDurableProject,queueDurableMutation,liveProjectId} from "@/core/projects/durable-session";
+import {durableModeEnabled,currentDurableProject,queueDurableMutation,liveProjectId,liveLibrary} from "@/core/projects/durable-session";
 import {DurableWorkspaceGate,DurableStatus} from "./durable-workspace-gate";
 import { readStudioLibrary, activeProject, persistStudioLibrary, createProject, duplicateProject, renameProject, removeProject, selectProject, replaceActiveScene, writeActiveScene, type StudioLibrary } from "@/core/projects/studio-library";
 import { readStudioHandoff, saveStudioHandoffDraft, clearStudioHandoff } from "@/core/playground/session";
@@ -164,10 +164,12 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
   },[]);
   useEffect(()=>{
     const onGraphStorage=(event:StorageEvent)=>{
+      if(durableModeEnabled())return;
       if(event.key===GRAPH_KEY||event.key===PREVIOUS_GRAPH_KEY||event.key===LEGACY_GRAPH_KEY||event.key===null)
         setNodeGraph(readStoredGraph());
     };
     const onDocumentStorage=(event:StorageEvent)=>{
+      if(durableModeEnabled())return;
       if(transferToken||event.key!==DOCUMENT_KEY||!event.newValue)return;
       try{
         const incoming=parseDocument(JSON.parse(event.newValue));
@@ -443,7 +445,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
       </div>
       <div className="pm-project-actions">
         {mode==="studio"?<EditorModeSwitch active="studio" liveGraph={nodeGraph.binding.enabled}/>:<Link className="pm-action pm-action-quiet" href="/studio/graph" aria-label="Open Node Graph Workspace"><GitBranch size={15}/> Node Graph{nodeGraph.binding.enabled?" · LIVE":""}</Link>}
-        <button type="button" className="pm-action pm-project-library-launch" disabled={!!transferToken} onClick={()=>{setProjectLibrary(durableModeEnabled()?currentDurableProject()?readStudioLibrary(localStorage):projectLibrary:readStudioLibrary(localStorage));setProjectLibraryOpen(true);}} aria-label="Open project library" aria-haspopup="dialog" aria-expanded={projectLibraryOpen}><FolderOpen size={15}/> Projects</button>
+        <button type="button" className="pm-action pm-project-library-launch" disabled={!!transferToken} onClick={()=>{setProjectLibrary(durableModeEnabled()?liveLibrary()??projectLibrary:readStudioLibrary(localStorage));setProjectLibraryOpen(true);}} aria-label="Open project library" aria-haspopup="dialog" aria-expanded={projectLibraryOpen}><FolderOpen size={15}/> Projects</button>
         <button type="button" className="pm-icon-btn" aria-label="Undo" disabled={!history.past.length} onClick={undo}><Undo2 size={17}/></button>
         <button type="button" className="pm-icon-btn" aria-label="Redo" disabled={!history.future.length} onClick={redo}><Redo2 size={17}/></button>
         <span className="pm-toolbar-rule"/>

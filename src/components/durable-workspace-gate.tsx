@@ -1,10 +1,10 @@
 "use client";
 
-import {useEffect,useState} from "react";
+import {useEffect,useState,type ReactNode} from "react";
 import {durableModeEnabled,durableSessionSnapshot,DURABLE_SESSION_EVENT,hydrateDurableSession} from "@/core/projects/durable-session";
 
 /** Do not mount sync autosave effects before IndexedDB hydration succeeds. */
-export function DurableWorkspaceGate({children}:{children:React.ReactNode}){
+export function DurableWorkspaceGate({children}:{children:ReactNode}){
   const [status,setStatus]=useState<"loading"|"ready"|"failed">("loading");
   const [message,setMessage]=useState("");
   useEffect(()=>{
