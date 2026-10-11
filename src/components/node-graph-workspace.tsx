@@ -330,8 +330,8 @@ function GraphWorkspace() {
       </aside>}
       <section className="pm-ng-center pm-editor-panel" aria-label="Graph editor">
         <div className="pm-ng-canvasbar pm-editor-viewport-heading">
-          <div className="pm-editor-viewport-title"><span className="pm-blue-dot" aria-hidden="true"/><div><strong>{graph.title}</strong><small>Node canvas · {graph.nodes.length} nodes · {graph.edges.length} links</small></div></div>
-          <div className="pm-ng-canvas-meta"><span className={sceneError?"pm-ng-error-dot":"pm-ng-ok-dot"}>{sceneError?"INVALID OUTPUT":graph.binding.enabled?"LIVE BINDING":"READY"}</span></div>
+          <div className="pm-editor-viewport-title"><span className="pm-blue-dot" aria-hidden="true"/><div><strong>{graph.title}</strong><small>Node canvas · deterministic math graph</small></div></div>
+          <div className="pm-ng-canvas-meta"><span>{graph.nodes.length} NODES</span><span>{graph.edges.length} LINKS</span><span className={sceneError?"pm-ng-error-dot":"pm-ng-ok-dot"}>{sceneError?"INVALID OUTPUT":graph.binding.enabled?"LIVE BINDING":"READY"}</span></div>
         </div>
         <div className="pm-ng-commandbar" role="toolbar" aria-label="Graph editing commands">
           <span className="pm-ng-command-label"><ListTree size={15}/> GRAPH WORKSPACE</span>
