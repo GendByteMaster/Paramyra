@@ -272,7 +272,7 @@ function GraphWorkspace() {
     if (result.document === current) return setNotice("No outputs to apply.");
     if(writeActiveScene(result.document,localStorage,Date.now())){
       setDocumentModel(result.document);
-      setNotice("Applied graph outputs to the active Studio project.");
+      setNotice("Applied static graph outputs to the Studio document and active project.");
     } else setNotice("Could not save to the active project. Export JSON for backup.");
   };
   const exportProject=()=>{
