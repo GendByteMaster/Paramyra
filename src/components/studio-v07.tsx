@@ -184,9 +184,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
       saveStudioHandoffDraft(transferToken,doc);
       return;
     }
-    const next=writeActiveScene(doc,localStorage,Date.now());
-    if(next)setProjectLibrary(next);
-    else setNotice("Project storage unavailable. Export JSON to protect your changes.");
+    writeActiveScene(doc,localStorage,Date.now());
   },[doc,transferToken]);
   const openProject=(next:StudioLibrary)=>{
     if(!persistStudioLibrary(next,localStorage)){
@@ -418,7 +416,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
       </div>
       <div className="pm-project-actions">
         {mode==="studio"?<EditorModeSwitch active="studio" liveGraph={nodeGraph.binding.enabled}/>:<Link className="pm-action pm-action-quiet" href="/studio/graph" aria-label="Open Node Graph Workspace"><GitBranch size={15}/> Node Graph{nodeGraph.binding.enabled?" · LIVE":""}</Link>}
-        <button type="button" className="pm-action pm-project-library-launch" disabled={!!transferToken} onClick={()=>setProjectLibraryOpen(true)} aria-label="Open project library" aria-haspopup="dialog" aria-expanded={projectLibraryOpen}><FolderOpen size={15}/> Projects</button>
+        <button type="button" className="pm-action pm-project-library-launch" disabled={!!transferToken} onClick={()=>{setProjectLibrary(readStudioLibrary(localStorage));setProjectLibraryOpen(true);}} aria-label="Open project library" aria-haspopup="dialog" aria-expanded={projectLibraryOpen}><FolderOpen size={15}/> Projects</button>
         <button type="button" className="pm-icon-btn" aria-label="Undo" disabled={!history.past.length} onClick={undo}><Undo2 size={17}/></button>
         <button type="button" className="pm-icon-btn" aria-label="Redo" disabled={!history.future.length} onClick={redo}><Redo2 size={17}/></button>
         <span className="pm-toolbar-rule"/>
