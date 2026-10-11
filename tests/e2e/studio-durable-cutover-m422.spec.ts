@@ -1,4 +1,5 @@
 import {test,expect,type Page} from "@playwright/test";
+import {readFile} from "node:fs/promises";
 
 async function durableSnapshot(page:Page){
   return page.evaluate(async()=>{
@@ -130,4 +131,21 @@ test("M4.2.2 rejected invalid project rename does not lock valid transactional e
   await modal.getByRole("button",{name:"Save name for Lissajous Curves"}).click();
   await expect(modal.getByText("Verified Project")).toBeVisible();
   await expect.poll(async()=>(await durableSnapshot(page)).library.projects[0].name).toBe("Verified Project");
+});
+
+
+test("M4.2.2 Coursework draft can be exported even before IDB save completes",async({page})=>{
+  await enableDurable(page);
+  await page.goto("/studio/graph");
+  await page.getByRole("button",{name:"Open coursework mode"}).click();
+  await page.getByRole("textbox",{name:"Research objective"}).fill("Offline recoverable report text");
+  const [download]=await Promise.all([
+    page.waitForEvent("download"),
+    page.getByRole("button",{name:"Download report backup"}).click(),
+  ]);
+  expect(download.suggestedFilename()).toBe("paramyra-coursework-draft.json");
+  const filename=await download.path();
+  expect(filename).toBeTruthy();
+  const draft=JSON.parse(await readFile(filename!,"utf8"));
+  expect(draft.objective).toBe("Offline recoverable report text");
 });
