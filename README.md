@@ -5,6 +5,10 @@
 [![CI](https://github.com/GendByteMaster/Paramyra/actions/workflows/ci.yml/badge.svg)](https://github.com/GendByteMaster/Paramyra/actions/workflows/ci.yml)
 
 
+## Studio v1.0 — M4.2 IndexedDB Recovery Checkpoints (stacked development)
+
+M4.2 introduces opt-in, locally durable IndexedDB recovery checkpoints for complete Studio projects. Saving a checkpoint uses an atomic transaction with strict revision compare-and-swap; restoring requires confirmation. This **does not yet replace localStorage live autosave**, so same-project concurrent edits remain last-write-wins. New cross-project guards reject stale autosaves to a different active project. See [the M4.2 design and limitations](docs/STUDIO_RECOVERY_M42.md).
+
 ## Studio v1.0 — M4.1 Project Integrity (development branch)
 
 M4.1 stores Scene, Node Graph, authored Timeline keyframes, and Coursework together inside each Studio project. Legacy project registries (v1) and graph-scoped coursework drafts migrate to versioned v2 project snapshots without executing imported content or erasing old keys. Project JSON v2 includes Coursework; v1 JSON imports remain supported. Timeline playhead is session-only; the durable animation data consists of document duration and keyframes.

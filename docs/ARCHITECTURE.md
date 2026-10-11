@@ -20,3 +20,7 @@
 - Keep rendering and graph compilation outside per-frame React state. Test long animations, malformed inputs and desktop/mobile keyboard interactions.
 
 See [M4.1 specification](STUDIO_PROJECT_INTEGRITY_M41.md) and [M4 project library](STUDIO_PROJECT_LIBRARY_M4.md).
+
+## M4.2 recovery checkpoint foundation
+
+IndexedDB stores an explicit validated full-library recovery checkpoint with transactional revision compare-and-swap. This is separate from the active localStorage editor registry: normal autosave remains synchronous and is **not** transactionally isolated between tabs. The new expected-active-project guards prevent stale editor writes from targeting a different project after cross-tab selection. The readwrite IDB transaction is atomic only for the checkpoint key. See [M4.2 recovery design](STUDIO_RECOVERY_M42.md).
