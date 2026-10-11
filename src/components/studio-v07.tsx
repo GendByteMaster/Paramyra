@@ -13,6 +13,7 @@ import { EditorModeSwitch, EditorPanelHeader } from "./editor-ui";
 import { compileGraph, resolveLiveScene, validateLiveGraphRange } from "@/core/graph/live";
 import { readSessionPlayhead, writeSessionPlayhead } from "@/core/animation/playhead-session";
 import { readStoredGraph } from "@/core/graph/storage";
+import { readStudioHandoff, saveStudioHandoffDraft, clearStudioHandoff, STUDIO_DOCUMENT_KEY } from "@/core/playground/session";
 import { GRAPH_KEY, PREVIOUS_GRAPH_KEY, LEGACY_GRAPH_KEY } from "@/core/graph/model";
 import { savePng, saveSvg, type ExportBackground, type ExportSize } from "@/core/rendering/export";
 import { defaultFormula, validateFormula } from "@/core/math/formula";
@@ -39,6 +40,8 @@ const fields: { key: Key; label: string; min: number; max: number; step: number 
 ];
 
 function loadDoc(kind?: SceneKind): MathDocument {
+  const transfer=readStudioHandoff();
+  if(transfer)return transfer.document;
   if (kind) return documentFromScene(presetFor(kind));
   for (const key of [DOCUMENT_KEY, PREVIOUS_DOCUMENT_KEY, LEGACY_KEY]) {
     try {
@@ -86,10 +89,11 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
   const returnCalculatorFocus=useRef<HTMLElement|null>(null);
   const last=useRef({key:"",at:0});
   const dragGroup=useRef<string|null>(null);
+  const [transferToken,setTransferToken]=useState(()=>readStudioHandoff()?.token??null);
   const [history,setHistory]=useState(()=>initializeHistory(loadDoc(initialKind)));
   const doc=history.present;
   const [nodeGraph,setNodeGraph]=useState(readStoredGraph);
-  const compiledGraph=useMemo(()=>compileGraph(nodeGraph),[nodeGraph]);
+  const compiledGraph=useMemo(()=>transferToken?null:compileGraph(nodeGraph),[nodeGraph,transferToken]);
   const [selected,setSelected]=useState(()=>loadDoc(initialKind).layers[0].id);
   // Selection may reference a layer removed by Undo/Redo or replaced by import.
   // Keep Inspector, Canvas highlighting and Layer list aligned with the same fallback.
@@ -165,7 +169,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
         setNodeGraph(readStoredGraph());
     };
     const onDocumentStorage=(event:StorageEvent)=>{
-      if(event.key!==DOCUMENT_KEY||!event.newValue)return;
+      if(transferToken||event.key!==DOCUMENT_KEY||!event.newValue)return;
       try{
         const incoming=parseDocument(JSON.parse(event.newValue));
         if(incoming)setHistory(initializeHistory(incoming));
@@ -177,11 +181,30 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
       window.removeEventListener("storage",onGraphStorage);
       window.removeEventListener("storage",onDocumentStorage);
     };
-  },[]);
+  },[transferToken]);
   useEffect(()=>{
+    if(transferToken){
+      // Handoff work is entirely isolated until the user explicitly saves it.
+      saveStudioHandoffDraft(transferToken,doc);
+      return;
+    }
     try{localStorage.setItem(DOCUMENT_KEY,JSON.stringify(doc));}
     catch{/* Explicit JSON export remains available. */}
-  },[doc]);
+  },[doc,transferToken]);
+  const savePlaygroundDraftToStudio=()=>{
+    if(!transferToken)return;
+    const existing=localStorage.getItem(STUDIO_DOCUMENT_KEY);
+    if(existing&&!window.confirm("Save this experiment as the active Studio project? This replaces the current saved Studio scene."))return;
+    try{
+      localStorage.setItem(STUDIO_DOCUMENT_KEY,JSON.stringify(doc));
+      clearStudioHandoff(transferToken);
+      setTransferToken(null);
+      window.history.replaceState(null,"","/studio");
+      setNotice("Experiment saved to Studio. Your graph was not modified.");
+    }catch{
+      setNotice("Unable to save to Studio. Your isolated draft is still available in this tab.");
+    }
+  };
 
   const commit=(fn:(d:MathDocument)=>MathDocument,key="")=>{
     // Timestamp is sampled only in user-triggered edit handlers, never during render.
@@ -336,6 +359,13 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
     :{label:"Harmonics",value:layer.params.frequencyX+" + "+layer.params.frequencyY};
 
   return <div className="pm-workspace pm-editor-shell" data-mode={mode} ref={root}>
+    {transferToken&&<div className="pm-studio-transfer" role="status">
+      <div><strong>Playground experiment · Unsaved Studio draft</strong><span>Your previous Studio project is untouched until you save this experiment.</span></div>
+      <div className="pm-studio-transfer-actions">
+        <button type="button" onClick={savePlaygroundDraftToStudio}>Save to Studio</button>
+        <button type="button" onClick={()=>{if(transferToken)clearStudioHandoff(transferToken);window.location.assign("/studio");}}>Discard draft</button>
+      </div>
+    </div>}
     <header className="pm-projectbar pm-editor-topbar" role="toolbar" aria-label="Workspace toolbar">
       <div className="pm-project-identity">
         <Link href="/explore" className="pm-icon-btn" aria-label="Back to Explore"><ArrowLeft size={16}/></Link>
