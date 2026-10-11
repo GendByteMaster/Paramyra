@@ -23,20 +23,15 @@ test("parameters remain saved after reload", async ({ page }) => {
   await expect(page.locator("#frequencyX")).toHaveValue("3");
 });
 
-test("play, pause and safe JSON validation", async ({ page }) => {
+test("Playground plays and pauses independently of Studio", async ({ page }) => {
   await page.goto("/playground");
+  await expect(page.getByRole("heading", { name: "Mathematics Playground" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Pause animation" })).toBeVisible();
   await page.getByRole("button", { name: "Pause animation" }).click();
   await expect(page.getByRole("button", { name: "Play animation" })).toBeVisible();
   await page.getByRole("button", { name: "Play animation" }).click();
   await expect(page.getByRole("button", { name: "Pause animation" })).toBeVisible();
-
-  await page.locator('input[type="file"]').setInputFiles({
-    name: "invalid.json",
-    mimeType: "application/json",
-    buffer: Buffer.from('{"schemaVersion":1,"id":"wrong","title":"Invalid","kind":"lissajous","params":{"frequencyX":999}}'),
-  });
-  await expect(page.locator("p.status[role=status]")).toContainText("Invalid or unsupported scene document.");
+  await expect(page.locator('input[type="file"]')).toHaveCount(0);
 });
 
 test("reduced motion and narrow viewport keep the core UI usable", async ({ page }) => {
