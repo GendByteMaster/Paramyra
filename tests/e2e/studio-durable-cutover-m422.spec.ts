@@ -115,3 +115,22 @@ test("M4.2.2 checkpoint restore replaces durable project through a revisioned co
   await expect(page.locator("#frequencyX")).toHaveValue("3");
   expect((await durableSnapshot(page)).library.projects[0].scene.layers[0].params.frequencyX).toBe(3);
 });
+
+
+test("M4.2.2 rejected invalid project rename does not lock valid transactional edits",async({page})=>{
+  await enableDurable(page);
+  await page.getByRole("button",{name:"Open project library"}).click();
+  const modal=page.getByRole("dialog",{name:"Studio project library"});
+  await modal.getByRole("button",{name:"Rename project Lissajous Curves"}).click();
+  await modal.getByRole("textbox",{name:"Rename Lissajous Curves"}).fill("    ");
+  await modal.getByRole("button",{name:"Save name for Lissajous Curves"}).click();
+  await expect(page.getByRole("alert").filter({hasText:"Save conflict / unavailable storage"})).toHaveCount(0);
+  await modal.getByRole("button",{name:"Rename project Lissajous Curves"}).click();
+  await modal.getByRole("textbox",{name:"Rename Lissajous Curves"}).fill("Verified Project");
+  await modal.getByRole("button",{name:"Save name for Lissajous Curves"}).click();
+  await expect(modal.getByText("Verified Project")).toBeVisible();
+  await expect.poll(async()=>{
+    const snap=await durableSnapshot(page);
+    return snap.library.projects.length===1?snap.library.activeId:null;
+  }).not.toBeNull();
+});
