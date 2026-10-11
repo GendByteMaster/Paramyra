@@ -1,17 +1,34 @@
-/* M3.7 — Canvas lighting and academic coursework workspace. */
+/* M3.8 — one refined Graph canvas background, not a separate light-mode UI. */
 .pm-ng-root .pm-ng-board,
 .pm-ng-root .pm-ng-reactflow-shell { position:relative; isolation:isolate; }
-.pm-ng-root .pm-ng-reactflow-shell { background:#101a29; overflow:hidden; }
+.pm-ng-root .pm-ng-board {
+  background:#121e30;
+}
+.pm-ng-root .pm-ng-reactflow-shell {
+  overflow:hidden;
+  background:#121f31;
+}
 .pm-ng-root .pm-ng-reactflow {
   background:
-    radial-gradient(ellipse 62% 65% at 48% 44%,rgba(55,94,142,.19),transparent 81%),
-    linear-gradient(155deg,#111c2b 0%,#0e1927 55%,#0c1623 100%) !important;
+    radial-gradient(ellipse 72% 68% at 48% 43%,rgba(69,108,153,.24) 0%,rgba(45,78,119,.14) 45%,transparent 100%),
+    radial-gradient(ellipse 54% 72% at 92% 9%,rgba(75,117,159,.075),transparent 80%),
+    linear-gradient(155deg,#17273c 0%,#122034 54%,#101b2c 100%) !important;
+}
+.pm-ng-root .pm-ng-reactflow .react-flow__background {
+  opacity:.54;
 }
 .pm-ng-root .pm-ng-rf-node {
-  box-shadow:0 9px 28px rgba(1,8,20,.28),0 1px 2px rgba(0,0,0,.20);
+  box-shadow:0 10px 28px rgba(1,8,20,.30),0 1px 3px rgba(0,0,0,.20);
+}
+.pm-ng-root .pm-ng-reactflow .react-flow__edge path {
+  filter:drop-shadow(0 0 2px rgba(76,165,209,.16));
+}
+.pm-ng-root .pm-ng-rf-top-tools {
+  backdrop-filter:blur(7px);
 }
 .pm-ng-root .pm-ng-quick-menu {
-  left:8px;top:8px;
+  left:8px;
+  top:8px;
   min-width:0;
   width:min(260px,calc(100% - 16px));
   max-height:min(350px,calc(100% - 16px));
@@ -20,64 +37,7 @@
   border-color:#8cacd16b;
   box-shadow:0 20px 44px #010a1cb8,0 0 0 1px #8dabd71a;
 }
-.pm-ng-root .pm-ng-quick-results{max-height:min(230px,32dvh);}
-.pm-ng-root .pm-ng-rf-top-tools button.pm-ng-rf-light {
-  min-height:33px;
-  padding:7px 10px;
-  color:#cfe0f8;
-  background:#1b2b43;
-  border:1px solid #6988b355;
-}
-.pm-ng-root .pm-ng-rf-top-tools button.pm-ng-rf-light:hover { background:#2d4665; }
-.pm-ng-root .pm-ng-canvas-light {background:#e7edf5;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-reactflow {
-  background:
-    radial-gradient(ellipse 58% 64% at 50% 35%,#ffffffc9,transparent 78%),
-    linear-gradient(160deg,#f7f9fd,#e9f0f9 62%,#e0e9f4) !important;
-}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-node {
-  background:#fff;
-  border-color:#8fa9c9;
-  color:#17314e;
-  box-shadow:0 12px 30px #425a7725,0 1px 2px #273d5b30;
-}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-node-header {
-  background:#dbe8f7;
-  border-bottom-color:#a9c5e2;
-}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-node-header strong,
-.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-port-button,
-.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-port-button span {color:#15324e;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-node-subtitle,
-.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-port-button small,
-.pm-ng-root .pm-ng-canvas-light .pm-ng-node-type {color:#56708e;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-port-button{border-top-color:#d5e2f0;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-port-button:hover {background:#e4effb;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-port-output {background:#e1f2f2;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-port-button output {color:#087b7d;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-destination {background:#eee6fa;color:#60438a;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-chip {background:#ffffffed;color:#30506e;border-color:#9ab0c9;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-top-tools button {background:#f9fbff;color:#294863;border-color:#91abc9;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-top-tools button:hover {background:#e4eefb;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-top-tools button.pm-ng-rf-add {background:#25629c;color:#fff;border-color:#1d609c;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-controls.react-flow__controls {background:#f9fbff;border-color:#a2b7d4;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-controls.react-flow__controls button {background:#f2f6fc;color:#294864;border-color:#c7d5e5;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-minimap.react-flow__minimap {background:#f5f8fd;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-zoom-readable {color:#3f5976;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-quick-menu {background:#fff;color:#1d3652;border-color:#8da8c9;box-shadow:0 20px 40px #2c455b55;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-quick-menu-heading,
-.pm-ng-root .pm-ng-canvas-light .pm-ng-quick-help {color:#456787;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-quick-search {background:#f4f8fd;color:#456482;border-color:#9db8d6;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-quick-search input {color:#17324f;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-quick-results button,
-.pm-ng-root .pm-ng-canvas-light .pm-ng-quick-actions button {color:#1e3e5c;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-quick-results button:hover,
-.pm-ng-root .pm-ng-canvas-light .pm-ng-quick-actions button:hover {background:#e5effa;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-quick-actions button:last-child {color:#a33244;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-quick-menu-heading button {color:#496b8a;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-group {background:#bfd6e833;border-color:#447fb2;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-group-header {background:#daeaf8;color:#1c4769;}
-.pm-ng-root .pm-ng-canvas-light .pm-ng-rf-group-header strong {color:#1b496c;}
+.pm-ng-root .pm-ng-quick-results {max-height:min(230px,32dvh);}
 .pm-ng-coursework-tab {
   display:inline-flex;align-items:center;justify-content:center;gap:7px;
   border:1px solid #8bb3e956;border-radius:9px;min-height:35px;padding:7px 11px;

@@ -21,7 +21,7 @@ export function defaultCourseworkDraft(graph: NodeGraph): CourseworkDraft {
     institution: "",
     student: "",
     supervisor: "",
-    title: "Исследование математической модели «" + graph.title + "»",
+    title: "Mathematical modelling study: " + graph.title,
     objective: "",
     method: "",
     conclusion: "",
@@ -36,7 +36,15 @@ export function readCourseworkDraft(graph: NodeGraph): CourseworkDraft {
     const raw = window.localStorage.getItem(PREFIX + graph.id);
     if (!raw) return fallback;
     const result = courseworkSchema.safeParse(JSON.parse(raw));
-    return result.success ? result.data : fallback;
+    return result.success
+      ? {
+        ...result.data,
+        // Previous M3.7 drafts may contain the generated Russian default.
+        // Migrate only that exact template; never rewrite user-authored text.
+        title: result.data.title === "Исследование математической модели «" + graph.title + "»"
+          ? fallback.title : result.data.title,
+      }
+      : fallback;
   } catch {
     return fallback;
   }

@@ -7,7 +7,7 @@ import {
   type Connection, type Edge, type Node, type NodeChange, type NodeProps,
   type XYPosition,
 } from "@xyflow/react";
-import { ArrowRight, CircleDot, Focus, GitBranch, Link2, Plus, Search, Copy, Trash2, X, Sun, Moon } from "lucide-react";
+import { ArrowRight, CircleDot, Focus, GitBranch, Link2, Plus, Search, Copy, Trash2, X } from "lucide-react";
 import {
   connectGraph, inputPorts, type GraphKind, type GraphNode, type GraphPort, type NodeGraph,
 } from "@/core/graph/model";
@@ -109,10 +109,6 @@ function CanvasContent(props:Props){
   const rf=useReactFlow<CanvasNode,Edge>();
   const [moving,setMoving]=useState<Readonly<Record<string,XYPosition>>>({});
   const [zoom,setZoom]=useState(1);
-  const [lightCanvas,setLightCanvas]=useState(()=>{
-    try{return localStorage.getItem("paramyra.graph.canvas-light.v1")==="true";}catch{return false;}
-  });
-  useEffect(()=>{try{localStorage.setItem("paramyra.graph.canvas-light.v1",String(lightCanvas));}catch{/* optional UI preference */}},[lightCanvas]);
   const shellRef=useRef<HTMLDivElement>(null);
   const quickSearchRef=useRef<HTMLInputElement>(null);
   const [connecting,setConnecting]=useState(false);
@@ -222,7 +218,7 @@ function CanvasContent(props:Props){
     else onMove(node.id,position);
   },[graph,selectedNodeIds,onMoveBatch,onMove]);
   const fit=useCallback(()=>{void rf.fitView({padding:.23,duration:260,maxZoom:1.2});},[rf]);
-  return <div ref={shellRef} className={"pm-ng-reactflow-shell"+(lightCanvas?" pm-ng-canvas-light":"")} aria-label="Interactive node canvas" tabIndex={0}
+  return <div ref={shellRef} className="pm-ng-reactflow-shell" aria-label="Interactive node canvas" tabIndex={0}
     onKeyDown={event=>{
       const target=event.target as HTMLElement;
       if(target.closest("input,textarea,select,[contenteditable='true']"))return;
@@ -276,14 +272,13 @@ function CanvasContent(props:Props){
       proOptions={{hideAttribution:true}}
       colorMode="dark" deleteKeyCode={null}
       className="pm-ng-reactflow">
-      <Background variant={BackgroundVariant.Dots} color={lightCanvas?"#b2c2d7":"#416080"} gap={24} size={lightCanvas?1:1.15}/>
+      <Background variant={BackgroundVariant.Dots} color="#5f7da3" gap={24} size={1.1}/>
       <MiniMap pannable zoomable className="pm-ng-rf-minimap"
         nodeColor={node=>node.type==="group"?"#38627e":selectedNodeIds.includes(node.id)?"#91bdff":node.id.startsWith("target")?"#ad99e6":"#5c8ea9"}
-        maskColor={lightCanvas?"#e4edf7cb":"#101a2bd4"} ariaLabel="Node minimap"/>
+        maskColor="#101a2bd4" ariaLabel="Node minimap"/>
       <Controls showInteractive={false} className="pm-ng-rf-controls"/>
       <Panel position="top-right" className="pm-ng-rf-top-tools">
         <button type="button" className="pm-ng-rf-add" aria-label="Add graph node" onClick={showCenteredMenu}><Plus size={15}/> Add node</button>
-        <button type="button" className="pm-ng-rf-light" aria-label={lightCanvas?"Switch to dark canvas":"Switch to light canvas"} aria-pressed={lightCanvas} title="Toggle canvas lighting" onClick={()=>setLightCanvas(v=>!v)}>{lightCanvas?<Moon size={15}/>:<Sun size={15}/>} {lightCanvas?"Dark":"Light"}</button>
         <span className="pm-ng-rf-chip"><CircleDot size={12}/> {Math.round(zoom*100)}%</span>
         <button type="button" aria-label="Fit graph" title="Fit all nodes" onClick={fit}><Focus size={17}/> Fit</button>
       </Panel>
