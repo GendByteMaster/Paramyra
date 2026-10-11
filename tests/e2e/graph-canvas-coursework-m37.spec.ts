@@ -87,15 +87,15 @@ test("Coursework is a distinct editable and printable workspace backed by the re
 
 test("Coursework report draft survives reload but does not overwrite scene data",async({page})=>{
   await page.goto("/studio/graph");
-  await expect.poll(()=>page.evaluate(()=>localStorage.getItem("paramyra.document.v3"))).not.toBeNull();
-  const scene=JSON.parse((await page.evaluate(()=>localStorage.getItem("paramyra.document.v3")))!);
+  // Visiting Graph alone must not create a Studio scene mirror.
+  const scene=await page.evaluate(()=>localStorage.getItem("paramyra.document.v3"));
   await page.getByRole("button",{name:"Open coursework mode"}).click();
   await page.getByRole("textbox",{name:"Methodology"}).fill("Time-dependent numerical investigation");
   await expect(page.getByText("Draft saved locally")).toBeVisible();
   await page.reload();
   await page.getByRole("button",{name:"Open coursework mode"}).click();
   await expect(page.getByRole("textbox",{name:"Methodology"})).toHaveValue("Time-dependent numerical investigation");
-  expect(JSON.parse((await page.evaluate(()=>localStorage.getItem("paramyra.document.v3")))!)).toEqual(scene);
+  expect(await page.evaluate(()=>localStorage.getItem("paramyra.document.v3"))).toBe(scene);
 });
 
 test("Previously generated Russian draft title migrates to English without rewriting user notes",async({page})=>{
