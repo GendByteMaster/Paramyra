@@ -97,6 +97,8 @@ test("Coursework report draft survives reload but does not overwrite scene data"
 
 test("Previously generated Russian draft title migrates to English without rewriting user notes",async({page})=>{
   await page.goto("/studio/graph");
+  await expect(page.getByRole("button",{name:"Open coursework mode"})).toBeVisible();
+  await expect.poll(()=>page.evaluate(()=>localStorage.getItem("paramyra.nodegraph.v3"))).not.toBeNull();
   await page.evaluate(()=>{
     const graph=JSON.parse(localStorage.getItem("paramyra.nodegraph.v3")!);
     localStorage.setItem("paramyra.graph.coursework.v1."+graph.id,JSON.stringify({
