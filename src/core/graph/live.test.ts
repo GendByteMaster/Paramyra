@@ -105,7 +105,9 @@ describe("M3.5 Live Graph full-timeline safety",()=>{
     const big=updateGraphNode(initialGraph(),"amp",{value:20});
     const enabled=updateGraphBinding(big,{enabled:true,layerId:doc.layers[0].id,priority:"keyframes-win"});
     const compiled=compileGraph(enabled)!;
-    expect(resolveLiveScene(doc,0,compiled).error).toBeNull();
+    expect(evaluateCompiledGraph(compiled,0).error).toBeNull();
+    expect(resolveLiveScene(doc,0,compiled).error).toContain("outside -2…2");
+    expect(resolveLiveScene(doc,0,compiled).document).toBe(doc);
     expect(validateLiveGraphRange(doc,compiled)).toContain("outside -2…2");
     expect(validateLiveGraphRange(doc,compiled)).toContain("-20.00…20.00");
   });
