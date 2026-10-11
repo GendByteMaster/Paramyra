@@ -78,7 +78,7 @@ export function GraphCoursework({graph,scene,time,outputs,error,projectId}:Props
     // Timestamp is sampled in the input event handler, not during rendering.
     // eslint-disable-next-line react-hooks/purity
     const now=Date.now();
-    setSaved(projectId===activeProject(readStudioLibrary(localStorage)).id && !!writeActiveCoursework(next,localStorage,now));
+    setSaved(!!projectId && !!writeActiveCoursework(next,localStorage,now,projectId));
   };
   const reportDate=useMemo(()=>new Date().toLocaleDateString("en-GB"),[]);
   const print=()=>window.print();

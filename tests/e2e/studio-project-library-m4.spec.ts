@@ -111,3 +111,54 @@ test("Duplicate projects preserve independent Coursework and timeline snapshots"
   expect(data.version).toBe(2);
   expect(data.projects.map((p:{coursework:{objective:string}})=>p.coursework.objective).sort()).toEqual(["Copy-only study","Original project study"]);
 });
+
+
+test("M4.2 IndexedDB checkpoint saves full project and restores the requested revision",async({page})=>{
+  await page.goto("/studio");
+  await expect(page.locator("#frequencyX")).toBeVisible();
+  const open=page.getByRole("button",{name:"Open project library"});
+  await open.click();
+  const modal=page.getByRole("dialog",{name:"Studio project library"});
+  await expect(modal.getByText("No recovery checkpoint saved yet")).toBeVisible();
+  await modal.getByRole("button",{name:"Save checkpoint"}).click();
+  await expect(modal.getByText("Recovery checkpoint saved · Revision 1")).toBeVisible();
+  await modal.getByRole("button",{name:"Close project library"}).click();
+  await page.locator("#frequencyX").focus();
+  await page.locator("#frequencyX").press("End");
+  await expect(page.locator("#frequencyX")).toHaveValue("12");
+  await open.click();
+  await expect(modal.getByText("Recovery checkpoint · Revision 1")).toBeVisible();
+  page.once("dialog",dialog=>dialog.accept());
+  await modal.getByRole("button",{name:"Restore checkpoint"}).click();
+  await expect(page.locator("#frequencyX")).toHaveValue("3");
+  const snapshot=await page.evaluate(async()=>{
+    const request=indexedDB.open("paramyra-studio-checkpoints",1);
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{
+      request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);
+    });
+    try{return await new Promise<{revision:number;library:{version:number}}>((resolve,reject)=>{
+      const tx=db.transaction("snapshots","readonly");
+      const get=tx.objectStore("snapshots").get("studio-library");
+      get.onsuccess=()=>resolve(get.result);get.onerror=()=>reject(get.error);
+    });}finally{db.close();}
+  });
+  expect(snapshot.revision).toBe(1);
+  expect(snapshot.library.version).toBe(2);
+});
+
+test("M4.2 refuses to overwrite a recovery checkpoint committed in another tab",async({context})=>{
+  const left=await context.newPage(),right=await context.newPage();
+  try{
+    await Promise.all([left.goto("/studio"),right.goto("/studio")]);
+    await left.getByRole("button",{name:"Open project library"}).click();
+    await right.getByRole("button",{name:"Open project library"}).click();
+    const a=left.getByRole("dialog",{name:"Studio project library"});
+    const b=right.getByRole("dialog",{name:"Studio project library"});
+    await expect(a.getByText("No recovery checkpoint saved yet")).toBeVisible();
+    await expect(b.getByText("No recovery checkpoint saved yet")).toBeVisible();
+    await a.getByRole("button",{name:"Save checkpoint"}).click();
+    await expect(a.getByText("Recovery checkpoint saved · Revision 1")).toBeVisible();
+    await b.getByRole("button",{name:"Save checkpoint"}).click();
+    await expect(b.getByText(/Conflict: another tab updated/)).toBeVisible();
+  }finally{await left.close();await right.close();}
+});
