@@ -13,6 +13,7 @@ import "./node-graph.css";
 import "./node-graph-react-flow.css";
 import "./node-graph-shell.css";
 import "./editor-design-system.css";
+import "./node-graph-pro.css";
 
 export const metadata: Metadata = {
   title: { default: "Paramyra — Mathematics Comes Alive", template: "%s | Paramyra" },
