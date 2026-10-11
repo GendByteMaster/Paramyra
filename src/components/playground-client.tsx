@@ -100,7 +100,7 @@ function PlaygroundWorkspace(){
         <div className="pm-pg-side-note"><strong>No commitment required.</strong><p>Presets and parameter changes stay inside this tab until you explicitly open a Studio draft.</p></div>
       </aside>
 
-      <main className="pm-pg-center" aria-label="Interactive mathematics experiment">
+      <section className="pm-pg-center" aria-label="Interactive mathematics experiment">
         <div className="pm-pg-canvas-head">
           <div><span className="pm-pg-eyebrow">LIVE EXPERIMENT / CANVAS 2D</span><h2>{scene.title}</h2></div>
           <span className="pm-pg-status"><span/> {playing?"LIVE":"PAUSED"}</span>
@@ -128,7 +128,7 @@ function PlaygroundWorkspace(){
           </select>
         </div>
         {notice&&<div className="pm-pg-notice" role="status">{notice}</div>}
-      </main>
+      </section>
 
       <aside className="pm-pg-panel pm-pg-inspector" aria-label="Experiment controls">
         <div className="pm-pg-panel-title"><SlidersHorizontal size={17}/><div><span className="pm-pg-eyebrow">02 / EXPERIMENT</span><h2>Adjust the variables</h2></div></div>
