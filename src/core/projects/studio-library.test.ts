@@ -1,12 +1,13 @@
 import { describe,expect,it } from "vitest";
 import { documentFromScene } from "../document/schema";
 import { initialGraph, updateGraphNode } from "../graph/model";
+import {defaultCourseworkDraft,COURSEWORK_PREFIX} from "../graph/coursework";
 import { presetFor } from "../scenes/presets";
 import {
   PROJECT_LIBRARY_KEY, STUDIO_SCENE_KEY, MAX_STUDIO_PROJECTS,
   activeProject, createProject, duplicateProject, parseStudioLibrary,
   persistStudioLibrary, readStudioLibrary, removeProject, renameProject,
-  replaceActiveGraph, replaceActiveScene, selectProject, writeActiveGraph, writeActiveScene,
+  replaceActiveGraph, replaceActiveScene, replaceActiveCoursework, selectProject, writeActiveGraph, writeActiveScene, writeActiveCoursework,
   type ProjectStore,
 } from "./studio-library";
 
@@ -95,6 +96,66 @@ describe("Studio project library",()=>{
     const {store}=seed(),lib=readStudioLibrary(store);
     expect(replaceActiveScene(lib,{bad:true} as never,1)).toBeNull();
     expect(replaceActiveGraph(lib,{bad:true} as never,1)).toBeNull();
+  });
+  it("migrates v1 registry and scoped Coursework without erasing source data",()=>{
+    const {store}=seed();
+    const initial=readStudioLibrary(store);
+    const p=activeProject(initial);
+    const legacy={version:1,activeId:initial.activeId,projects:initial.projects.map(({coursework:ignored,...old})=>{void ignored;return old;})};
+    const report={...defaultCourseworkDraft(p.graph),objective:"Legacy research",student:"A Student"};
+    const key=COURSEWORK_PREFIX+p.id+"."+p.graph.id;
+    store.setItem(PROJECT_LIBRARY_KEY,JSON.stringify(legacy));
+    store.setItem(key,JSON.stringify(report));
+    const upgraded=readStudioLibrary(store);
+    expect(upgraded.version).toBe(2);
+    expect(activeProject(upgraded).coursework).toEqual(report);
+    expect(persistStudioLibrary(upgraded,store)).toBe(true);
+    expect(JSON.parse(store.getItem(PROJECT_LIBRARY_KEY)!).version).toBe(2);
+    expect(store.getItem(key)).toBe(JSON.stringify(report));
+  });
+  it("keeps Coursework, keyframes and graph distinct after duplication and switching",()=>{
+    const {store}=seed();
+    const initial=readStudioLibrary(store);
+    const p=activeProject(initial);
+    const report={...p.coursework,objective:"Source-only text"};
+    const edited=replaceActiveCoursework(initial,report,123)!;
+    const withTimeline=replaceActiveScene(edited,{...p.scene,layers:p.scene.layers.map(layer=>({
+      ...layer,keyframes:[{property:"opacity" as const,time:1,value:.5,ease:"linear" as const}],
+    }))},124)!;
+    expect(persistStudioLibrary(withTimeline,store)).toBe(true);
+    const duplicated=duplicateProject(withTimeline,withTimeline.activeId,"coursework-copy",125)!;
+    expect(activeProject(duplicated).coursework.objective).toBe("Source-only text");
+    expect(activeProject(duplicated).scene.layers[0].keyframes).toHaveLength(1);
+    expect(persistStudioLibrary(duplicated,store)).toBe(true);
+    const revised=writeActiveCoursework({...report,objective:"Copy-only text"},store,126)!;
+    expect(activeProject(revised).coursework.objective).toBe("Copy-only text");
+    const restored=selectProject(readStudioLibrary(store),initial.activeId)!;
+    expect(activeProject(restored).coursework.objective).toBe("Source-only text");
+    expect(activeProject(restored).scene.layers[0].keyframes).toHaveLength(1);
+  });
+  it("refuses to overwrite malformed registries during fallback autosave",()=>{
+    const {store,entries}=seed();
+    store.setItem(PROJECT_LIBRARY_KEY,'{"version":99,"projects":"unsupported"}');
+    const backup=store.getItem(PROJECT_LIBRARY_KEY);
+    const fallback=readStudioLibrary(store);
+    expect(persistStudioLibrary(fallback,store)).toBe(false);
+    expect(entries.get(PROJECT_LIBRARY_KEY)).toBe(backup);
+  });
+  it("rolls back a failed Coursework registry write and rejects malformed reports",()=>{
+    const {store,entries}=seed();
+    const lib=readStudioLibrary(store);
+    expect(persistStudioLibrary(lib,store)).toBe(true);
+    expect(replaceActiveCoursework(lib,{...activeProject(lib).coursework,title:""} as never,1)).toBeNull();
+    const before=new Map(entries);
+    const rejecting:ProjectStore={
+      getItem:store.getItem,removeItem:store.removeItem,
+      setItem:(key,value)=>{
+        if(key===PROJECT_LIBRARY_KEY)throw Error("quota exceeded");
+        store.setItem(key,value);
+      },
+    };
+    expect(writeActiveCoursework({...activeProject(lib).coursework,student:"A"},rejecting,2)).toBeNull();
+    expect([...entries]).toEqual([...before]);
   });
   it("reconciles direct legacy document edits made before Studio reload",()=>{
     const {store}=seed();

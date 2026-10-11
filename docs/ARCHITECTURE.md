@@ -1,24 +1,22 @@
-# Paramyra architecture — Foundation
+# Paramyra architecture — Studio M4.1
 
 ## Boundaries
 
-- App Router: routing, page composition, metadata, and (later) server APIs.
-- Scene Document: strict versioned Zod-validated JSON. Public gallery retains schema v1; Studio uses MathDocument v2, with migration of valid v1 scenes.
-- Math core: deterministic pure functions; no React imports, DOM, or arbitrary evaluation.
-- Math expressions: bounded AST parser and safe numeric evaluator; strict scope by formula mode, no code execution.
-- Geometry: pure coordinate transforms, curve sampling (including custom formula layers), hit testing and camera-fitting independent of React.\n- Renderer: Canvas 2D adapter using that shared geometry. SVG/Three are potential future adapters, not implemented features.
-- UI features: Gallery, Playground, Studio depend on the same scene schema and rendering contract.
-- Persistence: browser localStorage for one current document and up to 12 user presets; use JSON export for backups. Future IndexedDB/cloud storage are not implemented.
+- Next.js App Router: routes, shell, and UI. React Flow renders graph layout, but the typed DAG model and math evaluation remain independent of it.
+- MathDocument v3: authoritative scene, layer geometry, formulas, animation duration and authored keyframes. Playback time is per-tab session state, not a persistent project edit.
+- NodeGraph v3: typed, validated and bounded DAG. Live output resolves against the same MathDocument with keyframe precedence and bounded ranges.
+- StudioLibrary v2: authoritative browser-local registry of up to 20 independently named projects. Each snapshot stores MathDocument, NodeGraph and validated CourseworkDraft. The storage key remains `paramyra.studio.projects.v1` to migrate existing data without deleting it.
+- Legacy mirrors `paramyra.document.v3` and `paramyra.nodegraph.v3` support existing consumers, but are not separate projects.
+- JSON portable bundle v2: one scene, one graph and one coursework draft. Import of v1 bundles creates a default empty English report. Exact schemas reject unknown fields, malformed math and invalid report data.
+- Migration: valid library v1 records are promoted to v2, copying graph-scoped coursework (first project alone may accept the old unscoped draft). Original keys are not deleted or rewritten.
+- Playground v2: isolated per-tab experiments with explicit non-destructive handoff to a new Studio project.
 
-## Deliberate limits
+## Reliability and security
 
-Studio v0.7 includes up to 12 layers, deterministic timeline playback, local presets and Undo/Redo. v0.8 adds direct manipulation, mathematical grid and geometry-driven Fit. Studio v0.9 adds bounded mathematical AST formulas and a validated v3 schema. Arbitrary JavaScript execution, inter-layer dependencies, keyframes, numerical physics, 3D, accounts and video export are not supported.
+- Browser localStorage is synchronous, quota-bound and **not ACID**. Multi-key writes use best-effort rollback; different tabs may still race (last writer wins).
+- Unsupported or invalid project registries are never silently overwritten by automatic fallback persistence.
+- Scene, graph, expression and Coursework JSON are validated before mutation. User-authored formulas run through a bounded AST evaluator: no `eval`, `new Function`, imports or script execution.
+- Do not treat localStorage as permanent backup. Export project JSON regularly. IndexedDB and multi-tab CAS/revision protocols are separate future milestones.
+- Keep rendering and graph compilation outside per-frame React state. Test long animations, malformed inputs and desktop/mobile keyboard interactions.
 
-## Security and performance
-
-- Never use eval/new Function on user expressions.
-- Validate JSON imports with strict schemas and bounded numeric ranges.
-- Do not import large Animata/UI effects into the mathematical render loop.
-- Keep frame timing within requestAnimationFrame, not React state.
-- Respect reduced-motion preferences and cap Canvas pixel ratio.
-- Schema migrations and deterministic simulation seeds will be needed before introducing physics/keyframes.
+See [M4.1 specification](STUDIO_PROJECT_INTEGRITY_M41.md) and [M4 project library](STUDIO_PROJECT_LIBRARY_M4.md).

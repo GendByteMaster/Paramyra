@@ -196,6 +196,7 @@ function StudioWorkspace({initialKind,mode="studio"}:{initialKind?:SceneKind;mod
     setHistory(initializeHistory(selectedProject.scene));
     setSelected(selectedProject.scene.layers[0].id);
     setNodeGraph(selectedProject.graph);
+    setPlaying(false);setTime(0);setSeekVersion(v=>v+1);
     last.current.key="";
     setProjectLibraryOpen(false);
     setNotice("Opened "+selectedProject.name+".");

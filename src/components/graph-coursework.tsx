@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { BookOpen, Download, FileText, Printer } from "lucide-react";
 import { SceneCanvas } from "./scene-canvas";
-import { courseworkFormulas, readCourseworkDraft, saveCourseworkDraft, type CourseworkDraft } from "@/core/graph/coursework";
+import { courseworkFormulas, defaultCourseworkDraft, type CourseworkDraft } from "@/core/graph/coursework";
+import {activeProject,readStudioLibrary,writeActiveCoursework} from "@/core/projects/studio-library";
 import type { NodeGraph } from "@/core/graph/model";
 import type { MathDocument } from "@/core/document/schema";
 
@@ -14,7 +15,6 @@ type Props = {
   outputs: Readonly<Record<string, number>>;
   error: string | null;
   projectId?: string;
-  allowLegacy?: boolean;
 };
 type DraftKey = Exclude<keyof CourseworkDraft, "version">;
 
@@ -65,14 +65,20 @@ function GraphFigure({graph}:{graph:NodeGraph}) {
   </svg>;
 }
 
-export function GraphCoursework({graph,scene,time,outputs,error,projectId,allowLegacy=true}:Props){
-  const [draft,setDraft]=useState(()=>readCourseworkDraft(graph,projectId,allowLegacy));
+export function GraphCoursework({graph,scene,time,outputs,error,projectId}:Props){
+  const [draft,setDraft]=useState(()=>{
+    const project=activeProject(readStudioLibrary(localStorage));
+    return projectId===project.id?project.coursework:defaultCourseworkDraft(graph);
+  });
   const [saved,setSaved]=useState(true);
   const formulas=useMemo(()=>courseworkFormulas(graph),[graph]);
   const update=(key:DraftKey,value:string)=>{
     const next={...draft,[key]:value};
     setDraft(next);
-    setSaved(saveCourseworkDraft(graph.id,next,projectId));
+    // Timestamp is sampled in the input event handler, not during rendering.
+    // eslint-disable-next-line react-hooks/purity
+    const now=Date.now();
+    setSaved(projectId===activeProject(readStudioLibrary(localStorage)).id && !!writeActiveCoursework(next,localStorage,now));
   };
   const reportDate=useMemo(()=>new Date().toLocaleDateString("en-GB"),[]);
   const print=()=>window.print();
@@ -94,7 +100,7 @@ export function GraphCoursework({graph,scene,time,outputs,error,projectId,allowL
       </div>
       <div className="pm-ng-coursework-actions">
         <button type="button" onClick={print}><Printer size={16}/> Print / Save as PDF</button>
-        <span role="status">{saved?"Draft saved locally":"Unable to save draft"}</span>
+        <span role="status">{saved?"Saved in this project · Included in project export":"Unable to save · Export your work before leaving"}</span>
       </div>
     </aside>
     <div className="pm-ng-coursework-scroll">

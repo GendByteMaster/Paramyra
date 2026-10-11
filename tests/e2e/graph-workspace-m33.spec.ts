@@ -45,7 +45,8 @@ test("M3.3 portable project exports scene and graph together and validates befor
   const serialized=await readFile(file!,"utf8");
   const bundle=JSON.parse(serialized);
   expect(bundle.format).toBe("paramyra-project");
-  expect(bundle.version).toBe(1);
+  expect(bundle.version).toBe(2);
+  expect(bundle.coursework.version).toBe(1);
   expect(bundle.scene.schemaVersion).toBe(3);
   expect(bundle.graph.schemaVersion).toBe(3);
   expect(bundle.graph.groups).toHaveLength(1);
@@ -59,7 +60,7 @@ test("M3.3 portable project exports scene and graph together and validates befor
   await page.getByLabel("Import full project JSON").setInputFiles({
     name:"restored.json",mimeType:"application/json",buffer:Buffer.from(serialized),
   });
-  await expect(page.getByText(/Project imported: scene and graph restored/)).toBeVisible();
+  await expect(page.getByText(/Project imported: scene, graph, keyframes and coursework restored/)).toBeVisible();
   await expect(page.locator(".pm-ng-rf-group")).toHaveCount(1);
 });
 

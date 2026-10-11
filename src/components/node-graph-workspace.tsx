@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { SceneCanvas } from "./scene-canvas";
 import { makeProjectBundle,parseProjectBundle } from "@/core/graph/project-bundle";
-import { readStudioLibrary, activeProject, persistStudioLibrary, replaceActiveScene, replaceActiveGraph, writeActiveScene, writeActiveGraph, PROJECT_LIBRARY_KEY } from "@/core/projects/studio-library";
+import { readStudioLibrary, activeProject, persistStudioLibrary, replaceActiveScene, replaceActiveGraph, replaceActiveCoursework, writeActiveScene, writeActiveGraph, PROJECT_LIBRARY_KEY } from "@/core/projects/studio-library";
 import { copyGraphSelection,parseGraphSelection,pasteGraphSelection,deleteGraphSelection,
   moveGraphSelection,groupGraphNodes,ungroupGraphNodes,renameGraphGroup,type GraphSelection } from "@/core/graph/workspace";
 import { GraphReactFlowCanvas } from "./graph-react-flow";
@@ -73,6 +73,7 @@ function GraphWorkspace() {
   const [selectedGroupId,setSelectedGroupId]=useState<string|null>(null);
   const [fullscreen,setFullscreen]=useState(false);
   const [courseworkMode,setCourseworkMode]=useState(false);
+  const [projectId,setProjectId]=useState(()=>readStudioLibrary(localStorage).activeId);
   const [layerId, setLayerId] = useState(() => readStoredGraph().binding.layerId ?? readDocument().layers[0].id);
   const [time, setTime] = useState(()=>readSessionPlayhead(documentModel.duration));
   const [query, setQuery] = useState("");
@@ -110,6 +111,8 @@ function GraphWorkspace() {
       if(event.key===PROJECT_LIBRARY_KEY){
         const project=activeProject(readStudioLibrary(localStorage));
         setDocumentModel(project.scene);
+        setProjectId(project.id);
+        setTime(0);
         setHistory(initializeGraphHistory(project.graph));
         setSelectedId("");setSelectedIds([]);setSelectedGroupId(null);setEdgeId(null);
       }
@@ -276,12 +279,12 @@ function GraphWorkspace() {
     } else setNotice("Could not save to the active project. Export JSON for backup.");
   };
   const exportProject=()=>{
-    const bundle=makeProjectBundle(readDocument(),graph);
+    const bundle=makeProjectBundle(readDocument(),graph,activeProject(readStudioLibrary(localStorage)).coursework);
     if(!bundle)return setNotice("Project is invalid: check the graph binding and scene layers.");
     const url=URL.createObjectURL(new Blob([JSON.stringify(bundle,null,2)],{type:"application/json"}));
     const a=document.createElement("a");a.href=url;a.download="paramyra-project.json";a.click();
     window.setTimeout(()=>URL.revokeObjectURL(url),1000);
-    setNotice("Exported one portable project file containing the scene and node graph.");
+    setNotice("Exported portable scene, keyframes, node graph and Coursework in one project JSON.");
   };
   const importProject=async(event:ChangeEvent<HTMLInputElement>)=>{
     const file=event.target.files?.[0];event.target.value="";
@@ -292,14 +295,15 @@ function GraphWorkspace() {
       if(!bundle)return setNotice("Project rejected: invalid scene, graph, or live target.");
       const current=readStudioLibrary(localStorage);
       const staged=replaceActiveScene(current,bundle.scene,Date.now());
-      const next=staged&&replaceActiveGraph(staged,bundle.graph,Date.now());
+      const stagedGraph=staged&&replaceActiveGraph(staged,bundle.graph,Date.now());
+       const next=stagedGraph&&replaceActiveCoursework(stagedGraph,bundle.coursework,Date.now());
       if(!next||!persistStudioLibrary(next,localStorage))
         return setNotice("Unable to save the project. Previous scene was preserved where storage permits.");
       setDocumentModel(bundle.scene);
       setHistory(initializeGraphHistory(bundle.graph));
       setLayerId(bundle.graph.binding.layerId??bundle.scene.layers[0].id);
       setSelectedIds([]);setSelectedId("");setSelectedGroupId(null);setEdgeId(null);
-      setNotice("Project imported: scene and graph restored. Undo history reset.");
+      setNotice("Project imported: scene, graph, keyframes and coursework restored. Undo history reset.");
     }catch{setNotice("Unable to import the project file.");}
   };
   const exportGraph=()=>{
@@ -350,8 +354,8 @@ function GraphWorkspace() {
         <button className="pm-ng-button pm-ng-primary" type="button" onClick={apply} disabled={!!projection.error||!connectedOutput||graph.binding.enabled}><Play size={15}/> Apply to Studio</button>
       </div>
     </header>
-    {courseworkMode?<GraphCoursework key={documentModel.id+":"+graph.id} graph={graph}
-      projectId={documentModel.id} allowLegacy={readStudioLibrary(localStorage).projects[0].id===documentModel.id}
+    {courseworkMode?<GraphCoursework key={projectId+":"+graph.id} graph={graph}
+      projectId={projectId}
       scene={graph.binding.enabled?liveScene.document:projection.document}
       time={time} outputs={evaluation.outputs} error={sceneError}/>:
     <div className={"pm-ng-layout pm-editor-pane-layout"+(!libraryOpen?" no-library":"")+(!inspectorOpen?" no-inspector":"")}>

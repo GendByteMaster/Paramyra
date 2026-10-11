@@ -87,3 +87,27 @@ test("Project Library is accessible on compact mobile widths",async({page})=>{
   await page.keyboard.press("Escape");
   await expect(modal).toHaveCount(0);
 });
+
+test("Duplicate projects preserve independent Coursework and timeline snapshots",async({page})=>{
+  await page.goto("/studio/graph");
+  await page.getByRole("button",{name:"Open coursework mode"}).click();
+  await page.getByRole("textbox",{name:"Research objective"}).fill("Original project study");
+  await expect(page.getByText("Saved in this project · Included in project export")).toBeVisible();
+  await page.goto("/studio");
+  await page.getByRole("button",{name:"Open project library"}).click();
+  const dialog=page.getByRole("dialog",{name:"Studio project library"});
+  await dialog.getByRole("button",{name:"Duplicate project Lissajous Curves"}).click();
+  await page.goto("/studio/graph");
+  await page.getByRole("button",{name:"Open coursework mode"}).click();
+  await expect(page.getByRole("textbox",{name:"Research objective"})).toHaveValue("Original project study");
+  await page.getByRole("textbox",{name:"Research objective"}).fill("Copy-only study");
+  await page.goto("/studio");
+  await page.getByRole("button",{name:"Open project library"}).click();
+  await page.getByRole("dialog",{name:"Studio project library"}).getByRole("button",{name:"Open",exact:true}).click();
+  await page.goto("/studio/graph");
+  await page.getByRole("button",{name:"Open coursework mode"}).click();
+  await expect(page.getByRole("textbox",{name:"Research objective"})).toHaveValue("Original project study");
+  const data=JSON.parse((await page.evaluate(()=>localStorage.getItem("paramyra.studio.projects.v1")))!);
+  expect(data.version).toBe(2);
+  expect(data.projects.map((p:{coursework:{objective:string}})=>p.coursework.objective).sort()).toEqual(["Copy-only study","Original project study"]);
+});

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { NodeGraph } from "./model";
 
-const courseworkSchema = z.object({
+export const courseworkSchema = z.object({
   version: z.literal(1),
   institution: z.string().max(160),
   student: z.string().max(120),
@@ -13,7 +13,13 @@ const courseworkSchema = z.object({
 }).strict();
 
 export type CourseworkDraft = z.infer<typeof courseworkSchema>;
-const PREFIX = "paramyra.graph.coursework.v1.";
+export const COURSEWORK_PREFIX = "paramyra.graph.coursework.v1.";
+const PREFIX = COURSEWORK_PREFIX;
+export const parseCourseworkDraft = (value:unknown):CourseworkDraft|null => {
+  const result=courseworkSchema.safeParse(value);
+  return result.success?result.data:null;
+};
+
 
 export function defaultCourseworkDraft(graph: NodeGraph): CourseworkDraft {
   return {
@@ -28,7 +34,26 @@ export function defaultCourseworkDraft(graph: NodeGraph): CourseworkDraft {
   };
 }
 
-/** Notes are per graph, separate from the authoritative project and MathDocument. */
+/** Legacy migration only. New reports live in the authoritative StudioLibrary snapshot.
+ * The legacy keys are retained as read-only inputs, never overwritten during migration. */
+export function readLegacyCourseworkDraft(
+  graph:NodeGraph, projectId:string,
+  store:Pick<Storage,"getItem">, allowUnscoped=false,
+):CourseworkDraft{
+  for(const key of [PREFIX+projectId+"."+graph.id,...(allowUnscoped?[PREFIX+graph.id]:[])]){
+    try{
+      const raw=store.getItem(key);
+      if(!raw||raw.length>8_192)continue;
+      const draft=parseCourseworkDraft(JSON.parse(raw));
+      if(draft){
+        const ru="Исследование математической модели «"+graph.title+"»";
+        return {...draft,title:draft.title===ru?defaultCourseworkDraft(graph).title:draft.title};
+      }
+    }catch{/* Corrupt legacy drafts are ignored without deleting them. */}
+  }
+  return defaultCourseworkDraft(graph);
+}
+/** Compatibility API for historical graph-only report drafts. */
 export function readCourseworkDraft(graph: NodeGraph, projectId?: string, allowLegacy = true): CourseworkDraft {
   const fallback = defaultCourseworkDraft(graph);
   if (typeof window === "undefined") return fallback;
