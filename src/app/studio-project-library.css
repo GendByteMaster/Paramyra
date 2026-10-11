@@ -36,3 +36,14 @@
  .pm-project-entry-actions{width:100%;justify-content:flex-end}
  .pm-project-entry-actions button{padding:8px}
 }
+
+.pm-project-checkpoint{display:flex;flex-wrap:wrap;gap:11px 18px;justify-content:space-between;align-items:center;padding:14px 20px;border-top:1px solid #8fadd024;background:#16293c}
+.pm-project-checkpoint-title{display:flex;gap:10px;align-items:center;color:#9dd9fb;min-width:0}
+.pm-project-checkpoint-title>div{display:grid;gap:4px}
+.pm-project-checkpoint-title strong{color:#e7f2ff;font-size:12px}
+.pm-project-checkpoint-title span{color:#9baec4;font-size:10px}
+.pm-project-checkpoint-actions{display:flex;gap:8px;flex-wrap:wrap}
+.pm-project-checkpoint-actions button{display:inline-flex;align-items:center;gap:6px;background:#254566;color:#dceeff;padding:9px 11px;border-radius:8px;border:1px solid #89a7d369;font-size:11px}
+.pm-project-checkpoint-actions button:hover:not(:disabled){background:#356287}
+.pm-project-checkpoint>p{flex-basis:100%;font-size:11px;color:#aec5e1;margin:0}
+@media(max-width:720px){.pm-project-checkpoint{padding:12px}.pm-project-checkpoint-title{width:100%}.pm-project-checkpoint-actions{width:100%}}

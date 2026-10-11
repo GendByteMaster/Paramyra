@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Copy, FolderOpen, Plus, Save, Trash2, X } from "lucide-react";
+import { Copy, FolderOpen, Plus, Save, Trash2, X, DatabaseBackup, RotateCcw } from "lucide-react";
+import {readRecoveryCheckpoint,writeRecoveryCheckpoint,type RecoveryCheckpoint} from "@/core/projects/durable-checkpoints";
+import {parseStudioLibrary,persistStudioLibrary,PROJECT_LIBRARY_KEY} from "@/core/projects/studio-library";
 import type { StudioLibrary } from "@/core/projects/studio-library";
 
 type Props={
@@ -17,6 +19,59 @@ export function StudioProjectLibrary({library,onClose,onSelect,onNew,onDuplicate
   const [editing,setEditing]=useState<string|null>(null);
   const [name,setName]=useState("");
   const closeRef=useRef<HTMLButtonElement>(null);
+  const [checkpoint,setCheckpoint]=useState<RecoveryCheckpoint|null>(null);
+  const [checkpointStatus,setCheckpointStatus]=useState("Checking local recovery checkpoint…");
+  const [busy,setBusy]=useState(false);
+  useEffect(()=>{
+    let mounted=true;
+    void readRecoveryCheckpoint().then(result=>{
+      if(!mounted)return;
+      if(result.status==="ready"){
+        setCheckpoint(result.checkpoint);
+        setCheckpointStatus("Recovery checkpoint · Revision "+result.checkpoint.revision);
+      }else if(result.status==="empty")setCheckpointStatus("No recovery checkpoint saved yet");
+      else if(result.status==="invalid")setCheckpointStatus("Checkpoint is corrupt; not overwritten");
+      else setCheckpointStatus("IndexedDB unavailable · Use JSON export");
+    });
+    return()=>{mounted=false;};
+  },[]);
+  const saveCheckpoint=async()=>{
+    setBusy(true);
+    try{
+      const raw=localStorage.getItem(PROJECT_LIBRARY_KEY);
+      const valid=raw?parseStudioLibrary(JSON.parse(raw)):null;
+      if(!valid){
+        setCheckpointStatus("Cannot checkpoint an invalid or missing project registry");
+        return;
+      }
+      const outcome=await writeRecoveryCheckpoint(valid,checkpoint?.revision??null);
+      if(outcome.status==="saved"){
+        setCheckpoint(outcome.checkpoint);
+        setCheckpointStatus("Recovery checkpoint saved · Revision "+outcome.checkpoint.revision);
+      }else if(outcome.status==="conflict"){
+        setCheckpointStatus("Conflict: another tab updated the checkpoint. Close and reopen Projects before saving.");
+      }else setCheckpointStatus("Checkpoint not saved ("+outcome.status+"). Export JSON instead.");
+    }catch{
+      setCheckpointStatus("Unable to read the project registry. Export JSON instead.");
+    }finally{setBusy(false);}
+  };
+  const restoreCheckpoint=async()=>{
+    if(!checkpoint || !window.confirm("Restore the saved checkpoint? This replaces the current local Project Library. Export JSON first if you want to keep recent changes."))return;
+    setBusy(true);
+    try{
+      const newest=await readRecoveryCheckpoint();
+      if(newest.status!=="ready" || newest.checkpoint.revision!==checkpoint.revision){
+        setCheckpointStatus("Checkpoint changed or unavailable. Close and reopen Projects before restoring.");
+        return;
+      }
+      // Registry and compatibility mirrors update together with best-effort rollback.
+      if(!persistStudioLibrary(newest.checkpoint.library,localStorage)){
+        setCheckpointStatus("Restore failed; existing project data was not replaced.");
+        return;
+      }
+      window.location.reload();
+    }finally{setBusy(false);}
+  };
   useEffect(()=>{
     closeRef.current?.focus();
     const onKey=(event:KeyboardEvent)=>{if(event.key==="Escape"){event.stopPropagation();onClose();}};
@@ -62,7 +117,18 @@ export function StudioProjectLibrary({library,onClose,onSelect,onNew,onDuplicate
           </div>
         </article>)}
       </div>
-      <p className="pm-project-dialog-note">Browser storage is not a cloud backup. Cross-tab edits use last-write-wins. Scene, keyframes, Node Graph and Coursework are included in each project snapshot.</p>
+      <section className="pm-project-checkpoint" aria-label="Local recovery checkpoint">
+        <div className="pm-project-checkpoint-title"><DatabaseBackup size={17}/><div>
+          <strong>Local recovery checkpoint</strong>
+          <span>Transactional IndexedDB copy · Separate from your everyday autosave</span>
+        </div></div>
+        <div className="pm-project-checkpoint-actions">
+          <button type="button" disabled={busy} onClick={()=>{void saveCheckpoint();}}><Save size={14}/> Save checkpoint</button>
+          <button type="button" disabled={busy||!checkpoint} onClick={()=>{void restoreCheckpoint();}}><RotateCcw size={14}/> Restore checkpoint</button>
+        </div>
+        <p role="status" aria-live="polite">{checkpointStatus}</p>
+      </section>
+      <p className="pm-project-dialog-note">Recovery checkpoints reject stale revisions across tabs, but regular editor localStorage writes remain last-write-wins. Export JSON for off-device backups. Scene, keyframes, Node Graph and Coursework are included in each project snapshot.</p>
     </section>
   </div>;
 }
