@@ -16,6 +16,7 @@ import "./editor-design-system.css";
 import "./node-graph-pro.css";
 import "./node-graph-coursework.css";
 import "./playground-v2.css";
+import "./playground-transfer.css";
 
 export const metadata: Metadata = {
   title: { default: "Paramyra — Mathematics Comes Alive", template: "%s | Paramyra" },
