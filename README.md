@@ -5,6 +5,12 @@
 [![CI](https://github.com/GendByteMaster/Paramyra/actions/workflows/ci.yml/badge.svg)](https://github.com/GendByteMaster/Paramyra/actions/workflows/ci.yml)
 
 
+## Studio v1.0 — M4.2.1 Transactional Project Repository (stacked preview)
+
+M4.2.1 adds a full-project, revisioned IndexedDB repository API. A user can initialize and explicitly commit a **preview snapshot** through the expandable Project Library diagnostics. The repository rejects stale revisions and stale active-project IDs, and never overwrites corrupt legacy or IndexedDB data. Import keeps original legacy records intact.
+
+**Not yet an editor storage cutover:** Studio, React Flow Node Graph and Coursework autosave continue using localStorage; the preview repository is not their current source of truth. See [M4.2.1 design, tests and rollout gate](docs/STUDIO_IDB_REPOSITORY_M421.md).
+
 ## Studio v1.0 — M4.2 IndexedDB Recovery Checkpoints (stacked development)
 
 M4.2 introduces opt-in, locally durable IndexedDB recovery checkpoints for complete Studio projects. Saving a checkpoint uses an atomic transaction with strict revision compare-and-swap; restoring requires confirmation. This **does not yet replace localStorage live autosave**, so same-project concurrent edits remain last-write-wins. New cross-project guards reject stale autosaves to a different active project. See [the M4.2 design and limitations](docs/STUDIO_RECOVERY_M42.md).

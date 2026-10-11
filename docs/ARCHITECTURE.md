@@ -24,3 +24,9 @@ See [M4.1 specification](STUDIO_PROJECT_INTEGRITY_M41.md) and [M4 project librar
 ## M4.2 recovery checkpoint foundation
 
 IndexedDB stores an explicit validated full-library recovery checkpoint with transactional revision compare-and-swap. This is separate from the active localStorage editor registry: normal autosave remains synchronous and is **not** transactionally isolated between tabs. The new expected-active-project guards prevent stale editor writes from targeting a different project after cross-tab selection. The readwrite IDB transaction is atomic only for the checkpoint key. See [M4.2 recovery design](STUDIO_RECOVERY_M42.md).
+
+## M4.2.1 candidate transactional store
+
+`src/core/projects/live-repository.ts` adds a separately keyed complete StudioLibrary record (`studio-library-live`) in the same IndexedDB database, distinct from the opt-in recovery checkpoint. First-run import reads and validates the legacy registry, migrates historical Coursework, and installs the snapshot **only if absent** inside a single readwrite transaction. Subsequent saves require the exact revision and expected active project ID and run domain mutation plus validation in one transaction. Malformed/future data fail closed.
+
+The expandable Project Library **experimental storage** panel can initialize this store and explicitly stage the current local snapshot, but it does **not** make it authoritative for editors. No transparent overwrite, background promotion or implicit split-brain reconciliation occurs. Full migration still needs async hydration before mount and conversion of every editor and project CRUD write path. See [M4.2.1 contract](STUDIO_IDB_REPOSITORY_M421.md).
