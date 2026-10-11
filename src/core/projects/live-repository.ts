@@ -101,9 +101,15 @@ export async function readLiveProjectLibrary(
 export async function initializeLiveProjectLibrary(
   store:ProjectStore,factory:IDBFactory|null=factoryOrNull(),
 ):Promise<LiveInitialize>{
+  if(!factory)return {status:"unavailable"};
+  // Existing durable data must remain accessible even when the legacy mirror
+  // has become corrupt or was deleted after a successful migration.
+  const previous=await readLiveProjectLibrary(factory);
+  if(previous.status==="ready")return {status:"ready",record:previous.record,created:false};
+  if(previous.status==="invalid")return {status:"invalid"};
+  if(previous.status==="unavailable")return {status:"unavailable"};
   const candidate=migrationCandidate(store);
   if(!candidate)return {status:"invalid-legacy"};
-  if(!factory)return {status:"unavailable"};
   let db:IDBDatabase;
   try{db=await openDatabase(factory);}catch{return {status:"unavailable"};}
   try{
