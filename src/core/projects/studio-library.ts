@@ -133,8 +133,8 @@ export function persistStudioLibrary(library:StudioLibrary,store:ProjectStore,
   const graph=JSON.stringify(activeProject(validated).graph);
   const serialized=JSON.stringify(validated);
   if(serialized.length>MAX_JSON_BYTES)return false;
-  const keys=[...(mirrors.scene?[STUDIO_SCENE_KEY]:[]),...(mirrors.graph?[GRAPH_KEY]:[]),PROJECT_LIBRARY_KEY];
-  const values=[...(mirrors.scene?[scene]:[]),...(mirrors.graph?[graph]:[]),serialized];
+  const keys=[...(mirrors.scene!==false?[STUDIO_SCENE_KEY]:[]),...(mirrors.graph!==false?[GRAPH_KEY]:[]),PROJECT_LIBRARY_KEY];
+  const values=[...(mirrors.scene!==false?[scene]:[]),...(mirrors.graph!==false?[graph]:[]),serialized];
   let previous:(string|null)[];
   try{previous=keys.map(key=>store.getItem(key));}catch{return false;}
   try{
