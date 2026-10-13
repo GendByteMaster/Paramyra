@@ -39,6 +39,9 @@ emulation advertises support but the request may never resolve. Desktop real
 fullscreen passes. No Physics scenario is skipped. The combined browser suite
 covers Mathematics Graph, Timeline, Coursework and legacy/IndexedDB storage.
 Exact feature-HEAD CI results are recorded in the pull request.
+The legacy Mathematics out-of-bounds Graph fixture waits for the node-graph
+record to be persisted before modifying it. This fixes an initialization race
+observed in PR CI while retaining the original range and continuity assertions.
 
 ## Numerical fixture tolerances
 
