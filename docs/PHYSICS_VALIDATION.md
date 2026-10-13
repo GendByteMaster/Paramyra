@@ -42,6 +42,9 @@ Exact feature-HEAD CI results are recorded in the pull request.
 The legacy Mathematics out-of-bounds Graph fixture waits for the node-graph
 record to be persisted before modifying it. This fixes an initialization race
 observed in PR CI while retaining the original range and continuity assertions.
+The JSON round-trip scenario also waits for the imported project to appear in
+the durable library before checking its identity and content; matching form
+values alone cannot prove that an asynchronous import transaction completed.
 
 ## Numerical fixture tolerances
 

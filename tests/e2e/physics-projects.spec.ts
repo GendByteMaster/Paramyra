@@ -230,6 +230,10 @@ test("Project JSON exports and imports preserve validated content with a fresh l
   await input.setInputFiles({ name: "round-trip.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(source)) });
   await expect(page.getByRole("heading", { name: "Projectile Motion" })).toBeVisible();
   await expect(page.getByLabel("Hypothesis")).toHaveValue("Compare the exported model with the imported model.");
+  await expect.poll(async () => {
+    const record = await physicsRecord(page) as { library: { projects: PhysicsProjectFixture[] } };
+    return record.library.projects.length;
+  }).toBe(2);
   const saved = await physicsRecord(page) as { library: { activeId: string; projects: PhysicsProjectFixture[] } };
   expect(saved.library.projects).toHaveLength(2);
   expect(saved.library.activeId).toBe(saved.library.projects[1].id);
