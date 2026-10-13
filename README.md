@@ -4,6 +4,31 @@
 
 [![CI](https://github.com/GendByteMaster/Paramyra/actions/workflows/ci.yml/badge.svg)](https://github.com/GendByteMaster/Paramyra/actions/workflows/ci.yml)
 
+## Physics — P0/P1 mechanics foundation
+
+Open `/physics` for the separate Physics platform, `/physics/experiments` for the
+experiment gallery, `/physics/playground` for a temporary run, and `/physics/studio`
+for locally saved projects (`/physics/projects` opens the same project library).
+Projectile Motion and Mass–Spring Oscillator use a
+headless TypeScript engine with fixed-step symplectic Euler, canonical SI quantities
+and dimensional checks. A versioned Web Worker executes stepping and bounded replay;
+Canvas 2D shows trajectories, spring motion and labelled force/velocity vectors.
+
+Run/Pause/Step/Reset, the parameter Inspector, live measurements and CSV/JSON data
+exports share the same validated models. PhysicsProject v1 JSON carries initial
+conditions, solver settings, camera and report notes. Physics has one IndexedDB
+repository with revision and active-project compare-and-swap; corrupt/future records
+and stale writers fail closed. Mathematics storage mode and documents keep their
+existing contracts. Save is explicit, Playground is temporary, and browser-local
+projects still need exported backups.
+
+This delivers the P0/P1 slice of [Epic #34](https://github.com/GendByteMaster/Paramyra/issues/34).
+Multi-object authoring, guided labs, richer plots/printing, Physics React Flow Graph
+and explicit Math interoperability are subsequent P2/P3 work. See the
+[Physics architecture decisions](docs/PHYSICS_ARCHITECTURE.md) for ownership,
+numerical assumptions and storage/recovery boundaries, and the
+[acceptance evidence and remaining gates](docs/PHYSICS_VALIDATION.md).
+
 
 ## Studio v1.0 — M4.2.2 Transactional Editor Cutover (stacked development)
 

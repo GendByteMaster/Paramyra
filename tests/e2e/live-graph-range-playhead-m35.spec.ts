@@ -25,6 +25,7 @@ test("legacy out-of-bounds Live Graph is marked invalid and does not make Studio
   await page.goto("/studio");
   await expect.poll(()=>page.evaluate(()=>localStorage.getItem("paramyra.document.v3"))).not.toBeNull();
   await page.goto("/studio/graph");
+  await expect.poll(()=>page.evaluate(()=>localStorage.getItem("paramyra.nodegraph.v3"))).not.toBeNull();
   await page.evaluate(()=>{
     const key="paramyra.nodegraph.v3";
     const graph=JSON.parse(localStorage.getItem(key)!);

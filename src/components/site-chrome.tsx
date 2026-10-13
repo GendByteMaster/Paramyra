@@ -11,7 +11,8 @@ export function SiteChrome({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const editorWorkspace =
     pathname === "/studio" || pathname.startsWith("/studio/") ||
-    pathname === "/playground" || pathname.startsWith("/playground/");
+    pathname === "/playground" || pathname.startsWith("/playground/") ||
+    pathname === "/physics" || pathname.startsWith("/physics/");
 
   if (editorWorkspace) return null;
   return <>{children}</>;

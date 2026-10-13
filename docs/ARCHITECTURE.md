@@ -1,5 +1,14 @@
 # Paramyra architecture — Studio M4.1
 
+## Physics platform P0/P1
+
+Physics owns a separate strict `PhysicsProject v1`, SI quantity system, headless
+TypeScript mechanics engine and Worker protocol. Its routes and Canvas adapter
+share no mutable Mathematics document or runtime. A distinct `physics-library-live`
+record reuses the existing IndexedDB transaction adapter as Physics' sole durable
+authority; Mathematics' legacy/opt-in cutover remains independent. See
+[Physics ADRs](PHYSICS_ARCHITECTURE.md) for the full boundaries and migration policy.
+
 ## Boundaries
 
 - Next.js App Router: routes, shell, and UI. React Flow renders graph layout, but the typed DAG model and math evaluation remain independent of it.

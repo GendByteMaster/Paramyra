@@ -4,6 +4,8 @@ export default defineConfig({
   testDir: "./tests/e2e",
   timeout: 30_000,
   expect: { timeout: 10_000 },
+  // Bound browser concurrency for real-time worker scenarios.
+  workers: process.env.CI ? 1 : 2,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? "list" : "html",
   use: {

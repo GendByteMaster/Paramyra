@@ -3,7 +3,7 @@ on:
   push:
     branches: [main, "dev/**"]
   pull_request:
-    branches: [main]
+    branches: [main, "dev/master"]
 
 permissions:
   contents: read
@@ -32,6 +32,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: paramyra-visual-review
-          path: test-results/release-review/
+          path: |
+            test-results/release-review/
+            test-results/physics-*/**/*.png
           if-no-files-found: ignore
           retention-days: 14
