@@ -36,10 +36,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <Link href="/" className="brand" aria-label="Paramyra home">
               <span className="brand-icon" aria-hidden="true"><Orbit size={19}/></span>
               <span>Paramyra<span className="brand-period">.</span></span>
-              <span className="brand-tag">MATH STUDIO</span>
+              <span className="brand-tag">MATH · PHYSICS</span>
             </Link>
             <div className="navlinks">
-              <Link href="/explore">Explore</Link>
+              <Link href="/explore">Mathematics</Link>
+              <Link href="/physics">Physics</Link>
               <Link href="/playground">Playground</Link>
               <Link href="/studio">Studio</Link>
               <Link href="/studio/graph">Node Graph</Link>

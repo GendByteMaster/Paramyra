@@ -249,7 +249,7 @@ footer { margin-top: 60px; border-top: 1px solid rgba(255,255,255,.065); backgro
   .brand {font-size:18px;}
   .brand-icon {width:34px;height:34px;}
   .brand-tag {display:none;}
-  .navlinks {width:100%;justify-content:space-between;border-top:1px solid var(--border);padding-top:7px;}
+  .navlinks {width:100%;flex-wrap:wrap;justify-content:space-between;border-top:1px solid var(--border);padding-top:7px;}
   .navlinks a {padding:9px 12px;}
   .home-page {padding-top:12px;}
   .hero-stage {border-radius:23px;}
